@@ -190,8 +190,9 @@ function EraTimelineWidget() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Step through the switch's journey. Watch <strong style={{ color: C.text }}>speed climb</strong> and
-        <strong style={{ color: C.text }}> size shrink</strong> — while the logic (AND, OR, NOT) never changes.
+        You've now met all three switches — relay, tube, transistor. Step back and watch the whole march:
+        <strong style={{ color: C.text }}> speed climbs</strong>, <strong style={{ color: C.text }}>size shrinks</strong>,
+        and the transistor keeps scaling into ICs and VLSI — while the logic (AND, OR, NOT) never changes.
       </p>
 
       {/* era dots */}
@@ -246,10 +247,11 @@ function TransistorWidget() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        In December 1947 at Bell Labs, <strong style={{ color: C.text }}>Bardeen, Brattain and Shockley</strong>
-        {" "}made a switch from a solid piece of semiconductor — the <strong style={{ color: C.text }}>transistor</strong>.
-        No glass, no vacuum, no heater. They won the 1956 Nobel Prize, and it may be the most consequential
-        invention of the 20th century.
+        The tube was fast, but hot, bulky and short-lived — so the search was on for a switch with no
+        filament and no glass. In December 1947 at Bell Labs, <strong style={{ color: C.text }}>Bardeen, Brattain
+        and Shockley</strong> found it: a switch made from a solid piece of semiconductor — the
+        {" "}<strong style={{ color: C.text }}>transistor</strong>. No glass, no vacuum, no heater. They won the
+        1956 Nobel Prize, and it may be the most consequential invention of the 20th century.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
@@ -267,7 +269,11 @@ function TransistorWidget() {
         </div>
       </div>
 
-      <div style={{ color: C.muted, fontSize: 12, marginBottom: 8 }}>And it shrinks without limit — drag through the decades:</div>
+      <div style={{ color: C.muted, fontSize: 12, marginBottom: 8 }}>
+        And it shrinks relentlessly: the transistor count on a chip has doubled roughly every two years since
+        the 1960s — the trend Gordon Moore spotted in 1965, now famous as <strong style={{ color: C.text }}>Moore's
+        Law</strong>. Drag through the decades:
+      </div>
       <input type="range" min={0} max={scales.length - 1} value={i} onChange={(e) => setI(+e.target.value)} style={{ width: "100%", accentColor: C.green }} />
       <div style={{ background: C.green + "14", border: `1px solid ${C.green}44`, borderRadius: 10, padding: "12px 16px", marginTop: 8, textAlign: "center" }}>
         <div style={{ color: C.muted, fontSize: 12 }}>{sc.year} · {sc.label}</div>
@@ -491,8 +497,8 @@ export default function Unit0_3({ student, onUnitComplete }) {
   const sections = [
     { id: "relay", label: "Relay Gates" },
     { id: "tube", label: "Vacuum Tubes" },
-    { id: "timeline", label: "Timeline" },
     { id: "transistor", label: "The Transistor" },
+    { id: "timeline", label: "Timeline" },
     { id: "memory", label: "Memory" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
@@ -506,8 +512,8 @@ export default function Unit0_3({ student, onUnitComplete }) {
   const content = [
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>A gate built from relays</h3><RelayGateWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>A faster switch: the vacuum tube</h3><TubeGateWidget /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>The march of the switch</h3><EraTimelineWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>The invention that changed everything</h3><TransistorWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>The march of the switch</h3><EraTimelineWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>How memory was transformed</h3><MemoryEvolutionWidget /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
