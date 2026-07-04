@@ -1,0 +1,181 @@
+import { useState, useEffect, Suspense } from 'react';
+import Landing from './Landing.jsx';
+import Login from './Login.jsx';
+import Dashboard from './Dashboard.jsx';
+import { getProgress, saveProgress } from './api.js';
+import { getGuestProgress, saveGuestProgress } from './guestProgress.js';
+import { logEvent } from './analytics.js';
+import COURSE_CONFIG from '../../config/course.config.js';
+
+const C = { bg: '#0D1117', muted: '#8B949E' };
+
+function LoadingScreen({ message = 'Loading…' }) {
+  return (
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', gap: 16 }}>
+      <div style={{ fontSize: 40 }}>⚡</div>
+      <div style={{ color: C.muted, fontSize: 15 }}>{message}</div>
+    </div>
+  );
+}
+
+const LESSONS = import.meta.glob('../lessons/*.jsx');
+
+// view walks: 'landing' -> 'dashboard' (guest or signed-in) -> 'lesson'.
+// 'login' is reachable from either 'landing' or 'dashboard' (guest wanting
+// to save progress), and always returns to 'dashboard' one way or another.
+export default function App() {
+  const [view, setView]                       = useState('landing');
+  const [student, setStudent]                 = useState(null); // null = guest
+  const [completedUnits, setCompletedUnits]   = useState([]);
+  const [activeUnit, setActiveUnit]           = useState(null);
+  const [LessonComponent, setLessonComponent] = useState(null);
+  const [loadingLesson, setLoadingLesson]     = useState(false);
+  const [savingProgress, setSavingProgress]   = useState(false);
+
+  // One 'session_start' event per app load -- fires the moment
+  // anyone lands here, guest or not, before they've made any choice.
+  useEffect(() => { logEvent('session_start'); }, []);
+
+  // "Explore the Dashboard" from Landing, or "continue without an account"
+  // from Login -- both land here. Guest progress comes from this browser's
+  // localStorage, not the Sheets backend.
+  function handleExploreGuest() {
+    setStudent(null);
+    setCompletedUnits(getGuestProgress(COURSE_CONFIG.courseId));
+    setView('dashboard');
+  }
+
+  function handleGoToLogin() { setView('login'); }
+
+  // Signing off just clears who's logged in and sends them back to the
+  // Landing screen -- it doesn't touch anything already saved in Sheets,
+  // and if they were exploring as a guest before, that local progress is
+  // untouched too (it lives under a different key in localStorage).
+  function handleSignOff() {
+    setStudent(null);
+    setCompletedUnits([]);
+    setView('landing');
+  }
+
+  // Called by Login.jsx after either a successful sign-in OR a successful
+  // registration -- both return the same { rollNo, name, batch, email } shape.
+  async function handleLoginSuccess(studentData) {
+    setStudent(studentData);
+    const completed = await getProgress(studentData.rollNo, COURSE_CONFIG.courseId);
+    setCompletedUnits(completed);
+    setView('dashboard');
+  }
+
+  async function handleSelectUnit(unitId) {
+    setLoadingLesson(true);
+    setActiveUnit(unitId);
+    try {
+      const path = `../lessons/${unitId}.jsx`;
+      const loader = LESSONS[path];
+      if (!loader) throw new Error('No lesson file found: ' + unitId);
+      const mod = await loader();
+      setLessonComponent(() => mod.default);
+      logEvent('lesson_open', { unitId, userId: student?.rollNo || '' });
+    } catch (err) {
+      console.error('Could not load lesson:', unitId, err);
+      setLessonComponent(null);
+      setActiveUnit(null);
+    }
+    setLoadingLesson(false);
+  }
+
+  async function handleUnitComplete() {
+    if (!activeUnit) return;
+    if (student) {
+      // Signed-in: persist to Sheets. This can be slow (free Apps Script
+      // backend), so show a brief "saving" state rather than freezing
+      // with no feedback.
+      setSavingProgress(true);
+      await saveProgress(student.rollNo, COURSE_CONFIG.courseId, activeUnit);
+      setSavingProgress(false);
+    } else {
+      // Guest: instant, local, no network round-trip.
+      saveGuestProgress(COURSE_CONFIG.courseId, activeUnit);
+    }
+    logEvent('lesson_complete', { unitId: activeUnit, userId: student?.rollNo || '' });
+    setCompletedUnits(prev => [...new Set([...prev, activeUnit])]);
+    setActiveUnit(null); setLessonComponent(null);
+  }
+
+  // Crucible (challenge unit) stage completions. Stages persist as
+  // pseudo-unitIds like "Unit4_C@spark" in the SAME stores as lessons
+  // (Progress sheet / guest localStorage) -- no backend change needed.
+  // The Dashboard filters these out of counts via the "@" marker.
+  // Deliberately not awaited: stage progress is also held in state, and
+  // a slow save must never stall the game feel of the Crucible.
+  function handleStageComplete(stageId) {
+    if (student) {
+      saveProgress(student.rollNo, COURSE_CONFIG.courseId, stageId);
+    } else {
+      saveGuestProgress(COURSE_CONFIG.courseId, stageId);
+    }
+    logEvent('challenge_stage_complete', { unitId: stageId, userId: student?.rollNo || '' });
+    setCompletedUnits(prev => [...new Set([...prev, stageId])]);
+  }
+
+  function handleBackToDashboard() { setActiveUnit(null); setLessonComponent(null); }
+
+  if (view === 'landing') {
+    return <Landing onExploreGuest={handleExploreGuest} onGoToLogin={handleGoToLogin} />;
+  }
+
+  if (view === 'login') {
+    return <Login onLogin={handleLoginSuccess} onBack={handleExploreGuest} />;
+  }
+
+  if (loadingLesson) return <LoadingScreen message="Loading lesson…" />;
+  if (savingProgress) return <LoadingScreen message="Saving your progress… this can take a few seconds." />;
+
+  if (activeUnit && LessonComponent) {
+    // A small icon-only button instead of a text pill: on a phone screen,
+    // reserving a fixed margin to dodge the lesson's own header would waste
+    // a big chunk of a very small viewport. A compact circular button covers
+    // only a tiny corner, and the arrow is a self-explanatory "back" icon on
+    // its own -- the title/aria-label add a hover tooltip for desktop users
+    // without needing any permanent on-screen text or layout shift.
+    return (
+      <div>
+        <div style={{ position: 'fixed', top: 12, left: 12, zIndex: 1000 }}>
+          <button
+            onClick={handleBackToDashboard}
+            title="Back to Dashboard"
+            aria-label="Back to Dashboard"
+            style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(28,35,51,0.9)', border: '1px solid #30363D',
+              color: '#C9D1D9', fontSize: 18, lineHeight: 1, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            ←
+          </button>
+        </div>
+        <Suspense fallback={<LoadingScreen message="Preparing lesson…" />}>
+          {/* Regular lessons use only the first two props; Crucible units
+              also read challengeProgress + onStageComplete for gating. */}
+          <LessonComponent
+            student={student}
+            onUnitComplete={handleUnitComplete}
+            challengeProgress={completedUnits}
+            onStageComplete={handleStageComplete}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
+  return (
+    <Dashboard
+      student={student}
+      completedUnits={completedUnits}
+      onSelectUnit={handleSelectUnit}
+      onRequestLogin={handleGoToLogin}
+      onSignOff={handleSignOff}
+    />
+  );
+}
