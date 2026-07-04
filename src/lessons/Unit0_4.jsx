@@ -237,26 +237,36 @@ function RegistersBusWidget() {
 // ══════════════════════════════════════════════════════════════════
 function FetchExecuteWidget() {
   const program = ["LOD 5", "ADD 3", "OUT"]; // tiny program: 5 + 3 → out
-  // Precomputed steps. Each: active box keys, an optional arrow [fromKey,toKey],
-  // register snapshot, highlighted memory cell, and a narration line.
+  // Plain-English meaning of each instruction (students haven't seen assembly).
+  const glossary = {
+    LOD: { name: "LOAD", desc: "copy a number into the accumulator (the ALU's working store)" },
+    ADD: { name: "ADD", desc: "add a number to whatever is already in the accumulator" },
+    OUT: { name: "OUTPUT", desc: "send the accumulator's value out — e.g. to the screen" },
+  };
+  // Precomputed steps. `phase` drives the progression strip; `arrow` drives the
+  // animated data-flow; `meaning` (on decode steps) drives the glossary highlight.
   const steps = [
-    { note: "Start: PC = 0. The Program Counter points at the first instruction.", active: ["PC"], regs: { PC: 0, MAR: "–", MDR: "–", IR: "–", ACC: 0 }, cell: null },
-    { note: "FETCH — the address in PC is copied into the MAR (onto the address bus).", active: ["PC", "MAR"], arrow: ["PC", "MAR"], regs: { PC: 0, MAR: 0, MDR: "–", IR: "–", ACC: 0 }, cell: 0 },
-    { note: "Memory[0] = 'LOD 5' returns on the data bus into the MDR.", active: ["MEM", "MDR"], arrow: ["MEM", "MDR"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "–", ACC: 0 }, cell: 0 },
-    { note: "The instruction moves MDR → IR, ready to decode.", active: ["MDR", "IR"], arrow: ["MDR", "IR"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 0 }, cell: 0 },
-    { note: "DECODE + EXECUTE 'LOD 5': the ALU/accumulator loads 5.", active: ["IR", "ALU"], arrow: ["IR", "ALU"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: 0 },
-    { note: "PC steps to 1 — ready for the next instruction.", active: ["PC"], regs: { PC: 1, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: null },
-    { note: "FETCH again: PC (1) → MAR.", active: ["PC", "MAR"], arrow: ["PC", "MAR"], regs: { PC: 1, MAR: 1, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: 1 },
-    { note: "Memory[1] = 'ADD 3' → MDR → IR.", active: ["MEM", "MDR", "IR"], arrow: ["MEM", "IR"], regs: { PC: 1, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 5 }, cell: 1 },
-    { note: "EXECUTE 'ADD 3': the ALU adds 3 to the accumulator → 8.", active: ["IR", "ALU"], arrow: ["IR", "ALU"], regs: { PC: 1, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 8 }, cell: 1 },
-    { note: "PC → 2. The cycle repeats — fetch, decode, execute — billions of times a second.", active: ["PC"], regs: { PC: 2, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 8 }, cell: null },
+    { phase: "Ready", note: "PC = 0. The Program Counter points at the first instruction in memory.", active: ["PC"], regs: { PC: 0, MAR: "–", MDR: "–", IR: "–", ACC: 0 }, cell: null },
+    { phase: "Fetch", note: "The address in the PC (0) is copied into the MAR, out onto the address bus.", active: ["PC", "MAR"], arrow: ["PC", "MAR"], regs: { PC: 0, MAR: 0, MDR: "–", IR: "–", ACC: 0 }, cell: 0 },
+    { phase: "Fetch", note: "Memory cell 0 is read; its contents come back on the data bus into the MDR.", active: ["MEM", "MDR"], arrow: ["MEM", "MDR"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "–", ACC: 0 }, cell: 0 },
+    { phase: "Fetch", note: "The instruction moves from the MDR into the IR.", active: ["MDR", "IR"], arrow: ["MDR", "IR"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 0 }, cell: 0 },
+    { phase: "Decode", note: "The Control Unit reads the IR to work out what to do.", meaning: "LOD 5", active: ["IR"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 0 }, cell: 0 },
+    { phase: "Execute", note: "Execute: the accumulator loads the value 5.", active: ["IR", "ALU"], arrow: ["IR", "ALU"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: 0 },
+    { phase: "Next", note: "The PC steps to 1, ready for the next instruction.", active: ["PC"], regs: { PC: 1, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: null },
+    { phase: "Fetch", note: "Fetch again: the PC (1) is copied into the MAR.", active: ["PC", "MAR"], arrow: ["PC", "MAR"], regs: { PC: 1, MAR: 1, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: 1 },
+    { phase: "Fetch", note: "Memory cell 1 is read into the MDR and on into the IR.", active: ["MEM", "MDR", "IR"], arrow: ["MEM", "IR"], regs: { PC: 1, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 5 }, cell: 1 },
+    { phase: "Decode", note: "The Control Unit decodes the new instruction in the IR.", meaning: "ADD 3", active: ["IR"], regs: { PC: 1, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 5 }, cell: 1 },
+    { phase: "Execute", note: "Execute: the ALU adds 3 to the accumulator → 8.", active: ["IR", "ALU"], arrow: ["IR", "ALU"], regs: { PC: 1, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 8 }, cell: 1 },
+    { phase: "Next", note: "PC → 2. The whole cycle repeats — fetch, decode, execute — billions of times a second.", active: ["PC"], regs: { PC: 2, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 8 }, cell: null },
   ];
   const [i, setI] = useState(0);
   const st = steps[i];
   const A = (k) => st.active.includes(k);
+  const phases = ["Fetch", "Decode", "Execute", "Next"];
+  const mnem = st.meaning ? st.meaning.split(" ")[0] : null;
+  const operand = st.meaning ? st.meaning.split(" ")[1] : null;
 
-  // box centers for arrow drawing
-  const ctr = { PC: [70, 54], MAR: [70, 92], MDR: [70, 130], IR: [70, 168], ALU: [150, 148], MEM: [258, 118] };
+  const ctr = { PC: [70, 54], MAR: [70, 92], MDR: [70, 130], IR: [70, 168], ALU: [153, 148], MEM: [258, 118] };
   const rbox = (k, label, x, y) => (
     <g>
       <rect x={x} y={y} width={72} height={28} rx={6} fill={A(k) ? C.accent + "22" : C.bg} stroke={A(k) ? C.accent : C.border} strokeWidth={A(k) ? 2.5 : 1.5} style={{ filter: A(k) ? `drop-shadow(0 0 4px ${C.accent})` : "none" }} />
@@ -265,37 +275,54 @@ function FetchExecuteWidget() {
     </g>
   );
 
+  // Data-flow arrow = animated dashes ("marching ants") moving toward the target.
   let arrowEl = null;
   if (st.arrow) {
     const [f, t] = st.arrow;
     const [x1, y1] = ctr[f], [x2, y2] = ctr[t];
-    arrowEl = <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={C.yellow} strokeWidth={3} markerEnd="url(#feAr)" style={{ filter: `drop-shadow(0 0 3px ${C.yellow})` }} />;
+    arrowEl = <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={C.yellow} strokeWidth={3.5} strokeLinecap="round" strokeDasharray="2 7" markerEnd="url(#feAr)" style={{ animation: "feMarch 0.5s linear infinite", filter: `drop-shadow(0 0 3px ${C.yellow})` }} />;
   }
 
   return (
     <div>
+      <style>{`@keyframes feMarch { to { stroke-dashoffset: -18; } }`}</style>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Every instruction runs the same loop: <strong style={{ color: C.text }}>fetch → decode → execute</strong>,
-        then step the PC. Walk one instruction at a time through this tiny program that computes 5 + 3.
+        Every instruction runs the same four-beat loop. Two things move here, and they're different:
+        the <strong style={{ color: C.text }}>phase chips</strong> show which beat we're on (the progression),
+        and the <strong style={{ color: C.yellow }}>yellow moving dots</strong> show data flowing along a wire
+        (this step). Step through this tiny program that computes 5 + 3.
       </p>
 
+      {/* ── PROGRESSION: the fetch-decode-execute-next phase strip ── */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+        <span style={{ fontSize: 10, color: C.muted, fontWeight: 700, letterSpacing: 1 }}>CYCLE</span>
+        {phases.map((p) => {
+          const on = st.phase === p;
+          return (
+            <div key={p} style={{
+              padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+              background: on ? C.accentGlow : C.card, border: `1px solid ${on ? C.accent : C.border}`,
+              color: on ? "#fff" : C.muted, transition: "all 0.2s",
+            }}>{p === "Next" ? "↻ Next" : p}</div>
+          );
+        })}
+      </div>
+
+      {/* ── FLOW: the datapath with animated dotted data-flow arrow ── */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 6px" }}>
         <svg viewBox="0 0 340 210" style={{ width: "100%", maxWidth: 400, display: "block", margin: "0 auto" }}>
           <defs>
             <marker id="feAr" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.yellow} /></marker>
           </defs>
-          {/* CPU box */}
           <rect x={14} y={20} width={185} height={180} rx={10} fill="none" stroke={C.border} strokeWidth={1.5} />
           <text x={30} y={35} fill={C.muted} fontSize={10} fontWeight="700">CPU</text>
           {rbox("PC", "PC", 34, 40)}
           {rbox("MAR", "MAR", 34, 78)}
           {rbox("MDR", "MDR", 34, 116)}
           {rbox("IR", "IR", 34, 154)}
-          {/* ALU */}
           <rect x={120} y={128} width={66} height={40} rx={6} fill={A("ALU") ? C.orange + "22" : C.bg} stroke={A("ALU") ? C.orange : C.border} strokeWidth={A("ALU") ? 2.5 : 1.5} />
           <text x={153} y={146} fill={A("ALU") ? C.orange : C.muted} fontSize={10} fontWeight="700" textAnchor="middle">ALU</text>
           <text x={153} y={160} fill={C.text} fontSize={11} fontWeight="700" textAnchor="middle">ACC {st.regs.ACC}</text>
-          {/* Memory */}
           <rect x={230} y={34} width={100} height={162} rx={8} fill={A("MEM") ? C.accent + "14" : C.card} stroke={A("MEM") ? C.accent : C.border} strokeWidth={1.5} />
           <text x={280} y={50} fill={C.text} fontSize={11} fontWeight="700" textAnchor="middle">Memory</text>
           {program.map((ins, k) => (
@@ -307,11 +334,36 @@ function FetchExecuteWidget() {
           ))}
           {arrowEl}
         </svg>
+        <div style={{ fontSize: 10.5, color: C.muted, textAlign: "center", paddingTop: 4, lineHeight: 1.5 }}>
+          <span style={{ color: C.accent }}>▮</span> phase chips = progression (which beat)
+          &nbsp;·&nbsp; <span style={{ color: C.yellow }}>▸▸▸</span> moving dots = data flowing this step
+        </div>
       </div>
 
+      {/* ── step narration ── */}
       <div style={{ marginTop: 10, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", minHeight: 40 }}>
-        <span style={{ color: C.muted, fontSize: 11, fontWeight: 700 }}>STEP {i + 1} / {steps.length} · </span>
+        <span style={{ color: C.muted, fontSize: 11, fontWeight: 700 }}>STEP {i + 1} / {steps.length} · {st.phase.toUpperCase()} · </span>
         <span style={{ color: C.text, fontSize: 13 }}>{st.note}</span>
+      </div>
+
+      {/* ── GLOSSARY: what the instructions mean ── */}
+      <div style={{ marginTop: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px" }}>
+        <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>WHAT THESE INSTRUCTIONS MEAN</div>
+        {Object.entries(glossary).map(([k, v]) => {
+          const hot = mnem === k;
+          return (
+            <div key={k} style={{ display: "flex", gap: 8, alignItems: "baseline", padding: "4px 8px", borderRadius: 6, marginBottom: 2, background: hot ? C.accent + "18" : "transparent" }}>
+              <span style={{ fontFamily: "monospace", fontWeight: 700, color: hot ? C.accent : C.text, minWidth: 40 }}>{k}</span>
+              <span style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}><strong style={{ color: hot ? C.accent : C.text }}>{v.name}</strong> — {v.desc}</span>
+            </div>
+          );
+        })}
+        {st.meaning && (
+          <div style={{ marginTop: 8, background: C.accent + "14", border: `1px solid ${C.accent}44`, borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.text, lineHeight: 1.5 }}>
+            Decoding: the IR holds <span style={{ fontFamily: "monospace", color: C.accent, fontWeight: 700 }}>{st.meaning}</span> →{" "}
+            {glossary[mnem].name}{operand ? ` ${operand}` : ""}: {glossary[mnem].desc}.
+          </div>
+        )}
       </div>
 
       <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
