@@ -1,9 +1,9 @@
 // Unit0_4.jsx — Module 0 › Unit 0.4 — "The Von Neumann Model"
 // Foothold formula: GitHub-dark palette, free-nav tab strip, one interactive
-// widget per section, 🔑 key-insight callouts, 4-question quiz.
-// Story arc: why stored-program (vs rewiring) → the five functional units →
-// registers & the three buses → the fetch–execute cycle on a live datapath.
-// This datapath diagram is the recurring visual for the whole course.
+// widget per section, key-insight callouts, 4-question quiz.
+// Arc: the stored-program leap (von Neumann) → then what the transistor made of
+// it — the physical shrink, the four generations, Moore's law, and memory.
+// (Mirrors classroom deck slides on stored-program + slides 45–48.)
 import { useState } from "react";
 
 const C = {
@@ -14,6 +14,7 @@ const C = {
   text: "#E6EDF3", muted: "#8B949E", border: "#30363D",
 };
 
+// ── shared key-insight callout ──
 function Key({ color = C.purple, children }) {
   return (
     <div style={{ marginTop: 16, background: color + "18", border: `1px solid ${color}44`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
@@ -23,7 +24,7 @@ function Key({ color = C.purple, children }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 1 — Stored Program (Need): rewiring vs changing a number
+//  Section 1 — The Stored-Program Idea (von Neumann)
 // ══════════════════════════════════════════════════════════════════
 function StoredProgramWidget() {
   const [op, setOp] = useState("ADD");
@@ -73,6 +74,13 @@ function StoredProgramWidget() {
         </div>
       </div>
 
+      <div style={{ marginTop: 12, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "11px 14px", fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+        📜 <strong style={{ color: C.purple }}>Where this comes from:</strong> von Neumann set it down in the
+        1945 <em>First Draft of a Report on the EDVAC</em>. <strong style={{ color: C.text }}>EDVAC</strong> (1949)
+        was among the first machines to actually keep its program in memory — the "von Neumann architecture"
+        that every computer since, including the one you're reading this on, still follows.
+      </div>
+
       <Key color={C.green}>
         This is the whole idea of the machine you're about to study: instructions are just numbers in
         memory, sitting next to the data. One fixed piece of hardware can run any program — you only
@@ -83,300 +91,207 @@ function StoredProgramWidget() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 2 — The Five Functional Units (clickable block diagram)
+//  Section 2 — The Physical Shrink (deck slide 45)
 // ══════════════════════════════════════════════════════════════════
-function FiveUnitsWidget() {
-  const parts = {
-    input: { name: "Input", color: C.teal, role: "Brings data and programs into the machine — keyboard, sensors, disk, network." },
-    control: { name: "Control Unit", color: C.purple, role: "The conductor: fetches each instruction and tells every other unit what to do, when." },
-    alu: { name: "ALU", color: C.orange, role: "The calculator: arithmetic and logic. The adder you built in Unit 0.2 lives right here." },
-    memory: { name: "Memory", color: C.accent, role: "Holds BOTH instructions and data, as numbers in addressed cells. Von Neumann's key idea." },
-    output: { name: "Output", color: C.green, role: "Sends results back to the world — screen, speaker, disk, network." },
-  };
-  const [sel, setSel] = useState("memory");
-  const box = (id, x, y, w, h) => {
-    const p = parts[id], on = sel === id;
-    return (
-      <g onClick={() => setSel(id)} style={{ cursor: "pointer" }}>
-        <rect x={x} y={y} width={w} height={h} rx={8} fill={on ? p.color + "22" : C.card} stroke={on ? p.color : C.border} strokeWidth={on ? 2.5 : 1.5} />
-        <text x={x + w / 2} y={y + h / 2 + 4} fill={on ? p.color : C.text} fontSize={12} fontWeight="700" textAnchor="middle">{p.name}</text>
-      </g>
-    );
-  };
+function ShrinkWidget() {
+  const B = "/course_COA/"; // matches vite.config base → serves public/shrink/* (avoids import.meta)
+  const stages = [
+    { name: "Half adder — breadboard", what: "~20 transistors, wired by hand", size: "a whole board (~15 cm)", img: "shrink/half-adder-breadboard.jpg", col: C.teal },
+    { name: "Full adder — breadboard", what: "~40 transistors, even more wires", size: "an even bigger board", img: "shrink/full-adder-breadboard.jpg", col: C.teal },
+    { name: "Full adder — one IC", what: "the same circuit grown on silicon", size: "a chip on your fingertip", img: "shrink/full-adder-ic.jpg", col: C.purple },
+    { name: "A board of ICs", what: "many ICs, each one job → a processor", size: "a board of chips", img: "shrink/many-ics-processor.jpg", col: C.purple },
+    { name: "VLSI microprocessor", what: "billions of transistors on one die", size: "held between two fingers", img: "shrink/microprocessor.jpg", col: C.green },
+  ];
+  const [i, setI] = useState(0);
+  const s = stages[i];
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Every von Neumann computer is five cooperating units. Tap each block to see its job. Notice the
-        <strong style={{ color: C.text }}> CPU is just the Control Unit + ALU</strong> working together.
+        Same logic, shrinking hardware. The exact full adder you built goes from a board you can touch to a
+        speck between your fingers. Step through the real hardware and watch it collapse.
       </p>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 6px" }}>
-        <svg viewBox="0 0 320 210" style={{ width: "100%", maxWidth: 380, display: "block", margin: "0 auto" }}>
-          <defs>
-            <marker id="ar3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.muted} /></marker>
-          </defs>
-          {/* Memory on top */}
-          {box("memory", 110, 15, 100, 34)}
-          {/* CPU dashed container */}
-          <rect x={100} y={70} width={120} height={110} rx={10} fill="none" stroke={C.border} strokeDasharray="4 4" />
-          <text x={160} y={84} fill={C.muted} fontSize={10} fontWeight="700" textAnchor="middle">CPU</text>
-          {box("control", 112, 90, 96, 32)}
-          {box("alu", 112, 132, 96, 32)}
-          {/* Input / Output */}
-          {box("input", 15, 108, 70, 34)}
-          {box("output", 235, 108, 70, 34)}
-          {/* buses */}
-          <line x1={85} y1={125} x2={100} y2={125} stroke={C.muted} strokeWidth={2} markerEnd="url(#ar3)" />
-          <line x1={220} y1={125} x2={235} y2={125} stroke={C.muted} strokeWidth={2} markerEnd="url(#ar3)" />
-          <line x1={160} y1={70} x2={160} y2={49} stroke={C.muted} strokeWidth={2} />
-          <line x1={160} y1={49} x2={160} y2={70} stroke={C.muted} strokeWidth={2} markerStart="url(#ar3)" markerEnd="url(#ar3)" />
-        </svg>
+      {/* main photo for the current stage */}
+      <div style={{ background: C.card, border: `1.5px solid ${s.col}55`, borderRadius: 12, padding: 10, textAlign: "center" }}>
+        <img src={B + s.img} alt={s.name} style={{ maxWidth: "100%", maxHeight: 260, borderRadius: 8, display: "block", margin: "0 auto", objectFit: "contain" }} />
+        <div style={{ color: C.muted, fontSize: 11, letterSpacing: 1, marginTop: 8 }}>STAGE {i + 1} OF {stages.length}</div>
+        <div style={{ color: s.col, fontWeight: 800, fontSize: 16 }}>{s.name}</div>
+        <div style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>{s.what} · <span style={{ color: C.text }}>{s.size}</span></div>
       </div>
 
-      <div style={{ marginTop: 10, background: parts[sel].color + "14", border: `1px solid ${parts[sel].color}44`, borderRadius: 10, padding: "12px 16px" }}>
-        <div style={{ color: parts[sel].color, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{parts[sel].name}</div>
-        <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>{parts[sel].role}</div>
-      </div>
-
-      <Key color={C.accent}>
-        Input, Output, Memory, ALU, Control Unit. The CPU = Control + ALU. And crucially, memory holds
-        instructions and data together — that's what makes it a stored-program machine.
-      </Key>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  Section 3 — Registers & the Three Buses
-// ══════════════════════════════════════════════════════════════════
-function RegistersBusWidget() {
-  const items = {
-    PC: { name: "PC — Program Counter", color: C.purple, text: "Holds the address of the NEXT instruction to fetch. Steps forward after each one." },
-    IR: { name: "IR — Instruction Register", color: C.teal, text: "Holds the instruction currently being decoded and executed." },
-    MAR: { name: "MAR — Memory Address Register", color: C.orange, text: "Holds the address the CPU wants to access. Drives the ADDRESS bus." },
-    MDR: { name: "MDR — Memory Data Register", color: C.green, text: "Holds the data going to / coming from memory. Sits on the DATA bus." },
-    addr: { name: "Address bus", color: C.orange, text: "One-way CPU → memory: which cell? Carries the address from the MAR." },
-    data: { name: "Data bus", color: C.green, text: "Two-way: the value being read or written travels here, via the MDR." },
-    ctrl: { name: "Control bus", color: C.red, text: "Carries commands like READ / WRITE and timing signals from the Control Unit." },
-  };
-  const [sel, setSel] = useState("MAR");
-  const on = (k) => sel === k;
-  const reg = (k, x, y) => (
-    <g onClick={() => setSel(k)} style={{ cursor: "pointer" }}>
-      <rect x={x} y={y} width={62} height={28} rx={6} fill={on(k) ? items[k].color + "22" : C.bg} stroke={on(k) ? items[k].color : C.border} strokeWidth={on(k) ? 2.5 : 1.5} />
-      <text x={x + 31} y={y + 18} fill={on(k) ? items[k].color : C.text} fontSize={12} fontWeight="700" textAnchor="middle">{k}</text>
-    </g>
-  );
-  const busColor = (k) => (on(k) ? items[k].color : C.muted);
-
-  return (
-    <div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Inside the CPU, tiny fast stores called <strong style={{ color: C.text }}>registers</strong> hold
-        what's in play right now. The CPU talks to memory over three <strong style={{ color: C.text }}>buses</strong>.
-        Tap any register or bus.
-      </p>
-
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 6px" }}>
-        <svg viewBox="0 0 340 200" style={{ width: "100%", maxWidth: 400, display: "block", margin: "0 auto" }}>
-          <defs>
-            <marker id="arA" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={busColor("addr")} /></marker>
-            <marker id="arD1" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={busColor("data")} /></marker>
-            <marker id="arD2" markerWidth="9" markerHeight="9" refX="3" refY="3" orient="auto"><path d="M6,0 L0,3 L6,6 Z" fill={busColor("data")} /></marker>
-            <marker id="arC" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={busColor("ctrl")} /></marker>
-          </defs>
-          {/* CPU box */}
-          <rect x={12} y={15} width={150} height={170} rx={10} fill="none" stroke={C.border} strokeWidth={1.5} />
-          <text x={30} y={30} fill={C.muted} fontSize={10} fontWeight="700">CPU</text>
-          {reg("PC", 24, 40)}
-          {reg("IR", 96, 40)}
-          {reg("MAR", 24, 82)}
-          {reg("MDR", 96, 82)}
-          <rect x={48} y={128} width={78} height={40} rx={6} fill={C.card} stroke={C.border} strokeWidth={1.5} />
-          <text x={87} y={152} fill={C.muted} fontSize={11} fontWeight="700" textAnchor="middle">ALU</text>
-          {/* Memory */}
-          <rect x={258} y={40} width={72} height={128} rx={8} fill={C.card} stroke={on("data") || on("addr") ? C.accent : C.border} strokeWidth={1.5} />
-          <text x={294} y={58} fill={C.text} fontSize={11} fontWeight="700" textAnchor="middle">Memory</text>
-          {[0, 1, 2].map((i) => <rect key={i} x={268} y={68 + i * 30} width={52} height={22} rx={4} fill={C.bg} stroke={C.border} />)}
-          {/* buses */}
-          <line x1={162} y1={70} x2={258} y2={70} stroke={busColor("addr")} strokeWidth={on("addr") ? 4 : 2.5} markerEnd="url(#arA)" />
-          <text x={205} y={64} fill={busColor("addr")} fontSize={9} fontWeight="700" textAnchor="middle">ADDRESS</text>
-          <line x1={162} y1={110} x2={258} y2={110} stroke={busColor("data")} strokeWidth={on("data") ? 4 : 2.5} markerEnd="url(#arD1)" markerStart="url(#arD2)" />
-          <text x={205} y={104} fill={busColor("data")} fontSize={9} fontWeight="700" textAnchor="middle">DATA</text>
-          <line x1={162} y1={150} x2={258} y2={150} stroke={busColor("ctrl")} strokeWidth={on("ctrl") ? 4 : 2.5} markerEnd="url(#arC)" />
-          <text x={205} y={144} fill={busColor("ctrl")} fontSize={9} fontWeight="700" textAnchor="middle">CONTROL</text>
-        </svg>
-      </div>
-
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-        {["addr", "data", "ctrl"].map((k) => (
-          <button key={k} onClick={() => setSel(k)} style={{
-            flex: 1, minWidth: 90, padding: "7px", borderRadius: 7, border: `1px solid ${on(k) ? items[k].color : C.border}`,
-            background: on(k) ? items[k].color + "18" : C.card, color: on(k) ? items[k].color : C.muted, fontWeight: 700, fontSize: 11, cursor: "pointer",
-          }}>{items[k].name}</button>
+      {/* clickable thumbnail filmstrip */}
+      <div style={{ display: "flex", gap: 6, marginTop: 12, justifyContent: "center", flexWrap: "wrap" }}>
+        {stages.map((st, j) => (
+          <button key={j} onClick={() => setI(j)} title={st.name} style={{
+            padding: 0, borderRadius: 8, cursor: "pointer", overflow: "hidden", lineHeight: 0,
+            border: `2px solid ${j === i ? st.col : C.border}`, background: C.card,
+            opacity: j === i ? 1 : 0.55, transition: "all 0.2s",
+          }}>
+            <img src={B + st.img} alt={st.name} style={{ width: 62, height: 46, objectFit: "cover", display: "block" }} />
+          </button>
         ))}
       </div>
 
-      <div style={{ marginTop: 10, background: items[sel].color + "14", border: `1px solid ${items[sel].color}44`, borderRadius: 10, padding: "12px 16px" }}>
-        <div style={{ color: items[sel].color, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{items[sel].name}</div>
-        <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>{items[sel].text}</div>
+      <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+        <button onClick={() => setI(Math.min(stages.length - 1, i + 1))} disabled={i >= stages.length - 1}
+          style={{ padding: "9px 20px", borderRadius: 8, background: i >= stages.length - 1 ? C.border : C.accentGlow, border: "none", color: "#fff", fontWeight: 600, fontSize: 13, cursor: i >= stages.length - 1 ? "default" : "pointer" }}>
+          Shrink ▶ ({i + 1} / {stages.length})
+        </button>
+        <button onClick={() => setI(0)} style={{ padding: "9px 16px", borderRadius: 8, background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>↺ Reset</button>
       </div>
 
-      <Key color={C.orange}>
-        To touch memory the CPU puts an address in the MAR (onto the address bus), says READ or WRITE on
-        the control bus, and the value travels on the data bus through the MDR. Every memory access, all
-        course long, is this handshake.
+      <Key color={C.green}>
+        The circuit never changed — only its size. Breadboard → IC → VLSI. That shrink is exactly what the
+        "four generations" of computers are made of.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 4 — The Fetch–Execute Cycle (step-through datapath)
+//  Section 3 — The Four Generations (deck slide 46)
 // ══════════════════════════════════════════════════════════════════
-function FetchExecuteWidget() {
-  const program = ["LOD 5", "ADD 3", "OUT"]; // tiny program: 5 + 3 → out
-  // Plain-English meaning of each instruction (students haven't seen assembly).
-  const glossary = {
-    LOD: { name: "LOAD", desc: "copy a number into the accumulator (the ALU's working store)" },
-    ADD: { name: "ADD", desc: "add a number to whatever is already in the accumulator" },
-    OUT: { name: "OUTPUT", desc: "send the accumulator's value out — e.g. to the screen" },
-  };
-  // Precomputed steps. `phase` drives the progression strip; `arrow` drives the
-  // animated data-flow; `meaning` (on decode steps) drives the glossary highlight.
-  const steps = [
-    { phase: "Ready", note: "PC = 0. The Program Counter points at the first instruction in memory.", active: ["PC"], regs: { PC: 0, MAR: "–", MDR: "–", IR: "–", ACC: 0 }, cell: null },
-    { phase: "Fetch", note: "The address in the PC (0) is copied into the MAR, out onto the address bus.", active: ["PC", "MAR"], arrow: ["PC", "MAR"], regs: { PC: 0, MAR: 0, MDR: "–", IR: "–", ACC: 0 }, cell: 0 },
-    { phase: "Fetch", note: "Memory cell 0 is read; its contents come back on the data bus into the MDR.", active: ["MEM", "MDR"], arrow: ["MEM", "MDR"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "–", ACC: 0 }, cell: 0 },
-    { phase: "Fetch", note: "The instruction moves from the MDR into the IR.", active: ["MDR", "IR"], arrow: ["MDR", "IR"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 0 }, cell: 0 },
-    { phase: "Decode", note: "The Control Unit reads the IR to work out what to do.", meaning: "LOD 5", active: ["IR"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 0 }, cell: 0 },
-    { phase: "Execute", note: "Execute: the accumulator loads the value 5.", active: ["IR", "ALU"], arrow: ["IR", "ALU"], regs: { PC: 0, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: 0 },
-    { phase: "Next", note: "The PC steps to 1, ready for the next instruction.", active: ["PC"], regs: { PC: 1, MAR: 0, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: null },
-    { phase: "Fetch", note: "Fetch again: the PC (1) is copied into the MAR.", active: ["PC", "MAR"], arrow: ["PC", "MAR"], regs: { PC: 1, MAR: 1, MDR: "LOD 5", IR: "LOD 5", ACC: 5 }, cell: 1 },
-    { phase: "Fetch", note: "Memory cell 1 is read into the MDR and on into the IR.", active: ["MEM", "MDR", "IR"], arrow: ["MEM", "IR"], regs: { PC: 1, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 5 }, cell: 1 },
-    { phase: "Decode", note: "The Control Unit decodes the new instruction in the IR.", meaning: "ADD 3", active: ["IR"], regs: { PC: 1, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 5 }, cell: 1 },
-    { phase: "Execute", note: "Execute: the ALU adds 3 to the accumulator → 8.", active: ["IR", "ALU"], arrow: ["IR", "ALU"], regs: { PC: 1, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 8 }, cell: 1 },
-    { phase: "Next", note: "PC → 2. The whole cycle repeats — fetch, decode, execute — billions of times a second.", active: ["PC"], regs: { PC: 2, MAR: 1, MDR: "ADD 3", IR: "ADD 3", ACC: 8 }, cell: null },
+function GenerationsWidget() {
+  const gens = [
+    { g: "1st", years: "1945–1955", tech: "Vacuum tubes", brought: "The stored-program concept; assembly language.", col: C.red },
+    { g: "2nd", years: "1955–1965", tech: "Transistors", brought: "Smaller, faster gates; high-level languages (Fortran).", col: C.orange },
+    { g: "3rd", years: "1965–1975", tech: "Integrated Circuits", brought: "Many transistors per chip; pipelining & cache ideas — Modules 3 & 4!", col: C.yellow },
+    { g: "4th", years: "1975–now", tech: "VLSI", brought: "Billions of transistors → the microprocessor in your pocket.", col: C.green },
   ];
-  const [i, setI] = useState(0);
-  const st = steps[i];
-  const A = (k) => st.active.includes(k);
-  const phases = ["Fetch", "Decode", "Execute", "Next"];
-  const mnem = st.meaning ? st.meaning.split(" ")[0] : null;
-  const operand = st.meaning ? st.meaning.split(" ")[1] : null;
-
-  const ctr = { PC: [70, 54], MAR: [70, 92], MDR: [70, 130], IR: [70, 168], ALU: [153, 148], MEM: [258, 118] };
-  const rbox = (k, label, x, y) => (
-    <g>
-      <rect x={x} y={y} width={72} height={28} rx={6} fill={A(k) ? C.accent + "22" : C.bg} stroke={A(k) ? C.accent : C.border} strokeWidth={A(k) ? 2.5 : 1.5} style={{ filter: A(k) ? `drop-shadow(0 0 4px ${C.accent})` : "none" }} />
-      <text x={x + 8} y={y + 18} fill={C.muted} fontSize={10} fontWeight="700">{label}</text>
-      <text x={x + 64} y={y + 18} fill={A(k) ? C.accent : C.text} fontSize={11} fontWeight="700" textAnchor="end">{String(st.regs[k])}</text>
-    </g>
-  );
-
-  // Data-flow arrow = animated dashes ("marching ants") moving toward the target.
-  let arrowEl = null;
-  if (st.arrow) {
-    const [f, t] = st.arrow;
-    const [x1, y1] = ctr[f], [x2, y2] = ctr[t];
-    arrowEl = <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={C.yellow} strokeWidth={3.5} strokeLinecap="round" strokeDasharray="2 7" markerEnd="url(#feAr)" style={{ animation: "feMarch 0.5s linear infinite", filter: `drop-shadow(0 0 3px ${C.yellow})` }} />;
-  }
+  const [sel, setSel] = useState(0);
+  const d = gens[sel];
 
   return (
     <div>
-      <style>{`@keyframes feMarch { to { stroke-dashoffset: -18; } }`}</style>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Every instruction runs the same four-beat loop. Two things move here, and they're different:
-        the <strong style={{ color: C.text }}>phase chips</strong> show which beat we're on (the progression),
-        and the <strong style={{ color: C.yellow }}>yellow moving dots</strong> show data flowing along a wire
-        (this step). Step through this tiny program that computes 5 + 3.
+        Each generation swapped the switch for a smaller, faster one — and each unlocked a new idea. Click a
+        generation to see its technology and what it brought.
       </p>
 
-      {/* ── PROGRESSION: the fetch-decode-execute-next phase strip ── */}
-      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
-        <span style={{ fontSize: 10, color: C.muted, fontWeight: 700, letterSpacing: 1 }}>CYCLE</span>
-        {phases.map((p) => {
-          const on = st.phase === p;
-          return (
-            <div key={p} style={{
-              padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700,
-              background: on ? C.accentGlow : C.card, border: `1px solid ${on ? C.accent : C.border}`,
-              color: on ? "#fff" : C.muted, transition: "all 0.2s",
-            }}>{p === "Next" ? "↻ Next" : p}</div>
-          );
-        })}
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        {gens.map((x, i) => (
+          <button key={i} onClick={() => setSel(i)} style={{
+            flex: 1, padding: "10px 6px", borderRadius: 10, cursor: "pointer",
+            border: `2px solid ${sel === i ? x.col : C.border}`, background: sel === i ? x.col + "22" : C.card,
+            color: sel === i ? x.col : C.muted, fontWeight: 800,
+          }}>
+            <div style={{ fontSize: 16 }}>{x.g}</div>
+            <div style={{ fontSize: 10, marginTop: 2 }}>{x.years.split("–")[0]}</div>
+          </button>
+        ))}
       </div>
 
-      {/* ── FLOW: the datapath with animated dotted data-flow arrow ── */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 6px" }}>
-        <svg viewBox="0 0 340 210" style={{ width: "100%", maxWidth: 400, display: "block", margin: "0 auto" }}>
-          <defs>
-            <marker id="feAr" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.yellow} /></marker>
-          </defs>
-          <rect x={14} y={20} width={185} height={180} rx={10} fill="none" stroke={C.border} strokeWidth={1.5} />
-          <text x={30} y={35} fill={C.muted} fontSize={10} fontWeight="700">CPU</text>
-          {rbox("PC", "PC", 34, 40)}
-          {rbox("MAR", "MAR", 34, 78)}
-          {rbox("MDR", "MDR", 34, 116)}
-          {rbox("IR", "IR", 34, 154)}
-          <rect x={120} y={128} width={66} height={40} rx={6} fill={A("ALU") ? C.orange + "22" : C.bg} stroke={A("ALU") ? C.orange : C.border} strokeWidth={A("ALU") ? 2.5 : 1.5} />
-          <text x={153} y={146} fill={A("ALU") ? C.orange : C.muted} fontSize={10} fontWeight="700" textAnchor="middle">ALU</text>
-          <text x={153} y={160} fill={C.text} fontSize={11} fontWeight="700" textAnchor="middle">ACC {st.regs.ACC}</text>
-          <rect x={230} y={34} width={100} height={162} rx={8} fill={A("MEM") ? C.accent + "14" : C.card} stroke={A("MEM") ? C.accent : C.border} strokeWidth={1.5} />
-          <text x={280} y={50} fill={C.text} fontSize={11} fontWeight="700" textAnchor="middle">Memory</text>
-          {program.map((ins, k) => (
-            <g key={k}>
-              <rect x={240} y={60 + k * 34} width={80} height={26} rx={5} fill={st.cell === k ? C.yellow + "22" : C.bg} stroke={st.cell === k ? C.yellow : C.border} strokeWidth={st.cell === k ? 2 : 1} />
-              <text x={247} y={77 + k * 34} fill={C.muted} fontSize={9}>{k}</text>
-              <text x={312} y={77 + k * 34} fill={st.cell === k ? C.yellow : C.text} fontSize={11} fontWeight="700" textAnchor="end">{ins}</text>
+      <div style={{ background: C.card, border: `1.5px solid ${d.col}55`, borderRadius: 12, padding: "14px 16px" }}>
+        <div style={{ color: d.col, fontWeight: 800, fontSize: 15 }}>{d.g} generation · {d.years}</div>
+        <div style={{ color: C.text, fontSize: 14, margin: "6px 0" }}>Switch technology: <strong>{d.tech}</strong></div>
+        <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>What it brought: {d.brought}</div>
+      </div>
+
+      <Key color={C.purple}>
+        Notice what evolved: the <strong>organization</strong> (the hardware). The <strong>architecture</strong>
+        {" "}— the stored-program blueprint — is the same dream since 1945.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 4 — Moore's Law (deck slide 47)
+// ══════════════════════════════════════════════════════════════════
+function MooreWidget() {
+  const pts = [
+    { y: 1971, n: 2300, label: "Intel 4004" },
+    { y: 1989, n: 1200000, label: "Intel 486" },
+    { y: 2008, n: 1000000000, label: "Core i7" },
+    { y: 2024, n: 100000000000, label: "Apple M-series" },
+  ];
+  const [i, setI] = useState(0);
+  const p = pts[i];
+  const fmt = (n) => (n >= 1e9 ? n / 1e9 + " B" : n >= 1e6 ? n / 1e6 + " M" : n.toLocaleString());
+  const barH = (n) => 20 + (Math.log10(n) / Math.log10(1e11)) * 150;
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Moore's law: the number of transistors on a chip roughly <strong style={{ color: C.text }}>doubles
+        every two years</strong>. Slide through the decades and watch the count climb.
+      </p>
+
+      <svg viewBox="0 0 320 220" style={{ width: "100%", maxWidth: 420, display: "block", margin: "0 auto" }}>
+        <line x1={38} y1={12} x2={38} y2={188} stroke={C.muted} strokeWidth={1} />
+        <line x1={38} y1={188} x2={312} y2={188} stroke={C.muted} strokeWidth={1} />
+        <text x={10} y={22} fill={C.muted} fontSize={9}>count</text>
+        <text x={10} y={33} fill={C.muted} fontSize={8}>(log)</text>
+        {pts.map((q, j) => {
+          const bx = 56 + j * 64;
+          const h = barH(q.n);
+          return (
+            <g key={j} opacity={j <= i ? 1 : 0.28}>
+              <rect x={bx} y={188 - h} width={46} height={h} rx={4} fill={j === i ? C.accent + "66" : C.card} stroke={j === i ? C.accent : C.border} strokeWidth={1.5} />
+              <text x={bx + 23} y={204} fill={C.muted} fontSize={10} textAnchor="middle">{q.y}</text>
+              <text x={bx + 23} y={184 - h} fill={j === i ? C.accent : C.muted} fontSize={10} fontWeight="700" textAnchor="middle">{fmt(q.n)}</text>
             </g>
-          ))}
-          {arrowEl}
-        </svg>
-        <div style={{ fontSize: 10.5, color: C.muted, textAlign: "center", paddingTop: 4, lineHeight: 1.5 }}>
-          <span style={{ color: C.accent }}>▮</span> phase chips = progression (which beat)
-          &nbsp;·&nbsp; <span style={{ color: C.yellow }}>▸▸▸</span> moving dots = data flowing this step
-        </div>
-      </div>
-
-      {/* ── step narration ── */}
-      <div style={{ marginTop: 10, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px", minHeight: 40 }}>
-        <span style={{ color: C.muted, fontSize: 11, fontWeight: 700 }}>STEP {i + 1} / {steps.length} · {st.phase.toUpperCase()} · </span>
-        <span style={{ color: C.text, fontSize: 13 }}>{st.note}</span>
-      </div>
-
-      {/* ── GLOSSARY: what the instructions mean ── */}
-      <div style={{ marginTop: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "10px 14px" }}>
-        <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>WHAT THESE INSTRUCTIONS MEAN</div>
-        {Object.entries(glossary).map(([k, v]) => {
-          const hot = mnem === k;
-          return (
-            <div key={k} style={{ display: "flex", gap: 8, alignItems: "baseline", padding: "4px 8px", borderRadius: 6, marginBottom: 2, background: hot ? C.accent + "18" : "transparent" }}>
-              <span style={{ fontFamily: "monospace", fontWeight: 700, color: hot ? C.accent : C.text, minWidth: 40 }}>{k}</span>
-              <span style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}><strong style={{ color: hot ? C.accent : C.text }}>{v.name}</strong> — {v.desc}</span>
-            </div>
           );
         })}
-        {st.meaning && (
-          <div style={{ marginTop: 8, background: C.accent + "14", border: `1px solid ${C.accent}44`, borderRadius: 8, padding: "8px 12px", fontSize: 12, color: C.text, lineHeight: 1.5 }}>
-            Decoding: the IR holds <span style={{ fontFamily: "monospace", color: C.accent, fontWeight: 700 }}>{st.meaning}</span> →{" "}
-            {glossary[mnem].name}{operand ? ` ${operand}` : ""}: {glossary[mnem].desc}.
+      </svg>
+
+      <input type="range" min={0} max={pts.length - 1} value={i} onChange={(e) => setI(Number(e.target.value))} style={{ width: "100%", accentColor: C.accent }} />
+      <div style={{ textAlign: "center", color: C.accent, fontWeight: 700, fontSize: 14, marginTop: 4 }}>
+        {p.y} · {p.label} · {fmt(p.n)} transistors
+      </div>
+
+      <Key color={C.yellow}>
+        The axis is logarithmic — a straight climb means <strong>exponential</strong> growth. Moore's law
+        isn't a law of physics but an economic target the industry hit for 60 years… and it's now slowing,
+        which is why <strong>architecture</strong> matters more than ever.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 5 — Memory Needed a Switch Too (deck slide 48)
+// ══════════════════════════════════════════════════════════════════
+function MemoryWidget() {
+  const [mode, setMode] = useState("core");
+  const core = mode === "core";
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Logic gates got a better switch — but <strong style={{ color: C.text }}>memory</strong> needed its own.
+        Compare the two ways a single bit has been stored.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button onClick={() => setMode("core")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `2px solid ${core ? C.yellow : C.border}`, background: core ? C.yellow + "22" : C.card, color: core ? C.yellow : C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Magnetic core (1950s)</button>
+        <button onClick={() => setMode("dram")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `2px solid ${!core ? C.green : C.border}`, background: !core ? C.green + "22" : C.card, color: !core ? C.green : C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Transistor DRAM / SRAM</button>
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", minHeight: 110 }}>
+        {core ? (
+          <div>
+            <div style={{ color: C.yellow, fontWeight: 800, marginBottom: 6 }}>🧲 Magnetic-core memory</div>
+            <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
+              Each bit = the magnetisation direction of a tiny iron ring, <strong style={{ color: C.text }}>hand-threaded</strong>
+              {" "}one ring per bit. Workers literally wove Apollo's memory by hand.
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ color: C.green, fontWeight: 800, marginBottom: 6 }}>🔲 Transistor memory (DRAM / SRAM)</div>
+            <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
+              The same one bit, shrunk to one of <strong style={{ color: C.text }}>billions of cells</strong> etched on a
+              chip — no hands, no wires. The full story is Module 4.
+            </div>
           </div>
         )}
       </div>
 
-      <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-        <button onClick={() => setI(Math.min(steps.length - 1, i + 1))} disabled={i >= steps.length - 1} style={{
-          padding: "9px 20px", borderRadius: 8, border: "none", fontWeight: 600, fontSize: 13,
-          background: i >= steps.length - 1 ? C.border : C.accentGlow, color: "#fff", cursor: i >= steps.length - 1 ? "default" : "pointer",
-        }}>Step ▶ ({i + 1}/{steps.length})</button>
-        <button onClick={() => setI(0)} style={{ padding: "9px 16px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>↺ Reset</button>
-      </div>
-
-      <Key color={C.accent}>
-        Fetch (PC → MAR → read → MDR → IR), decode, execute (ALU), then PC++. That four-beat loop, repeated
-        billions of times a second, IS a running program. Module 2 opens up the "execute" step in full.
+      <Key color={C.green}>
+        Same idea as logic: whatever switch technology wins, memory rides the same shrink. One hand-threaded
+        ring became billions of microscopic cells.
       </Key>
     </div>
   );
@@ -388,43 +303,43 @@ function FetchExecuteWidget() {
 function Quiz({ onComplete }) {
   const questions = [
     {
-      q: "What is the core idea of the stored-program (von Neumann) computer?",
+      q: "What is von Neumann's stored-program idea?",
       options: [
-        "Instructions are wired into the hardware permanently",
-        "Instructions and data are stored together in memory, as numbers",
-        "Each program needs its own machine",
-        "Data is stored, but instructions are entered by hand each time",
+        "Build the operation into the machine's cables",
+        "Keep the instructions in memory as numbers, alongside the data",
+        "Give every problem its own dedicated machine",
+        "Use vacuum tubes instead of relays",
       ],
       answer: 1,
-      explain: "Instructions are just numbers living in memory beside the data, so one fixed machine runs any program — you only change the numbers.",
+      explain: "Instructions are just numbers in memory. Changing the program means loading different numbers — no rewiring. One machine, infinite programs.",
     },
     {
-      q: "In the von Neumann model, the CPU is made of which two units?",
+      q: "A full adder goes from a breadboard to a VLSI chip. What actually changes?",
       options: [
-        "Memory and Input",
-        "ALU and Output",
-        "Control Unit and ALU",
-        "Registers and Buses",
+        "The logic — it computes something different",
+        "Nothing, they are identical in every way",
+        "Only the size and packaging — the logic is exactly the same",
+        "The number of inputs it accepts",
       ],
       answer: 2,
-      explain: "CPU = Control Unit (directs everything) + ALU (does the arithmetic and logic). Memory and I/O sit outside the CPU.",
+      explain: "Same gates, same truth table — only the physical size collapses. Breadboard → IC → VLSI is a shrink, not a redesign.",
     },
     {
-      q: "Which register holds the address of the NEXT instruction to fetch?",
-      options: ["IR (Instruction Register)", "MDR (Memory Data Register)", "MAR (Memory Address Register)", "PC (Program Counter)"],
-      answer: 3,
-      explain: "The Program Counter points at the next instruction and steps forward after each fetch. The IR holds the current instruction being executed.",
+      q: "Which switching technology defines the 3rd generation of computers?",
+      options: ["Vacuum tubes", "Relays", "Integrated circuits", "VLSI microprocessors"],
+      answer: 2,
+      explain: "1st = vacuum tubes, 2nd = transistors, 3rd = integrated circuits (many transistors per chip), 4th = VLSI (the microprocessor).",
     },
     {
-      q: "Put the FETCH steps in the right order.",
+      q: "What does Moore's law describe?",
       options: [
-        "PC → MAR → read memory → MDR → IR",
-        "IR → PC → MAR → MDR → memory",
-        "MDR → PC → IR → MAR → memory",
-        "MAR → IR → PC → memory → MDR",
+        "Transistors get twice as fast every year",
+        "The number of transistors per chip roughly doubles every two years",
+        "Memory doubles in price every decade",
+        "A physical limit that can never be crossed",
       ],
-      answer: 0,
-      explain: "The address in the PC goes to the MAR, memory is read, the value returns via the MDR, and lands in the IR to be decoded.",
+      answer: 1,
+      explain: "Moore's law is the observation that transistor count per chip doubles about every two years — an economic target, not a law of physics, and now slowing.",
     },
   ];
 
@@ -449,19 +364,19 @@ function Quiz({ onComplete }) {
         <div style={{ fontSize: 52 }}>{score >= 3 ? "🎉" : "👍"}</div>
         <div style={{ fontSize: 24, fontWeight: 700, color: C.text, marginTop: 10 }}>You scored {score} / {questions.length}</div>
         <div style={{ color: C.muted, marginTop: 8, marginBottom: 20 }}>
-          {score === 4 ? "Excellent — you can read the datapath and trace an instruction end to end."
-            : score >= 2 ? "Good. Replay the Registers & Buses and Fetch–Execute tabs to firm it up."
-              : "Worth another pass — the Five Units and Fetch–Execute tabs are the ones to revisit."}
+          {score === 4 ? "Perfect — the stored-program idea and the whole chip era, locked in."
+            : score >= 2 ? "Solid. Replay the Generations or Moore's Law tab to sharpen the details."
+              : "Worth another pass — revisit the Shrink and Generations tabs, then retry."}
         </div>
-        <div style={{ padding: 20, borderRadius: 12, background: `linear-gradient(135deg, ${C.green}22, ${C.accentGlow}22)`, border: `1px solid ${C.green}55`, textAlign: "left" }}>
-          <div style={{ color: C.green, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🏁 Module 0 Complete!</div>
+        <div style={{ padding: 20, borderRadius: 12, background: `linear-gradient(135deg, ${C.accentGlow}22, ${C.purple}22)`, border: `1px solid ${C.accent}55`, textAlign: "left" }}>
+          <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Module 0 Complete!</div>
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
-            You've gone from the firing-table crisis, to bits and gates, to the stored-program machine and
-            its fetch–execute heartbeat. You can now read the datapath every later module builds on.
+            You've gone from "why build a computer at all" to the stored-program machine, and watched the
+            switch shrink from a clicking relay to billions of transistors on a fingertip.
             <br /><br />
             <strong style={{ color: C.accent }}>Next up: Module 1 — Basic Structure of Computers.</strong>{" "}
-            We zoom into these five units for real: functional units, bus structures, memory addresses, and
-            how instructions are sequenced.
+            Now we open the machine: the five functional units, the registers and buses inside, and the
+            fetch–execute cycle that actually runs your stored program.
           </div>
         </div>
       </div>
@@ -499,7 +414,8 @@ function Quiz({ onComplete }) {
       {selected !== null && (
         <button onClick={next} style={{
           marginTop: 14, padding: "10px 24px", borderRadius: 8,
-          background: C.accentGlow, border: "none", color: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14,
+          background: C.accentGlow, border: "none", color: "#fff",
+          fontWeight: 600, cursor: "pointer", fontSize: 14,
         }}>{current < questions.length - 1 ? "Next Question →" : "See Results"}</button>
       )}
     </div>
@@ -512,9 +428,10 @@ function Quiz({ onComplete }) {
 export default function Unit0_4({ student, onUnitComplete }) {
   const sections = [
     { id: "stored", label: "Stored Program" },
-    { id: "units", label: "Five Units" },
-    { id: "buses", label: "Registers & Buses" },
-    { id: "cycle", label: "Fetch–Execute" },
+    { id: "shrink", label: "The Shrink" },
+    { id: "gens", label: "Four Generations" },
+    { id: "moore", label: "Moore's Law" },
+    { id: "memory", label: "Memory" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -525,14 +442,15 @@ export default function Unit0_4({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>One machine, any program</h3><StoredProgramWidget /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>The five functional units</h3><FiveUnitsWidget /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>Registers and the three buses</h3><RegistersBusWidget /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>The heartbeat: fetch, decode, execute</h3><FetchExecuteWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>Instructions become numbers in memory</h3><StoredProgramWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>From a breadboard to a fingertip</h3><ShrinkWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>Four generations of computers</h3><GenerationsWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>The doubling drumbeat</h3><MooreWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>Memory needed a switch too</h3><MemoryWidget /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 0.4.</p>
-      <Quiz onComplete={() => { markComplete(4); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 

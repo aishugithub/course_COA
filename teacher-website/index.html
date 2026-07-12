@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aishwarya · Computer Science Educator</title>
+<meta name="description" content="Personal site of Aishwarya — computer science educator. Subjects taught, interactive courses, and resources for students." />
+<!-- ════════════════════════════════════════════════════════════════
+     HOW TO EDIT (quick):
+     · Your name / tagline …… search "EDIT:NAME"
+     · About text ……………… search "EDIT:ABOUT"
+     · Subjects (add/remove cards) … search "EDIT:SUBJECTS"
+     · Course & resource links …… search "EDIT:LINKS"
+     · Contact email ………… search "EDIT:CONTACT"
+     Everything is in this one file. No build step needed.
+════════════════════════════════════════════════════════════════ -->
+<style>
+  :root{
+    --bg:#0D1117; --surface:#161B22; --card:#1C2333; --card2:#20283a;
+    --accent:#58A6FF; --accent2:#BC8CFF; --teal:#39D0D8; --green:#3FB950;
+    --orange:#F0883E; --yellow:#D29922;
+    --text:#E6EDF3; --muted:#8B949E; --border:#2A3140;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height:1.6; overflow-x:hidden;
+  }
+  a{color:inherit; text-decoration:none}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 22px}
+  .accent{color:var(--accent)}
+  .grad{
+    background:linear-gradient(100deg,var(--accent),var(--accent2) 55%,var(--teal));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  /* ── glass nav ── */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(13,17,23,.72); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border);
+  }
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; height:62px}
+  .logo{font-weight:800; font-size:19px; letter-spacing:.3px}
+  .logo .dot{color:var(--accent)}
+  .navlinks{display:flex; gap:26px}
+  .navlinks a{color:var(--muted); font-size:15px; font-weight:600; transition:color .2s}
+  .navlinks a:hover{color:var(--text)}
+  .menu-btn{display:none; background:none; border:none; color:var(--text); font-size:26px; cursor:pointer}
+
+  /* ── hero ── */
+  header.hero{position:relative; padding:110px 0 90px; overflow:hidden}
+  .blob{position:absolute; border-radius:50%; filter:blur(90px); opacity:.28; z-index:0}
+  .blob.b1{width:420px; height:420px; background:var(--accent); top:-120px; right:-80px}
+  .blob.b2{width:360px; height:360px; background:var(--accent2); bottom:-160px; left:-100px}
+  .hero .wrap{position:relative; z-index:1}
+  .eyebrow{color:var(--teal); font-weight:700; letter-spacing:3px; text-transform:uppercase; font-size:13px; margin-bottom:18px}
+  h1{font-size:clamp(38px,6vw,64px); line-height:1.08; font-weight:800; letter-spacing:-.5px}
+  .subtitle{font-size:clamp(17px,2.4vw,22px); color:var(--muted); margin-top:20px; max-width:620px}
+  .cta{display:flex; gap:14px; margin-top:34px; flex-wrap:wrap}
+  .btn{
+    display:inline-block; padding:12px 24px; border-radius:12px; font-weight:700; font-size:15px;
+    border:1px solid transparent; cursor:pointer; transition:transform .15s, box-shadow .2s, background .2s;
+  }
+  .btn.primary{background:var(--accent); color:#06101f; box-shadow:0 8px 26px -10px var(--accent)}
+  .btn.primary:hover{transform:translateY(-2px)}
+  .btn.ghost{border-color:var(--border); color:var(--text); background:var(--surface)}
+  .btn.ghost:hover{border-color:var(--accent); color:var(--accent)}
+
+  /* ── sections ── */
+  section{padding:76px 0; border-top:1px solid var(--border)}
+  .kicker{color:var(--accent); font-weight:700; letter-spacing:2px; text-transform:uppercase; font-size:13px}
+  h2{font-size:clamp(28px,4vw,40px); font-weight:800; margin:10px 0 8px; letter-spacing:-.3px}
+  .lead{color:var(--muted); font-size:17px; max-width:680px}
+
+  .about-grid{display:grid; grid-template-columns:1.4fr 1fr; gap:34px; align-items:start; margin-top:26px}
+  .about-grid p{color:var(--muted); font-size:16.5px; margin-bottom:14px}
+  .about-grid p b{color:var(--text)}
+  .facts{display:flex; flex-direction:column; gap:12px}
+  .fact{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px}
+  .fact .t{color:var(--accent); font-weight:800; font-size:15px}
+  .fact .d{color:var(--muted); font-size:14px; margin-top:2px}
+
+  /* ── subject cards ── */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; margin-top:30px}
+  .scard{
+    background:linear-gradient(180deg,var(--card),var(--surface));
+    border:1px solid var(--border); border-radius:18px; padding:24px;
+    transition:transform .18s, border-color .2s, box-shadow .2s; position:relative; overflow:hidden;
+  }
+  .scard:hover{transform:translateY(-4px); border-color:var(--accent); box-shadow:0 16px 40px -22px var(--accent)}
+  .scard .ico{
+    width:50px; height:50px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    font-size:26px; margin-bottom:16px; border:1px solid var(--border);
+  }
+  .scard h3{font-size:19px; font-weight:800; margin-bottom:8px}
+  .scard p{color:var(--muted); font-size:14.5px}
+  .scard .tag{display:inline-block; margin-top:14px; font-size:12px; font-weight:700; color:var(--teal); letter-spacing:.5px}
+
+  /* ── resource links ── */
+  .rgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; margin-top:30px}
+  .rcard{
+    display:flex; gap:16px; align-items:center; background:var(--surface);
+    border:1px solid var(--border); border-radius:16px; padding:20px; transition:border-color .2s, transform .15s;
+  }
+  .rcard:hover{border-color:var(--accent2); transform:translateY(-3px)}
+  .rcard .rico{font-size:30px}
+  .rcard .rt{font-weight:800; font-size:16px}
+  .rcard .rd{color:var(--muted); font-size:14px; margin-top:2px}
+  .rcard .arrow{margin-left:auto; color:var(--muted); font-size:22px; transition:transform .2s, color .2s}
+  .rcard:hover .arrow{transform:translateX(4px); color:var(--accent2)}
+
+  /* ── contact ── */
+  .contact-box{
+    margin-top:28px; background:linear-gradient(120deg,#1a2740,#20183a);
+    border:1px solid var(--border); border-radius:20px; padding:38px; text-align:center;
+  }
+  .contact-box h3{font-size:24px; font-weight:800}
+  .contact-box p{color:var(--muted); margin:10px auto 22px; max-width:520px}
+
+  footer{padding:34px 0; border-top:1px solid var(--border); color:var(--muted); font-size:14px; text-align:center}
+  footer .accent{font-weight:700}
+
+  /* scroll-reveal */
+  .reveal{opacity:0; transform:translateY(22px); transition:opacity .6s ease, transform .6s ease}
+  .reveal.on{opacity:1; transform:none}
+
+  @media (max-width:760px){
+    .navlinks{display:none; position:absolute; top:62px; left:0; right:0; flex-direction:column; gap:0;
+      background:var(--surface); border-bottom:1px solid var(--border)}
+    .navlinks.open{display:flex}
+    .navlinks a{padding:15px 22px; border-top:1px solid var(--border)}
+    .menu-btn{display:block}
+    .about-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ NAV ══ -->
+<nav>
+  <div class="wrap">
+    <!-- EDIT:NAME -->
+    <div class="logo">Aishwarya<span class="dot">.</span></div>
+    <div class="navlinks" id="navlinks">
+      <a href="#about">About</a>
+      <a href="#subjects">Subjects</a>
+      <a href="#courses">Courses</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <button class="menu-btn" id="menuBtn" aria-label="menu">☰</button>
+  </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<header class="hero">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="wrap">
+    <div class="eyebrow reveal">Computer Science · Educator</div>
+    <!-- EDIT:NAME -->
+    <h1 class="reveal">Hi, I'm <span class="grad">Aishwarya</span>.<br>I teach how machines really work.</h1>
+    <!-- EDIT:ABOUT (tagline) -->
+    <p class="subtitle reveal">I build interactive, hands-on ways for B.Tech students to understand computing — from logic gates and processors to AI, security, and connected devices.</p>
+    <div class="cta reveal">
+      <a href="#subjects" class="btn primary">Explore my subjects</a>
+      <a href="#courses" class="btn ghost">See my courses →</a>
+    </div>
+  </div>
+</header>
+
+<!-- ══ ABOUT ══ -->
+<section id="about">
+  <div class="wrap">
+    <div class="kicker reveal">About</div>
+    <h2 class="reveal">Teaching that you can <span class="grad">touch</span></h2>
+    <div class="about-grid">
+      <div class="reveal">
+        <!-- EDIT:ABOUT -->
+        <p>I'm a computer science educator who believes the best way to learn how a computer works is to <b>build it up one idea at a time</b> — a switch, a gate, an adder, a processor — until the whole machine makes sense.</p>
+        <p>My teaching leans on <b>active learning</b>: interactive simulations, step-by-step visual traces, and questions that make students predict before they see the answer. I care about turning abstract theory into something students can drive with their own hands.</p>
+        <p>I'm especially excited about bringing <b>AI &amp; machine learning, cybersecurity, and the Internet of Things</b> into the classroom in ways that are rigorous but genuinely fun.</p>
+      </div>
+      <div class="facts reveal">
+        <div class="fact"><div class="t">Active learning</div><div class="d">Interactive widgets &amp; live visual traces over slides of text.</div></div>
+        <div class="fact"><div class="t">Build-it-up approach</div><div class="d">From a single switch to a running program.</div></div>
+        <div class="fact"><div class="t">Focus areas</div><div class="d">Computer architecture · AI/ML · Cybersecurity · IoT</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SUBJECTS ══ -->
+<section id="subjects">
+  <div class="wrap">
+    <div class="kicker reveal">Subjects I teach</div>
+    <h2 class="reveal">What I bring to the <span class="grad">classroom</span></h2>
+    <p class="lead reveal">A snapshot of the courses and topics I teach. (Write your own descriptions — each card is easy to edit.)</p>
+
+    <!-- EDIT:SUBJECTS — copy a .scard block to add a subject; change icon, title, text -->
+    <div class="grid">
+      <div class="scard reveal">
+        <div class="ico" style="background:#58A6FF18; color:var(--accent)">🧮</div>
+        <h3>Computer Organization &amp; Architecture</h3>
+        <p>How a computer really works — from logic gates and adders to registers, buses, pipelining, memory, and I/O. Taught with interactive simulations of the datapath.</p>
+        <span class="tag">CSE23CT201</span>
+      </div>
+
+      <div class="scard reveal">
+        <div class="ico" style="background:#BC8CFF18; color:var(--accent2)">🤖</div>
+        <h3>Artificial Intelligence &amp; Machine Learning</h3>
+        <p>From the math done by hand on a tiny example to real models — so students see what a library call is actually computing under the hood.</p>
+        <span class="tag">Write your description →</span>
+      </div>
+
+      <div class="scard reveal">
+        <div class="ico" style="background:#3FB95018; color:var(--green)">🛡️</div>
+        <h3>Cybersecurity</h3>
+        <p>The mindset of attack and defense — threats, cryptography basics, and secure design — grounded in concrete, hands-on scenarios.</p>
+        <span class="tag">Write your description →</span>
+      </div>
+
+      <div class="scard reveal">
+        <div class="ico" style="background:#39D0D818; color:var(--teal)">📡</div>
+        <h3>Internet of Things (IoT)</h3>
+        <p>Sensors, microcontrollers, connectivity, and the edge-to-cloud journey — how tiny devices sense the world and talk to each other.</p>
+        <span class="tag">Write your description →</span>
+      </div>
+
+      <div class="scard reveal">
+        <div class="ico" style="background:#F0883E18; color:var(--orange)">🔌</div>
+        <h3>Digital Logic &amp; Foundations</h3>
+        <p>Boolean algebra, gates, combinational and sequential circuits — the bedrock every later course is built on.</p>
+        <span class="tag">Write your description →</span>
+      </div>
+
+      <div class="scard reveal">
+        <div class="ico" style="background:#D2992218; color:var(--yellow)">➕</div>
+        <h3>Add another subject</h3>
+        <p>Duplicate this card in the HTML to add any subject you teach — change the icon, title, and description.</p>
+        <span class="tag">Editable template</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ COURSES & RESOURCES ══ -->
+<section id="courses">
+  <div class="wrap">
+    <div class="kicker reveal">Courses &amp; resources</div>
+    <h2 class="reveal">Learn it <span class="grad">interactively</span></h2>
+    <p class="lead reveal">Self-paced, hands-on material students can open anytime.</p>
+
+    <!-- EDIT:LINKS — set the href of each card to your published URLs -->
+    <div class="rgrid">
+      <a class="rcard reveal" href="#" target="_blank" rel="noopener">
+        <div class="rico">🎓</div>
+        <div>
+          <div class="rt">COA — Interactive Course (Foothold)</div>
+          <div class="rd">Self-paced units with live widgets, traces &amp; quizzes.</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+
+      <a class="rcard reveal" href="#" target="_blank" rel="noopener">
+        <div class="rico">🖥️</div>
+        <div>
+          <div class="rt">COA — Classroom Slides</div>
+          <div class="rd">The lecture deck, with animated diagrams &amp; live demos.</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+
+      <a class="rcard reveal" href="#" target="_blank" rel="noopener">
+        <div class="rico">📝</div>
+        <div>
+          <div class="rt">Student Notes &amp; Question Bank</div>
+          <div class="rd">Reading material and practice questions by unit.</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CONTACT ══ -->
+<section id="contact">
+  <div class="wrap">
+    <div class="kicker reveal">Contact</div>
+    <h2 class="reveal">Let's <span class="grad">connect</span></h2>
+    <div class="contact-box reveal">
+      <h3>Have a question or want to collaborate?</h3>
+      <p>Reach out about courses, teaching materials, or student projects.</p>
+      <!-- EDIT:CONTACT -->
+      <a class="btn primary" href="mailto:aishwarya.bramma@gmail.com">✉ aishwarya.bramma@gmail.com</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    © <span id="yr"></span> <span class="accent">Aishwarya</span> · Computer Science Educator · Built with care for students.
+  </div>
+</footer>
+
+<script>
+  // mobile menu
+  const mb = document.getElementById('menuBtn'), nl = document.getElementById('navlinks');
+  mb.addEventListener('click', () => nl.classList.toggle('open'));
+  nl.querySelectorAll('a').forEach(a => a.addEventListener('click', () => nl.classList.remove('open')));
+
+  // scroll reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // year
+  document.getElementById('yr').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

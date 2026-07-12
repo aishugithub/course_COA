@@ -236,28 +236,56 @@ function GateWidget() {
         ))}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 8 }}>
+      {/* the input switches you drive */}
+      <div style={{ display: "flex", gap: 14, justifyContent: "center", marginBottom: 10 }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>A</div>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Input A</div>
           <BitToggle value={a} onClick={() => setA(a ? 0 : 1)} />
         </div>
         {gate !== "NOT" && (
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>B</div>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Input B</div>
             <BitToggle value={b} onClick={() => setB(b ? 0 : 1)} />
           </div>
         )}
-        <div style={{ background: C.card, border: `2px solid ${C.accent}`, borderRadius: 12, padding: "12px 16px", textAlign: "center" }}>
-          <div style={{ color: C.accent, fontWeight: 800 }}>{gate}</div>
-        </div>
-        <div style={{ color: C.accent, fontSize: 20 }}>→</div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>OUT</div>
-          <div style={{
-            width: 46, height: 46, borderRadius: 10, lineHeight: "46px", textAlign: "center", fontWeight: 800, fontSize: 18,
-            border: `2px solid ${result ? C.green : C.border}`, background: result ? C.green + "22" : C.bg, color: result ? C.green : C.muted,
-          }}>{result}</div>
-        </div>
+      </div>
+
+      {/* the actual gate SYMBOL: wires for A/B flow in, the output wire flows out */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 6px 2px", marginBottom: 8 }}>
+        <svg viewBox="0 0 220 112" style={{ width: "100%", maxWidth: 380, display: "block", margin: "0 auto" }}>
+          {/* input A wire (teal when 1) */}
+          <text x={24} y={(gate === "NOT" ? 55 : 38) - 8} fill={C.muted} fontSize={11} textAnchor="middle">A</text>
+          <text x={10} y={(gate === "NOT" ? 55 : 38) + 5} fill={a ? C.teal : C.muted} fontSize={13} fontWeight="800" textAnchor="middle">{a}</text>
+          <line x1={20} y1={gate === "NOT" ? 55 : 38} x2={72} y2={gate === "NOT" ? 55 : 38} stroke={a ? C.teal : C.border} strokeWidth={4} strokeLinecap="round" />
+          {gate !== "NOT" && (
+            <g>
+              <text x={24} y={64} fill={C.muted} fontSize={11} textAnchor="middle">B</text>
+              <text x={10} y={77} fill={b ? C.teal : C.muted} fontSize={13} fontWeight="800" textAnchor="middle">{b}</text>
+              <line x1={20} y1={72} x2={72} y2={72} stroke={b ? C.teal : C.border} strokeWidth={4} strokeLinecap="round" />
+            </g>
+          )}
+          {/* gate symbol drawn over the wire tips for a clean join */}
+          {gate === "AND" && <path d="M66,20 H102 A35,35 0 0 1 102,90 H66 Z" fill={C.card} stroke={C.accent} strokeWidth={3} />}
+          {gate === "OR" && <path d="M60,20 Q100,20 138,55 Q100,90 60,90 Q80,55 60,20 Z" fill={C.card} stroke={C.accent} strokeWidth={3} />}
+          {gate === "XOR" && (
+            <g>
+              <path d="M50,20 Q70,55 50,90" fill="none" stroke={C.accent} strokeWidth={3} />
+              <path d="M62,20 Q102,20 140,55 Q102,90 62,90 Q82,55 62,20 Z" fill={C.card} stroke={C.accent} strokeWidth={3} />
+            </g>
+          )}
+          {gate === "NOT" && (
+            <g>
+              <path d="M66,28 L122,55 L66,82 Z" fill={C.card} stroke={C.accent} strokeWidth={3} />
+              <circle cx={130} cy={55} r={7} fill={C.card} stroke={C.accent} strokeWidth={3} />
+            </g>
+          )}
+          {/* output wire + node (green when 1) */}
+          <line x1={gate === "NOT" ? 137 : 139} y1={55} x2={182} y2={55} stroke={result ? C.green : C.border} strokeWidth={4} strokeLinecap="round" />
+          <text x={198} y={30} fill={C.accent} fontSize={10} fontWeight="700" textAnchor="middle">OUT</text>
+          <circle cx={198} cy={55} r={13} fill={result ? C.green + "33" : C.card} stroke={result ? C.green : C.border} strokeWidth={2.5} />
+          <text x={198} y={60} fill={result ? C.green : C.muted} fontSize={14} fontWeight="800" textAnchor="middle">{result}</text>
+          <text x={100} y={107} fill={C.accent} fontSize={12} fontWeight="800" textAnchor="middle">{gate} gate</text>
+        </svg>
       </div>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, maxWidth: 240, margin: "0 auto" }}>
@@ -381,6 +409,101 @@ function HalfAdderWidget() {
         Two gates just did arithmetic — no "add" instruction anywhere, only logic. Chain a slightly
         bigger version (a <em>full adder</em>) four, thirty-two, or sixty-four times and you have the
         adder inside a real CPU. We build exactly that in Module 2's ALU.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 5 — The Full Adder: two half adders + an OR (takes carry-in)
+// ══════════════════════════════════════════════════════════════════
+function FullAdderWidget() {
+  const [a, setA] = useState(1);
+  const [b, setB] = useState(1);
+  const [cin, setCin] = useState(1);
+  const s1 = a ^ b, c1 = a & b;   // half adder 1
+  const sum = s1 ^ cin, c2 = s1 & cin;   // half adder 2
+  const cout = c1 | c2;
+  const wire = (v) => (v ? C.teal : C.border);
+  const owire = (v) => (v ? C.green : C.border);
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        A half adder can't accept a carry coming <em>in</em> from the column on its right — but real
+        addition needs that. Chain <strong style={{ color: C.text }}>two half adders + one OR</strong> and
+        you get a <strong style={{ color: C.text }}>full adder</strong>: three inputs (A, B, Carry-in), two
+        outputs (Sum, Carry-out). Flip all three and watch the carry ripple.
+      </p>
+
+      <div style={{ display: "flex", gap: 14, justifyContent: "center", marginBottom: 16 }}>
+        {[["A", a, setA], ["B", b, setB], ["Cin", cin, setCin]].map(([lab, v, set]) => (
+          <div key={lab} style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>{lab}</div>
+            <BitToggle value={v} onClick={() => set(v ? 0 : 1)} color={C.teal} />
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 6px 4px" }}>
+        <svg viewBox="0 0 360 230" style={{ width: "100%", maxWidth: 420, display: "block", margin: "0 auto" }}>
+          {/* inputs A, B into Half Adder 1; Cin routed round to Half Adder 2 */}
+          <text x={18} y={52} fill={a ? C.teal : C.muted} fontSize={13} fontWeight="800" textAnchor="middle">A</text>
+          <polyline points="30,48 92,48" fill="none" stroke={wire(a)} strokeWidth={4} strokeLinecap="round" />
+          <text x={18} y={72} fill={b ? C.teal : C.muted} fontSize={13} fontWeight="800" textAnchor="middle">B</text>
+          <polyline points="30,68 92,68" fill="none" stroke={wire(b)} strokeWidth={4} strokeLinecap="round" />
+          <text x={16} y={196} fill={cin ? C.teal : C.muted} fontSize={13} fontWeight="800" textAnchor="middle">Cin</text>
+          <polyline points="34,192 200,192 200,74 212,74" fill="none" stroke={wire(cin)} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Half Adder 1 */}
+          <rect x={92} y={30} width={78} height={58} rx={8} fill={C.card} stroke={C.accent} strokeWidth={2} />
+          <text x={131} y={54} fill={C.accent} fontSize={11} fontWeight="700" textAnchor="middle">Half</text>
+          <text x={131} y={68} fill={C.accent} fontSize={11} fontWeight="700" textAnchor="middle">Adder 1</text>
+
+          {/* HA1 outputs, labelled: Sum1 feeds HA2's top input; Cout1 drops into the OR gate */}
+          <polyline points="170,46 212,46" fill="none" stroke={wire(s1)} strokeWidth={4} strokeLinecap="round" />
+          <text x={191} y={40} fill={s1 ? C.teal : C.muted} fontSize={11} fontWeight="700" textAnchor="middle">Sum1</text>
+          <polyline points="170,74 170,162 250,162" fill="none" stroke={wire(c1)} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+          <text x={148} y={116} fill={c1 ? C.teal : C.muted} fontSize={11} fontWeight="700" textAnchor="middle">Cout1</text>
+
+          {/* Half Adder 2 */}
+          <rect x={212} y={30} width={78} height={58} rx={8} fill={C.card} stroke={C.accent} strokeWidth={2} />
+          <text x={251} y={54} fill={C.accent} fontSize={11} fontWeight="700" textAnchor="middle">Half</text>
+          <text x={251} y={68} fill={C.accent} fontSize={11} fontWeight="700" textAnchor="middle">Adder 2</text>
+
+          {/* Sum output ; Cout2 routes down and into the OR gate's second input */}
+          <polyline points="290,46 320,46" fill="none" stroke={owire(sum)} strokeWidth={4} strokeLinecap="round" />
+          <polyline points="290,74 310,74 310,194 250,194" fill="none" stroke={wire(c2)} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+          <text x={324} y={116} fill={c2 ? C.teal : C.muted} fontSize={11} fontWeight="700" textAnchor="middle">Cout2</text>
+
+          {/* OR gate: Cout1 (top input) OR Cout2 (bottom input) = the final Carry-out */}
+          <path d="M250,162 Q276,162 292,178 Q276,194 250,194 Q260,178 250,162 Z" fill={C.card} stroke={C.orange} strokeWidth={2} />
+          <text x={265} y={182} fill={C.orange} fontSize={10} fontWeight="700" textAnchor="middle">OR</text>
+          <polyline points="292,178 320,178" fill="none" stroke={owire(cout)} strokeWidth={4} strokeLinecap="round" />
+
+          {/* output nodes */}
+          <text x={334} y={30} fill={C.accent} fontSize={9} fontWeight="700" textAnchor="middle">SUM</text>
+          <circle cx={334} cy={46} r={14} fill={sum ? C.green + "33" : C.card} stroke={sum ? C.green : C.border} strokeWidth={2.5} />
+          <text x={334} y={51} fill={sum ? C.green : C.muted} fontSize={14} fontWeight="800" textAnchor="middle">{sum}</text>
+          <circle cx={334} cy={178} r={14} fill={cout ? C.green + "33" : C.card} stroke={cout ? C.green : C.border} strokeWidth={2.5} />
+          <text x={334} y={183} fill={cout ? C.green : C.muted} fontSize={14} fontWeight="800" textAnchor="middle">{cout}</text>
+          <text x={334} y={205} fill={C.orange} fontSize={9} fontWeight="700" textAnchor="middle">COUT</text>
+        </svg>
+        <div style={{ fontSize: 11, color: C.muted, textAlign: "center", paddingBottom: 4 }}>
+          Sum = A ⊕ B ⊕ Cin &nbsp;|&nbsp; Cout = (A·B) + (S1·Cin) — the two carries OR-ed together
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12, background: C.green + "14", border: `1px solid ${C.green}44`, borderRadius: 10, padding: "12px 16px", textAlign: "center" }}>
+        <span style={{ fontFamily: "monospace", fontSize: 15, color: C.green, fontWeight: 700 }}>
+          {a} + {b} + {cin} = {cout}{sum}<span style={{ color: C.muted }}> (carry-out {cout}, sum {sum})</span>
+        </span>
+      </div>
+
+      <Key color={C.green}>
+        The carry-out of one full adder feeds the carry-in of the next. Wire 32 (or 64) in a row and you
+        have the <strong style={{ color: C.text }}>ripple-carry adder</strong> inside a real CPU's ALU —
+        which we build in Module 2. Same two gates, all the way up.
       </Key>
     </div>
   );
@@ -514,6 +637,7 @@ export default function Unit0_2({ student, onUnitComplete }) {
     { id: "shannon", label: "Shannon's Bridge" },
     { id: "gates", label: "Logic Gates" },
     { id: "adder", label: "The Half Adder" },
+    { id: "fulladder", label: "The Full Adder" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -528,10 +652,11 @@ export default function Unit0_2({ student, onUnitComplete }) {
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>Logic is just wiring</h3><ShannonWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>The four building blocks</h3><GateWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>Gates that add</h3><HalfAdderWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>Adding with a carry-in</h3><FullAdderWidget /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 0.2.</p>
-      <Quiz onComplete={() => { markComplete(4); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 

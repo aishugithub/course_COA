@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>COA · Unit 0 — Before the Machine · Classroom Deck</title>
+<!-- ═════════════════════════════════════════════════════════════════
+  HOW TO EDIT THIS DECK (for Prof. Aishu)
+  · Every slide is a <section class="slide"> block, in order, with a
+    comment above it naming the slide. Edit any text directly.
+  · Things that appear one keypress at a time have class="frag".
+  · PHOTOS in use from assets/ (your uploaded files, by exact name):
+       Pascaline.jpg · jacquard-loom - Example of usage of punched card
+         for kinda programming.jpg            → mechanical-roots slide
+       log_tables_book_one page.jpg · Comptometer-Calculating-division-
+         1914-Brit-Heritage_the human computers_ working.jpg → tables slide
+       wide-view-of-men-and-women-working-on-the-eniac-...webp ·
+         ENIAC-changing_a_tube.jpg            → ENIAC slide
+       human computers rewiring eniac.jpeg ·
+         von-Neumann-portrait pic.jpg         → rewiring slide
+       von with edvac.jpg                     → EDVAC slide
+       Bardeen_Shockley_Brattain_1948_... .jpg ·
+         the image of a transistor held by a human hand- fingers seen.jpg
+                                              → transistor slide
+       half-adder-built-on-a-breadboard_using transistor.jpg ·
+         full-adder-1-built-on-a-breadboard-using-npn-transistors.jpg ·
+         full adder as an IC - smaller now ....jpg ·
+         so many ICs together to become a processor ....jpg ·
+         AMD Ryzen microprocessor held in between the fingers.jpg
+                                              → the physical-shrink filmstrip
+       relay - a close up view ... .webp      → the relay slide
+       vacuum tubes - a collection ... .jpg   → the vacuum-tube slide
+       (the two Fortran punched-card photos are intentionally NOT used)
+    Still-empty slots (add any time, they appear automatically):
+       difference_engine.jpg · core_memory.jpg · babbage.jpg · ada.jpg ·
+       boole.jpg · turing.jpg · shannon.jpg
+  · VIDEO — the ENIAC video URL is set below (search "videourl");
+    replace any time with another YouTube embed link or assets/file.mp4
+  · Interactive widgets: clicking INSIDE them operates them;
+    clicking anywhere else advances the slide.
+  · Controls: → / Space / click = next · ← = back · keys 0–4 = chapters
+    · F11 = fullscreen.
+  · Do not edit below the line marked "ANIMATION ENGINE".
+══════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ── Palette (Foothold standard) ── */
+  :root{
+    --bg:#0D1117; --surface:#161B22; --card:#1C2333;
+    --accent:#58A6FF; --accentGlow:#1F6FEB;
+    --green:#3FB950; --yellow:#D29922; --purple:#BC8CFF;
+    --red:#F85149; --orange:#F0883E; --teal:#39D0D8;
+    --text:#E6EDF3; --muted:#8B949E; --border:#30363D;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%; background:var(--bg); color:var(--text);
+    font-family:'Segoe UI',system-ui,sans-serif; overflow:hidden}
+
+  .slide{display:none; position:absolute; inset:0; padding:60px 95px 85px;
+    flex-direction:column; justify-content:center}
+  .slide.active{display:flex}
+  .kicker{font-size:25px; font-weight:700; letter-spacing:3px; color:var(--accent);
+    text-transform:uppercase; margin-bottom:16px}
+  h1{font-size:70px; line-height:1.1}
+  h2{font-size:54px; line-height:1.15; margin-bottom:28px}
+  p, li{font-size:33px; line-height:1.45}
+  .muted{color:var(--muted)}
+  .big{font-size:44px; line-height:1.4}
+
+  .frag{opacity:0; transform:translateY(16px); transition:opacity .45s, transform .45s}
+  .frag.on{opacity:1; transform:none}
+
+  .row{display:flex; gap:24px; margin-top:8px}
+  .col{flex-direction:column}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:22px 28px; flex:1}
+  .card h3{font-size:30px; margin-bottom:8px}
+  .card p{font-size:25px; color:var(--muted)}
+  .card p b{color:var(--text)}
+  .tint-green{border-color:var(--green); background:#3FB95014}
+  .tint-red{border-color:var(--red); background:#F8514914}
+  .tint-yellow{border-color:var(--yellow); background:#D2992214}
+  .tint-orange{border-color:var(--orange); background:#F0883E14}
+  .tint-purple{border-color:var(--purple); background:#BC8CFF14}
+  .tint-teal{border-color:var(--teal); background:#39D0D814}
+
+  .divider{align-items:flex-start}
+  .divider .chnum{font-size:140px; font-weight:800; color:var(--accentGlow); line-height:1}
+  .divider h1{margin:8px 0 26px}
+  .divider .hook{font-size:38px; color:var(--yellow); font-style:italic}
+
+  .mic{display:inline-flex; align-items:center; justify-content:center;
+    background:#BC8CFF22; border:2px solid var(--purple); border-radius:50%;
+    width:92px; height:92px; font-size:50px; margin-bottom:32px}
+  .answer{margin-top:40px; padding:28px 36px; border-radius:16px;
+    background:#3FB95018; border:1px solid var(--green); font-size:38px}
+
+  .keybox{background:#BC8CFF14; border:2px solid var(--purple); border-radius:22px;
+    padding:55px 65px; font-size:50px; line-height:1.4}
+  .keybox .k{color:var(--purple); font-weight:800}
+
+  table{border-collapse:collapse; margin-top:12px}
+  th,td{border:1px solid var(--border); padding:12px 26px; font-size:26px; text-align:left}
+  th{background:var(--surface); color:var(--accent)}
+  td.c, th.c{text-align:center}
+
+  .tl{list-style:none; margin-top:6px}
+  .tl li{display:flex; gap:24px; align-items:baseline; padding:10px 0;
+    border-bottom:1px solid var(--border)}
+  .tl .yr{font-size:28px; font-weight:800; color:var(--teal); min-width:150px}
+  .tl .ev{font-size:27px}
+  .tl .ev b{color:var(--accent)}
+
+  /* Portraits */
+  .dense{gap:14px}
+  .dense .card{padding:12px 18px; display:flex; gap:16px; align-items:center}
+  .dense .card h3{font-size:24px; margin-bottom:4px}
+  .dense .card p{font-size:21px; line-height:1.3}
+  .pwrap{position:relative; width:86px; height:86px; flex-shrink:0}
+  .pfall{position:absolute; inset:0; border-radius:50%; background:var(--surface);
+    border:2px solid var(--accent); display:flex; align-items:center; justify-content:center;
+    font-size:28px; font-weight:800; color:var(--accent)}
+  .pwrap img{position:absolute; inset:0; width:100%; height:100%; border-radius:50%;
+    object-fit:cover; border:2px solid var(--accent)}
+
+  /* Photo slots */
+  .mslot{text-align:center}
+  .mslot img{max-width:100%; max-height:58vh; border-radius:16px; border:1px solid var(--border)}
+  .mslot .cap{font-size:23px; color:var(--muted); margin-top:10px}
+  .photocol{display:flex; flex-direction:column; gap:16px; justify-content:center}
+  .photocol img{max-height:30vh}
+
+  /* Interactive widgets */
+  .widget{background:var(--surface); border:1px solid var(--border); border-radius:18px;
+    padding:24px 30px; cursor:default}
+  .wswitch{display:inline-flex; flex-direction:column; align-items:center; gap:8px;
+    cursor:pointer; user-select:none}
+  .wswitch .pad{width:74px; height:120px; border-radius:40px; border:3px solid var(--border);
+    background:var(--card); position:relative; transition:.25s}
+  .wswitch .knob{position:absolute; left:6px; bottom:6px; width:56px; height:56px;
+    border-radius:50%; background:var(--muted); transition:.25s}
+  .wswitch.on .pad{border-color:var(--green); background:#3FB95018; box-shadow:0 0 20px #3FB95044}
+  .wswitch.on .knob{bottom:52px; background:var(--green)}
+  .wswitch .state{font-size:22px; font-weight:700; color:var(--muted)}
+  .wswitch.on .state{color:var(--green)}
+  .wswitch .bit{font-size:42px; font-weight:800; color:var(--muted); line-height:1}
+  .wswitch.on .bit{color:var(--green)}
+  .wswitch .wlab{font-size:24px; color:var(--muted); font-weight:700}
+  .readout{font-size:42px; font-weight:800; color:var(--teal); margin-top:18px; min-height:56px}
+  .gatecard{text-align:center; padding:14px 16px}
+  .gatecard h3{margin-bottom:4px}
+  .tt{margin:10px auto 0}
+  .tt th,.tt td{padding:3px 14px; font-size:22px; text-align:center}
+  svg text{font-family:'Segoe UI',system-ui,sans-serif}
+  /* Slide 28 full adder: compact switches so the circuit + SUM/COUT outputs have room */
+  #faw .wswitch .pad{width:52px; height:86px; border-width:2px}
+  #faw .wswitch .knob{width:38px; height:38px; left:5px; bottom:5px}
+  #faw .wswitch.on .knob{bottom:43px}
+  #faw .wswitch .bit{font-size:30px}
+  #faw .wswitch .wlab{font-size:20px}
+
+  /* Chrome */
+  #bar{position:fixed; top:0; left:0; height:6px; background:var(--green);
+    width:0; transition:width .3s; z-index:5}
+  #counter{position:fixed; bottom:20px; right:32px; font-size:21px; color:var(--muted)}
+  #chlabel{position:fixed; bottom:20px; left:32px; font-size:21px; color:var(--muted)}
+  /* Mouse navigation arrows (bottom centre of every slide) */
+  #navb{position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
+    display:flex; gap:14px; z-index:6}
+  #navb button{width:52px; height:52px; border-radius:50%; border:1px solid var(--border);
+    background:var(--surface); color:var(--muted); font-size:26px; cursor:pointer}
+  #navb button:hover{border-color:var(--accent); color:var(--accent)}
+  /* Download-as-PDF button (title slide) */
+  .pdfbtn{display:inline-block; margin-top:38px; padding:14px 26px; border-radius:12px;
+    border:2px solid var(--accent); background:#58A6FF1a; color:var(--accent);
+    font-size:22px; font-weight:700; text-decoration:none; cursor:pointer}
+  .pdfbtn:hover{background:#58A6FF33}
+  /* PRINT / SAVE-AS-PDF: reveal every slide, one per page */
+  @media print{
+    @page{size:landscape; margin:0}
+    html,body{height:auto; overflow:visible; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+    #bar,#counter,#chlabel,#navb,.no-print{display:none !important}
+    .slide{display:flex !important; position:relative !important; inset:auto !important;
+      width:100%; height:100vh; padding:46px 66px; page-break-after:always; break-after:page;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact}
+    .slide:last-of-type{page-break-after:auto}
+    .frag{opacity:1 !important; transform:none !important}
+  }
+</style>
+</head>
+<body>
+
+<div id="bar"></div>
+<div id="chlabel"></div>
+<div id="counter"></div>
+<div id="navb"><button id="navprev" title="back">‹</button><button id="navnext" title="forward">›</button></div>
+
+<!-- ═══════════════ TITLE & ROADMAP ═══════════════ -->
+
+<!-- Slide 1: Title -->
+<section class="slide" data-ch="CSE23CT201">
+  <div class="kicker">CSE23CT201 · Semester III · 3 credits · 45 hours</div>
+  <h1>Computer Organization<br>&amp; Architecture</h1>
+  <p class="big" style="margin-top:24px">Unit 0 — Before the Machine<br><span class="muted">How a computer really works — from gates to running programs.</span></p>
+  <p class="muted" style="margin-top:50px; font-size:23px">→ / Space / click = next &nbsp;·&nbsp; ← = back &nbsp;·&nbsp; keys 0–4 = jump to chapter &nbsp;·&nbsp; F11 = fullscreen</p>
+  <a class="pdfbtn no-print" onclick="window.print();return false;">⬇ Download this deck as PDF</a>
+  <p class="muted no-print" style="margin-top:10px; font-size:17px">In the print dialog: choose <b>Save as PDF</b>, Layout <b>Landscape</b>, and turn on <b>Background graphics</b>.</p>
+</section>
+
+<!-- Slide 2: Roadmap -->
+<section class="slide" data-ch="Unit 0 · Roadmap">
+  <h2>Five chapters, five questions</h2>
+  <div class="row col" style="gap:14px">
+    <div class="card frag"><h3>0.0 · Why This Course? 🎯</h3><p>What is this subject — and why does YOUR branch need it?</p></div>
+    <div class="card frag"><h3>0.1 · The Problem &amp; The Dream 💡</h3><p>Why did humanity need a computing machine at all?</p></div>
+    <div class="card frag"><h3>0.2 · Bits &amp; Boolean Logic 🔀</h3><p>How can metal and electricity do mathematics?</p></div>
+    <div class="card frag"><h3>0.3 · The First Machines 🏗️</h3><p>Relays, tubes, ENIAC — and the idea that changed everything.</p></div>
+    <div class="card frag"><h3>0.4 · The Transistor Revolution ⚡</h3><p>A better switch, four generations, and Moore's law.</p></div>
+  </div>
+</section>
+
+<!-- ═══════════════ CHAPTER 0.0 — WHY THIS COURSE? ═══════════════ -->
+
+<!-- Slide 3: 0.0 divider -->
+<section class="slide divider" data-ch="0.0 · Why This Course?">
+  <div class="chnum">0.0</div>
+  <h1>Why This Course?</h1>
+  <p class="hook">"Whatever your branch — AI, Data Science, Cyber, IoT, ECE — every line of code you will ever write runs on THIS."</p>
+</section>
+
+<!-- Slide 4: Why it matters for YOUR branch -->
+<section class="slide" data-ch="0.0 · Why This Course?">
+  <h2>This is not "somebody else's subject"</h2>
+  <div class="row col" style="gap:14px">
+    <div class="card frag"><h3 style="color:var(--accent)">AI / ML / Data Science 🤖</h3><p>Training a model is feeding a <b>GPU</b>. Batch size, memory bandwidth, cache misses — these decide whether training takes <b>3 hours or 3 days</b>. The best ML engineers think in hardware.</p></div>
+    <div class="card frag"><h3 style="color:var(--red)">Cyber Security 🔐</h3><p>Attacks live in architecture: buffer overflows abuse how memory is organized; <b>Spectre &amp; Meltdown</b> broke the world's CPUs through cache tricks. You cannot defend what you don't understand.</p></div>
+    <div class="card frag"><h3 style="color:var(--orange)">IoT / ECE 📡</h3><p>You'll program microcontrollers where <b>every byte and every milliwatt counts</b>. Registers, memory maps and interrupts are your daily tools — all taught here.</p></div>
+    <div class="card frag tint-green"><h3 style="color:var(--green)">Every branch 🎓</h3><p>GATE, placement interviews, and every performance bug you will ever chase. Engineers who understand the machine beneath their code are <b>rare — and valued like it</b>.</p></div>
+  </div>
+</section>
+
+<!-- Slide 5: Course outcomes CO1-CO5 -->
+<section class="slide" data-ch="0.0 · Why This Course?">
+  <div class="kicker">Course outcomes · what you can DO after 45 hours</div>
+  <h2>Five units, five abilities</h2>
+  <div class="row col" style="gap:12px">
+    <div class="card frag"><p><b style="color:var(--accent)">CO1 · Unit 1:</b> explain the structure and operation of a digital computer — every box, every wire.</p></div>
+    <div class="card frag"><p><b style="color:var(--accent)">CO2 · Unit 2:</b> design how a processor and its memory actually execute an instruction.</p></div>
+    <div class="card frag"><p><b style="color:var(--accent)">CO3 · Unit 3:</b> use pipelining to make execution fast — and handle its hazards.</p></div>
+    <div class="card frag"><p><b style="color:var(--accent)">CO4 · Unit 4:</b> analyse the memory hierarchy — cache to virtual memory — for speed and capacity.</p></div>
+    <div class="card frag"><p><b style="color:var(--accent)">CO5 · Unit 5:</b> connect the computer to the world — interrupts, DMA, and standard I/O interfaces.</p></div>
+  </div>
+</section>
+
+<!-- Slide 6: Programme outcomes (brief) -->
+<section class="slide" data-ch="0.0 · Why This Course?">
+  <div class="kicker">Programme outcomes · where this course fits your degree</div>
+  <h2>What your degree promises — this course delivers</h2>
+  <div class="row" style="gap:18px">
+    <div class="card frag"><h3 style="color:var(--accent)">PO1 · Engineering knowledge</h3><p>The deepest layer of computing knowledge — the machine itself. Everything above it (OS, compilers, AI frameworks) stands on this floor.</p></div>
+    <div class="card frag"><h3 style="color:var(--accent)">PO2 · Problem analysis</h3><p>Why is this program slow? Why does this exploit work? Why does this sensor node drain its battery? The answers live at this level.</p></div>
+    <div class="card frag"><h3 style="color:var(--accent)">PO3 · Design of solutions</h3><p>Choosing processors, sizing memory, designing embedded systems — engineering decisions this course equips you to make.</p></div>
+  </div>
+</section>
+
+<!-- Slide 7: Architecture vs Organization (with assembly-language example) -->
+<section class="slide" data-ch="0.0 · Why This Course?">
+  <div class="kicker">The name of the course, decoded</div>
+  <h2 style="margin-bottom:18px">Architecture vs Organization</h2>
+  <table style="width:100%">
+    <tr><th style="width:20%"></th><th style="width:40%; color:var(--accent)">ARCHITECTURE — the blueprint</th><th style="width:40%; color:var(--orange)">ORGANIZATION — the wiring</th></tr>
+    <tr class="frag"><td><b>What it is</b></td><td>The computer as the <b>programmer</b> sees it</td><td>How the hardware <b>actually implements</b> it</td></tr>
+    <tr class="frag"><td><b>Like a house's…</b></td><td>floor plan — where rooms and sockets are</td><td>internal wiring and plumbing behind the walls</td></tr>
+    <tr class="frag"><td><b>Made of</b></td><td>instruction set (ISA), data formats, addressing</td><td>circuits, control signals, technology (CMOS)</td></tr>
+  </table>
+  <div class="card frag tint-teal" style="margin-top:20px; flex:none">
+    <p><b>How the programmer "sees" instructions — an example.</b> The same addition, at three levels:
+    <span style="font-family:Consolas,monospace"><b style="color:var(--green)">total = a + b;</b></span> (C) →
+    <span style="font-family:Consolas,monospace"><b style="color:var(--accent)">Add R4, R2, R3</b></span> (assembly) →
+    <span style="font-family:Consolas,monospace"><b style="color:var(--orange)">0011 0100 0010 0011</b></span> (machine code).</p>
+  </div>
+  <p class="frag" style="margin-top:16px; font-size:28px"><b style="color:var(--purple)">Why does this course speak assembly?</b> Assembly is the machine's own instruction set in human-readable form — one line = one machine instruction, nothing hidden. It is the <b>closest language to the processor</b>; below it there are only voltages.</p>
+</section>
+
+<!-- Slide 8: ask-the-class — the billion-times punchline -->
+<section class="slide" data-ch="0.0 · Why This Course?">
+  <div class="mic">🙋</div>
+  <h2>A program written for a 1970s processor can run on a modern chip <b>a billion times faster — unchanged</b>.<br>What changed, and what didn't?</h2>
+  <div class="answer frag">The <b>organization</b> changed (VLSI: billions of transistors, caches, pipelines). The <b>architecture</b> — the instruction set, the blueprint — survived. Same WHAT, radically better HOW.</div>
+</section>
+
+<!-- Slide 9: Computer family tree -->
+<section class="slide" data-ch="0.0 · Why This Course?">
+  <h2>One design, every size</h2>
+  <div class="row" style="flex-wrap:wrap">
+    <div class="card frag" style="min-width:44%"><h3 style="color:var(--accent)">Embedded 🚗</h3><p>Hidden inside cars, washing machines, ACs — monitoring and controlling a physical process. You never see them.</p></div>
+    <div class="card frag" style="min-width:44%"><h3 style="color:var(--accent)">Personal 💻</h3><p>Desktops, workstations, laptops — general work for one person.</p></div>
+    <div class="card frag" style="min-width:44%"><h3 style="color:var(--accent)">Servers &amp; Enterprise 🏦</h3><p>Shared by many users over a network — databases, banking, IRCTC.</p></div>
+    <div class="card frag" style="min-width:44%"><h3 style="color:var(--accent)">Supercomputers &amp; Grid 🌦️</h3><p>Weather forecasting, scientific simulation. Grids coordinate many PCs into one giant resource.</p></div>
+    <div class="card frag tint-teal" style="min-width:100%"><p>From the chip in a washing machine to a supercomputer: <b>the same functional structure inside</b> — wait for Unit 1.</p></div>
+  </div>
+</section>
+
+<!-- Slide 10: 0.0 key insight -->
+<section class="slide" data-ch="0.0 · Why This Course?">
+  <div class="kicker">🔑 Key insight</div>
+  <div class="keybox">Architecture = <span class="k">what</span> the machine can do.<br>Organization = <span class="k">how</span> it does it.<br>This course teaches you both — the floor every other subject stands on.</div>
+</section>
+
+<!-- ═══════════════ CHAPTER 0.1 — THE PROBLEM & THE DREAM ═══════════════ -->
+
+<!-- Slide 11: 0.1 divider -->
+<section class="slide divider" data-ch="0.1 · The Problem & The Dream">
+  <div class="chnum">0.1</div>
+  <h1>The Problem &amp; The Dream</h1>
+  <p class="hook">"Ships sank, banks lost millions, boilers burst — all because of typos in books of numbers."</p>
+</section>
+
+<!-- Slide 12: Mechanical roots (photos: Pascaline, Jacquard loom) -->
+<section class="slide" data-ch="0.1 · The Problem & The Dream">
+  <div class="kicker">300 years before electronics</div>
+  <h2>Computing began with gears</h2>
+  <div style="display:flex; gap:32px; align-items:center">
+    <div class="row col" style="flex:1; gap:14px">
+      <div class="card frag"><p>From the 1600s on, <b>mechanical devices</b> — gears, levers, pulleys — performed basic arithmetic. Pascal and Leibniz built calculating machines by hand.</p></div>
+      <div class="card frag"><p><b style="color:var(--teal)">Punched cards</b> controlled sequences of operations — in looms, then in calculators: the earliest form of <b>"programming"</b>.</p></div>
+      <div class="card frag tint-yellow"><p>But gears could only go so far: add, subtract, multiply. <b>Polynomial equations? Astronomical positions? Navigation, weather, banking?</b> Far too complex for the machines of the day.</p></div>
+      <div class="card frag tint-red"><p>So how did the world do complex calculations? <b style="color:var(--red)">You looked the answer up</b> — in a printed table…</p></div>
+    </div>
+    <div class="photocol" style="width:28%">
+      <div class="mslot"><img src="assets/Pascaline.jpg" alt="" onerror="this.parentElement.style.display='none'"><p class="cap">Pascal's calculator — the Pascaline, 1642</p></div>
+      <div class="mslot"><img src="assets/jacquard-loom - Example of usage of punched card for kinda programming.jpg" alt="" onerror="this.parentElement.style.display='none'"><p class="cap">Jacquard loom: punched cards "programming" fabric, 1804</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 13: A world of printed tables (photos: log tables page, human computers at work) -->
+<section class="slide" data-ch="0.1 · The Problem & The Dream">
+  <div class="kicker">The 1800s · a world that ran on printed tables</div>
+  <h2>…and the tables were made by "computers"</h2>
+  <div style="display:flex; gap:32px; align-items:center">
+    <div class="row col" style="flex:1; gap:14px">
+      <div class="card frag"><p>Books of pre-computed numbers — logarithms, sines, astronomical positions, interest tables — sat on every navigator's, banker's and engineer's desk.</p></div>
+      <div class="card frag"><p>Every number in them was computed <b>by hand</b> by people employed as <b style="color:var(--orange)">"computers"</b> — a job title, not a machine — then copied by hand, then typeset by hand. Three chances for error.</p></div>
+      <div class="card frag tint-red"><p>And the errors were deadly: 🚢 a navigation typo put ships <b style="color:var(--red)">miles off course</b> · 💰 faulty interest tables cost <b style="color:var(--red)">millions</b> · 🌉 bridges and boilers built on bad numbers <b style="color:var(--red)">failed</b>.</p></div>
+    </div>
+    <div class="photocol" style="width:28%">
+      <div class="mslot"><img src="assets/log_tables_book_one page.jpg" alt="" onerror="this.parentElement.style.display='none'"><p class="cap">One page of a log-table book — every digit computed by hand</p></div>
+      <div class="mslot"><img src="assets/Comptometer-Calculating-division-1914-Brit-Heritage_the human computers_ working.jpg" alt="" onerror="this.parentElement.style.display='none'"><p class="cap">Human computers at work, 1914</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 14: The steam epiphany (photo slot: assets/difference_engine.jpg — add any time) -->
+<section class="slide" data-ch="0.1 · The Problem & The Dream">
+  <div class="kicker">1821 · The steam epiphany</div>
+  <h2>"I wish to God these calculations<br>had been executed by steam!"</h2>
+  <div style="display:flex; gap:36px; align-items:center">
+    <div class="row col" style="flex:1; gap:16px">
+      <div class="card frag"><p>Charles Babbage and astronomer John Herschel, checking tables by hand, finding <b>error after error</b> — until Babbage explodes with the words above.</p></div>
+      <div class="card frag tint-green"><p>His answer: the <b>Difference Engine</b> — a machine that never tires, never skips a digit…</p></div>
+      <div class="card frag tint-purple"><p>…and <b style="color:var(--purple)">prints its results directly into metal printing plates</b> — removing the human typesetter too. Automate the whole pipeline, not just the arithmetic.</p></div>
+    </div>
+    <div class="mslot" style="width:34%">
+      <img src="assets/difference_engine.jpg" alt="" onerror="this.parentElement.style.display='none'">
+      <p class="cap">Babbage's Difference Engine (Science Museum, London)</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 15: The requirement -->
+<section class="slide" data-ch="0.1 · The Problem & The Dream">
+  <h1 style="font-size:80px; line-height:1.25">We need a machine that<br><span style="color:var(--accent)">never gets tired</span><br>and <span style="color:var(--accent)">never slips</span>.</h1>
+  <p class="muted frag" style="margin-top:36px; font-size:29px">Babbage's dream, 1821. It took over a century to come true.</p>
+</section>
+
+<!-- Slide 16: Six dreamers (portraits; von Neumann uses your photo) -->
+<section class="slide" data-ch="0.1 · The Problem & The Dream">
+  <h2 style="margin-bottom:18px">Six dreamers saw it coming</h2>
+  <div class="row dense" style="flex-wrap:wrap">
+    <div class="card frag" style="min-width:44%">
+      <div class="pwrap"><div class="pfall">CB</div><img alt="" src="assets/babbage.jpg" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://commons.wikimedia.org/wiki/Special:FilePath/Charles Babbage - 1860.jpg'}else this.style.display='none'"></div>
+      <div><h3 style="color:var(--accent)">Charles Babbage · 1837</h3><p>Dreams past the Difference Engine: the <b>Analytical Engine</b> — a <b>Store</b> + a <b>Mill</b>, driven by punched cards. Never finished, but the shape of every computer since.</p></div>
+    </div>
+    <div class="card frag" style="min-width:44%">
+      <div class="pwrap"><div class="pfall">AL</div><img alt="" src="assets/ada.jpg" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://commons.wikimedia.org/wiki/Special:FilePath/Ada Lovelace portrait.jpg'}else this.style.display='none'"></div>
+      <div><h3 style="color:var(--accent)">Ada Lovelace · 1843</h3><p>First algorithm — and the deeper insight: a rule-following machine can manipulate <b>any symbols</b>, not just numbers.</p></div>
+    </div>
+    <div class="card frag" style="min-width:44%">
+      <div class="pwrap"><div class="pfall">GB</div><img alt="" src="assets/boole.jpg" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://commons.wikimedia.org/wiki/Special:FilePath/George Boole color.jpg'}else this.style.display='none'"></div>
+      <div><h3 style="color:var(--accent)">George Boole · 1854</h3><p>AND, OR, NOT become mathematics — 90 years before anyone builds them.</p></div>
+    </div>
+    <div class="card frag" style="min-width:44%">
+      <div class="pwrap"><div class="pfall">AT</div><img alt="" src="assets/turing.jpg" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://commons.wikimedia.org/wiki/Special:FilePath/Alan Turing Aged 16.jpg'}else this.style.display='none'"></div>
+      <div><h3 style="color:var(--accent)">Alan Turing · 1936</h3><p>One <b>universal machine</b>, given different rules, computes anything computable. One machine, different instructions.</p></div>
+    </div>
+    <div class="card frag" style="min-width:44%">
+      <div class="pwrap"><div class="pfall">CS</div><img alt="" src="assets/shannon.jpg" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://commons.wikimedia.org/wiki/Special:FilePath/ClaudeShannon MFO3807.jpg'}else this.style.display='none'"></div>
+      <div><h3 style="color:var(--accent)">Claude Shannon · 1937</h3><p>Boolean logic maps exactly onto <b>electrical switches</b>. Theory meets hardware.</p></div>
+    </div>
+    <div class="card frag tint-purple" style="min-width:44%">
+      <div class="pwrap"><div class="pfall" style="color:var(--purple); border-color:var(--purple)">JvN</div><img alt="" src="assets/von-Neumann-portrait pic.jpg" style="border-color:var(--purple)" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://commons.wikimedia.org/wiki/Special:FilePath/JohnvonNeumann-LosAlamos.gif'}else this.style.display='none'"></div>
+      <div><h3 style="color:var(--purple)">John von Neumann · 1945</h3><p>Keep the <b>instructions in memory</b>, beside the data. New program = new numbers. No rewiring.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 17: Timeline — everything ready, nothing built… until the need -->
+<section class="slide" data-ch="0.1 · The Problem & The Dream">
+  <h2>The timeline — ready, but unbuilt</h2>
+  <ul class="tl">
+    <li class="frag"><span class="yr">1821</span><span class="ev"><b>The steam epiphany</b> — Babbage vows to mechanise the error-riddled tables.</span></li>
+    <li class="frag"><span class="yr">1837</span><span class="ev"><b>Analytical Engine designed</b> — general, mechanical, never completed.</span></li>
+    <li class="frag"><span class="yr">1843</span><span class="ev"><b>Ada writes the first algorithm</b> — machines can manipulate any symbols.</span></li>
+    <li class="frag"><span class="yr">1854</span><span class="ev"><b>Boole's algebra of logic</b> — AND, OR, NOT as mathematics.</span></li>
+    <li class="frag"><span class="yr">1936</span><span class="ev"><b>Turing's universal machine</b> — one machine computes anything computable.</span></li>
+    <li class="frag"><span class="yr">1937</span><span class="ev"><b>Shannon wires logic to circuits</b> — Boolean algebra = switching circuits.</span></li>
+  </ul>
+  <div class="card frag tint-purple" style="margin-top:18px; flex:none">
+    <p><b>Pause and notice:</b> by 1937 the logic existed (Boole), the blueprint existed (Turing), the bridge to hardware existed (Shannon). Yet nobody built the machine. <b style="color:var(--purple)">Big machines need big money — and money comes only with urgent need.</b> What need? Turn the page…</p>
+  </div>
+</section>
+
+<!-- Slide 18: WWII — the crisis that brought the money -->
+<section class="slide" data-ch="0.1 · The Problem & The Dream">
+  <div class="kicker">A century later · World War II</div>
+  <h2>The tables come back — deadlier</h2>
+  <div class="row col" style="gap:16px">
+    <div class="card frag"><p>Same disease, new symptom: every new cannon needs a <b>firing table</b> — the correct angle for every range, wind and shell.</p></div>
+    <div class="card frag"><p>Each entry takes <b style="color:var(--orange)">~50 hand calculations</b>; rooms full of human computers <b>cannot keep up</b> with the war.</p></div>
+    <div class="card frag tint-green"><p>And so, at last, the missing ingredient arrives: <b style="color:var(--green)">an urgent need — and the funding that follows it</b>. This crisis pays for ENIAC.</p></div>
+  </div>
+</section>
+
+<!-- Slide 19: 0.1 key insight -->
+<section class="slide" data-ch="0.1 · The Problem & The Dream">
+  <div class="kicker">🔑 Key insight</div>
+  <div class="keybox">For 128 years the problem never changed: <span class="k">humans + arithmetic = errors</span>.<br>Neither did the dream: one general machine —<br>you change the <span class="k">instructions</span>, not the machine.</div>
+</section>
+
+<!-- ═══════════════ CHAPTER 0.2 — BITS & BOOLEAN LOGIC ═══════════════ -->
+
+<!-- Slide 20: 0.2 divider -->
+<section class="slide divider" data-ch="0.2 · Bits & Boolean Logic">
+  <div class="chnum">0.2</div>
+  <h1>Bits &amp; Boolean Logic</h1>
+  <p class="hook">"How can metal and electricity do mathematics?"</p>
+</section>
+
+<!-- Slide 21: WIDGET — binary builder with real switches -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <h2>A switch is a bit — flip them</h2>
+  <p class="muted" style="margin-bottom:20px">Real switches: knob down = OFF = 0, knob up = ON = 1. Each carries a weight: 8 · 4 · 2 · 1.</p>
+  <div class="widget" id="binw" style="text-align:center">
+    <div style="display:flex; gap:40px; justify-content:center">
+      <div class="wswitch" data-w="8"><div class="pad"><div class="knob"></div></div><div class="state">OFF</div><div class="bit">0</div><div class="wlab">weight 8</div></div>
+      <div class="wswitch" data-w="4"><div class="pad"><div class="knob"></div></div><div class="state">OFF</div><div class="bit">0</div><div class="wlab">weight 4</div></div>
+      <div class="wswitch" data-w="2"><div class="pad"><div class="knob"></div></div><div class="state">OFF</div><div class="bit">0</div><div class="wlab">weight 2</div></div>
+      <div class="wswitch" data-w="1"><div class="pad"><div class="knob"></div></div><div class="state">OFF</div><div class="bit">0</div><div class="wlab">weight 1</div></div>
+    </div>
+    <div class="readout" id="binout">0000 = 0</div>
+  </div>
+  <p class="frag" style="margin-top:20px">Any pattern of ONs and OFFs is a <b>number</b>. Metal is counting. 4 bits → 16 patterns; n bits → 2ⁿ.</p>
+</section>
+
+<!-- Slide 22: ask-the-class — 1011 -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <div class="mic">🙋</div>
+  <h2>Four switches read <span style="color:var(--teal); letter-spacing:10px">1011</span>. What number is that?</h2>
+  <p class="muted" style="font-size:29px">Weights: 8 · 4 · 2 · 1</p>
+  <div class="answer frag">1011 = 8 + 0 + 2 + 1 = <b style="color:var(--green)">11</b> — each 1 adds its column's weight.</div>
+</section>
+
+<!-- Slide 23: Voltage is the bit (switch OFF / switch ON) -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <div class="kicker">Mano Ch.1 · Hamacher App.A — why binary is RELIABLE</div>
+  <h2>Inside the chip, a bit is a voltage</h2>
+  <div style="display:flex; gap:44px; align-items:center">
+    <svg viewBox="0 0 400 380" style="width:38%">
+      <line x1="70" y1="20" x2="70" y2="360" stroke="var(--muted)" stroke-width="3"/>
+      <text x="18" y="40" fill="var(--muted)" font-size="24">5 V</text>
+      <text x="18" y="355" fill="var(--muted)" font-size="24">0 V</text>
+      <g class="frag">
+        <rect x="72" y="270" width="300" height="88" rx="8" fill="#3FB95022" stroke="var(--green)" stroke-width="2.5"/>
+        <text x="222" y="308" text-anchor="middle" fill="var(--green)" font-size="26" font-weight="800">LOGIC 0</text>
+        <text x="222" y="338" text-anchor="middle" fill="var(--green)" font-size="22">switch turned OFF</text>
+      </g>
+      <g class="frag">
+        <rect x="72" y="24" width="300" height="110" rx="8" fill="#58A6FF22" stroke="var(--accent)" stroke-width="2.5"/>
+        <text x="222" y="72" text-anchor="middle" fill="var(--accent)" font-size="26" font-weight="800">LOGIC 1</text>
+        <text x="222" y="104" text-anchor="middle" fill="var(--accent)" font-size="22">switch turned ON</text>
+      </g>
+      <g class="frag">
+        <rect x="72" y="140" width="300" height="124" rx="8" fill="#F8514918" stroke="var(--red)" stroke-width="2.5" stroke-dasharray="9 7"/>
+        <text x="222" y="196" text-anchor="middle" fill="var(--red)" font-size="25" font-weight="800">FORBIDDEN</text>
+        <text x="222" y="230" text-anchor="middle" fill="var(--red)" font-size="22">noise lives here</text>
+      </g>
+    </svg>
+    <div class="row col" style="flex:1; gap:14px">
+      <p class="frag" style="font-size:28px"><b style="color:var(--green)">Logic 0 = switch turned OFF</b> — low voltage, near 0 V (ground).</p>
+      <p class="frag" style="font-size:28px"><b style="color:var(--accent)">Logic 1 = switch turned ON</b> — high voltage, typically +5 V or +3 V.</p>
+      <p class="frag" style="font-size:28px">Between them, a <b style="color:var(--red)">forbidden range</b>: random electrical <b>noise</b> can wiggle a voltage, but it can't push it across the whole gap. That's why two states beat ten — <b>reliability</b>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 24: WIDGET — Shannon's circuits (live current from the source) -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <div class="kicker">Shannon's bridge · 1937 — wiring IS logic</div>
+  <h2>Click the switches, watch the current</h2>
+  <p class="muted" style="margin-bottom:14px">Current ⚡ is always arriving from the source (left). Whether it reaches the bulb depends on the wiring.</p>
+  <div class="widget" id="shanw">
+    <div style="display:flex; gap:40px">
+      <div style="flex:1; text-align:center">
+        <p style="font-size:27px; margin-bottom:8px"><b style="color:var(--accent)">SERIES = AND</b> <span class="muted">(both must close)</span></p>
+        <svg viewBox="0 0 420 130" style="width:100%">
+          <text x="4" y="70" font-size="26">⚡</text>
+          <line id="sw-s0" x1="34" y1="60" x2="90" y2="60" stroke="var(--yellow)" stroke-width="5"/>
+          <g class="sw" data-ckt="s" data-i="0" style="cursor:pointer">
+            <line id="sw-sa" x1="90" y1="60" x2="150" y2="28" stroke="var(--yellow)" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="90" cy="60" r="7" fill="var(--yellow)"/><circle cx="160" cy="60" r="7" fill="var(--yellow)"/>
+            <text x="118" y="110" text-anchor="middle" fill="var(--muted)" font-size="22">A</text>
+          </g>
+          <line id="sw-s1" x1="160" y1="60" x2="240" y2="60" stroke="var(--border)" stroke-width="5"/>
+          <g class="sw" data-ckt="s" data-i="1" style="cursor:pointer">
+            <line id="sw-sb" x1="240" y1="60" x2="300" y2="28" stroke="var(--yellow)" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="240" cy="60" r="7" fill="var(--yellow)"/><circle cx="310" cy="60" r="7" fill="var(--yellow)"/>
+            <text x="268" y="110" text-anchor="middle" fill="var(--muted)" font-size="22">B</text>
+          </g>
+          <line id="sw-s2" x1="310" y1="60" x2="360" y2="60" stroke="var(--border)" stroke-width="5"/>
+          <circle id="sw-sbulb" cx="385" cy="60" r="18" fill="var(--card)" stroke="var(--border)" stroke-width="3"/>
+        </svg>
+      </div>
+      <div style="flex:1; text-align:center">
+        <p style="font-size:27px; margin-bottom:8px"><b style="color:var(--accent)">PARALLEL = OR</b> <span class="muted">(either path works)</span></p>
+        <svg viewBox="0 0 420 130" style="width:100%">
+          <text x="4" y="70" font-size="26">⚡</text>
+          <line id="sw-p0" x1="34" y1="60" x2="70" y2="60" stroke="var(--yellow)" stroke-width="5"/>
+          <line id="sw-pt" x1="70" y1="60" x2="70" y2="25" stroke="var(--yellow)" stroke-width="5"/>
+          <line id="sw-pb" x1="70" y1="60" x2="70" y2="95" stroke="var(--yellow)" stroke-width="5"/>
+          <line id="sw-p1" x1="70" y1="25" x2="110" y2="25" stroke="var(--yellow)" stroke-width="5"/>
+          <line id="sw-p2" x1="70" y1="95" x2="110" y2="95" stroke="var(--yellow)" stroke-width="5"/>
+          <g class="sw" data-ckt="p" data-i="0" style="cursor:pointer">
+            <line id="sw-pa" x1="110" y1="25" x2="170" y2="8" stroke="var(--yellow)" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="110" cy="25" r="7" fill="var(--yellow)"/><circle cx="180" cy="25" r="7" fill="var(--yellow)"/>
+            <text x="142" y="55" text-anchor="middle" fill="var(--muted)" font-size="22">A</text>
+          </g>
+          <g class="sw" data-ckt="p" data-i="1" style="cursor:pointer">
+            <line id="sw-pc" x1="110" y1="95" x2="170" y2="78" stroke="var(--yellow)" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="110" cy="95" r="7" fill="var(--yellow)"/><circle cx="180" cy="95" r="7" fill="var(--yellow)"/>
+            <text x="142" y="125" text-anchor="middle" fill="var(--muted)" font-size="22">B</text>
+          </g>
+          <line id="sw-p3" x1="180" y1="25" x2="330" y2="25" stroke="var(--border)" stroke-width="5"/>
+          <line id="sw-p4" x1="180" y1="95" x2="330" y2="95" stroke="var(--border)" stroke-width="5"/>
+          <line id="sw-p5" x1="330" y1="25" x2="330" y2="95" stroke="var(--border)" stroke-width="5"/>
+          <line id="sw-p6" x1="330" y1="60" x2="360" y2="60" stroke="var(--border)" stroke-width="5"/>
+          <circle id="sw-pbulb" cx="385" cy="60" r="18" fill="var(--card)" stroke="var(--border)" stroke-width="3"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <p class="frag" style="margin-top:18px">A <b>normally-closed</b> switch gives NOT. Boole's 1854 algebra, built from copper and springs — <b style="color:var(--purple)">logic became hardware</b>.</p>
+</section>
+
+<!-- Slide 25: WIDGET — gate explorer with symbols and truth tables -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <h2 style="margin-bottom:14px">The four gates — symbols, tables, live</h2>
+  <div class="widget" id="gatew">
+    <div style="display:flex; gap:26px; align-items:center; justify-content:center; margin-bottom:16px">
+      <div class="wswitch" data-in="A"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">input A</div></div>
+      <div class="wswitch" data-in="B"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">input B</div></div>
+    </div>
+    <div style="display:flex; gap:18px">
+      <!-- AND -->
+      <div class="card gatecard"><h3 style="color:var(--accent)">AND</h3>
+        <svg viewBox="0 0 150 90" style="width:100%">
+          <line id="in-and-a" x1="10" y1="30" x2="45" y2="30" stroke="var(--border)" stroke-width="4"/>
+          <line id="in-and-b" x1="10" y1="60" x2="45" y2="60" stroke="var(--border)" stroke-width="4"/>
+          <path d="M45,12 H82 A33,33 0 0 1 82,78 H45 Z" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+          <line id="out-and" x1="115" y1="45" x2="140" y2="45" stroke="var(--border)" stroke-width="4"/>
+          <text id="outv-and" x="128" y="34" fill="var(--muted)" font-size="24" font-weight="800">0</text>
+        </svg>
+        <table class="tt"><tr><th>A</th><th>B</th><th>out</th></tr>
+          <tr id="row-and-0"><td>0</td><td>0</td><td>0</td></tr>
+          <tr id="row-and-1"><td>0</td><td>1</td><td>0</td></tr>
+          <tr id="row-and-2"><td>1</td><td>0</td><td>0</td></tr>
+          <tr id="row-and-3"><td>1</td><td>1</td><td><b>1</b></td></tr></table>
+      </div>
+      <!-- OR -->
+      <div class="card gatecard"><h3 style="color:var(--accent)">OR</h3>
+        <svg viewBox="0 0 150 90" style="width:100%">
+          <line id="in-or-a" x1="10" y1="30" x2="52" y2="30" stroke="var(--border)" stroke-width="4"/>
+          <line id="in-or-b" x1="10" y1="60" x2="52" y2="60" stroke="var(--border)" stroke-width="4"/>
+          <path d="M45,12 Q85,12 112,45 Q85,78 45,78 Q62,45 45,12 Z" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+          <line id="out-or" x1="112" y1="45" x2="140" y2="45" stroke="var(--border)" stroke-width="4"/>
+          <text id="outv-or" x="128" y="34" fill="var(--muted)" font-size="24" font-weight="800">0</text>
+        </svg>
+        <table class="tt"><tr><th>A</th><th>B</th><th>out</th></tr>
+          <tr id="row-or-0"><td>0</td><td>0</td><td>0</td></tr>
+          <tr id="row-or-1"><td>0</td><td>1</td><td><b>1</b></td></tr>
+          <tr id="row-or-2"><td>1</td><td>0</td><td><b>1</b></td></tr>
+          <tr id="row-or-3"><td>1</td><td>1</td><td><b>1</b></td></tr></table>
+      </div>
+      <!-- XOR -->
+      <div class="card gatecard"><h3 style="color:var(--accent)">XOR</h3>
+        <svg viewBox="0 0 150 90" style="width:100%">
+          <line id="in-xor-a" x1="10" y1="30" x2="48" y2="30" stroke="var(--border)" stroke-width="4"/>
+          <line id="in-xor-b" x1="10" y1="60" x2="48" y2="60" stroke="var(--border)" stroke-width="4"/>
+          <path d="M37,12 Q52,45 37,78" fill="none" stroke="var(--accent)" stroke-width="3"/>
+          <path d="M48,12 Q88,12 112,45 Q88,78 48,78 Q64,45 48,12 Z" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+          <line id="out-xor" x1="112" y1="45" x2="140" y2="45" stroke="var(--border)" stroke-width="4"/>
+          <text id="outv-xor" x="128" y="34" fill="var(--muted)" font-size="24" font-weight="800">0</text>
+        </svg>
+        <table class="tt"><tr><th>A</th><th>B</th><th>out</th></tr>
+          <tr id="row-xor-0"><td>0</td><td>0</td><td>0</td></tr>
+          <tr id="row-xor-1"><td>0</td><td>1</td><td><b>1</b></td></tr>
+          <tr id="row-xor-2"><td>1</td><td>0</td><td><b>1</b></td></tr>
+          <tr id="row-xor-3"><td>1</td><td>1</td><td>0</td></tr></table>
+      </div>
+      <!-- NOT A -->
+      <div class="card gatecard"><h3 style="color:var(--accent)">NOT A</h3>
+        <svg viewBox="0 0 150 90" style="width:100%">
+          <line id="in-nota-a" x1="10" y1="45" x2="48" y2="45" stroke="var(--border)" stroke-width="4"/>
+          <path d="M48,15 L98,45 L48,75 Z" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+          <circle cx="106" cy="45" r="7" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+          <line id="out-nota" x1="113" y1="45" x2="140" y2="45" stroke="var(--border)" stroke-width="4"/>
+          <text id="outv-nota" x="128" y="34" fill="var(--muted)" font-size="24" font-weight="800">1</text>
+        </svg>
+        <table class="tt"><tr><th>A</th><th>out</th></tr>
+          <tr id="row-nota-0"><td>0</td><td><b>1</b></td></tr>
+          <tr id="row-nota-1"><td>1</td><td>0</td></tr></table>
+      </div>
+    </div>
+  </div>
+  <p class="frag" style="margin-top:14px; font-size:28px">Truth tables, symbols, behaviour — you now have the complete toolkit. <b style="color:var(--purple)">But how do these gates CALCULATE?</b> That is the next slide.</p>
+</section>
+
+<!-- Slide 26: ask-the-class — XOR -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <div class="mic">🙋</div>
+  <h2>XOR gate, both inputs 1.<br>What comes out?</h2>
+  <div class="answer frag">0 — XOR is 1 only when the inputs <b>differ</b>. Hold that thought: binary 1 + 1 = 10, whose <b>sum bit is 0</b>…</div>
+</section>
+
+<!-- Slide 27: WIDGET — the half adder: the crux of the machine -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <div class="kicker">The crux of the machine — gates that CALCULATE</div>
+  <h2>The half adder — click A and B</h2>
+  <div class="widget" id="haw" style="display:flex; gap:32px; align-items:center">
+    <div style="display:flex; flex-direction:column; gap:18px">
+      <div class="wswitch" data-ha="A"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">A</div></div>
+      <div class="wswitch" data-ha="B"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">B</div></div>
+    </div>
+    <svg viewBox="0 0 480 250" style="flex:1">
+      <!-- Big input labels: these two wires arrive from switch A and switch B -->
+      <text x="8" y="52" fill="var(--teal)" font-size="26" font-weight="800">A</text>
+      <text x="8" y="200" fill="var(--orange)" font-size="26" font-weight="800">B</text>
+      <!-- A rail (id kept as ha-wa*): runs to XOR's top input AND branches down to AND's top input -->
+      <line id="ha-wa1" x1="30" y1="58" x2="160" y2="58" stroke="var(--border)" stroke-width="4"/>
+      <line id="ha-wa2" x1="95" y1="58" x2="95" y2="162" stroke="var(--border)" stroke-width="4"/>
+      <line id="ha-wa3" x1="95" y1="162" x2="160" y2="162" stroke="var(--border)" stroke-width="4"/>
+      <circle cx="95" cy="58" r="5" fill="var(--teal)"/>
+      <!-- B rail (id kept as ha-wb*): runs to AND's bottom input AND branches up to XOR's bottom input -->
+      <line id="ha-wb1" x1="30" y1="193" x2="160" y2="193" stroke="var(--border)" stroke-width="4"/>
+      <line id="ha-wb2" x1="120" y1="193" x2="120" y2="92" stroke="var(--border)" stroke-width="4"/>
+      <line id="ha-wb3" x1="120" y1="92" x2="160" y2="92" stroke="var(--border)" stroke-width="4"/>
+      <circle cx="120" cy="193" r="5" fill="var(--orange)"/>
+      <!-- XOR gate (top) → SUM. Its two inputs are A (top) and B (bottom) -->
+      <path id="ha-xor" d="M162,48 Q210,48 244,75 Q210,102 162,102 Q182,75 162,48 Z" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+      <path d="M150,48 Q172,75 150,102" fill="none" stroke="var(--accent)" stroke-width="3"/>
+      <text x="180" y="83" fill="var(--accent)" font-size="22" font-weight="700">XOR</text>
+      <text x="146" y="52" fill="var(--teal)" font-size="19" font-weight="800">A</text>
+      <text x="146" y="99" fill="var(--orange)" font-size="19" font-weight="800">B</text>
+      <!-- AND gate (bottom) → CARRY. Its two inputs are also A (top) and B (bottom) -->
+      <path id="ha-and" d="M160,150 H196 A32,32 0 0 1 196,214 H160 Z" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+      <text x="166" y="188" fill="var(--accent)" font-size="22" font-weight="700">AND</text>
+      <text x="146" y="167" fill="var(--teal)" font-size="19" font-weight="800">A</text>
+      <text x="146" y="200" fill="var(--orange)" font-size="19" font-weight="800">B</text>
+      <!-- Outputs -->
+      <line id="ha-ws" x1="244" y1="75" x2="330" y2="75" stroke="var(--border)" stroke-width="4"/>
+      <text id="ha-ts" x="338" y="84" fill="var(--muted)" font-size="26" font-weight="800">SUM 0</text>
+      <line id="ha-wc" x1="228" y1="182" x2="330" y2="182" stroke="var(--border)" stroke-width="4"/>
+      <text id="ha-tc" x="338" y="191" fill="var(--muted)" font-size="26" font-weight="800">CARRY 0</text>
+    </svg>
+    <div style="width:26%">
+      <div class="readout" id="haout" style="font-size:38px">0 + 0 = 00</div>
+      <p class="muted" style="font-size:23px; margin-top:12px"><b style="color:var(--text)">Both gates read the same two inputs, A and B.</b><br><br>Sum = A ⊕ B  (the XOR)<br>Carry = A · B  (the AND)<br><br>Exactly the two binary-addition columns.</p>
+    </div>
+  </div>
+  <p class="frag" style="margin-top:16px; font-size:27px"><b style="color:var(--purple)">This is the very crux:</b> arithmetic from logic gates, gates from switches. Drive it deep — everything in this course is built on this moment.</p>
+</section>
+
+<!-- Slide 28: WIDGET — the full adder: taking the carry IN -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <div class="kicker">One step up — the carry joins the addition</div>
+  <h2>The full adder — click A, B and Carry-in</h2>
+  <div class="widget" id="faw" style="display:flex; gap:20px; align-items:center">
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <div class="wswitch" data-fa="A"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">A</div></div>
+      <div class="wswitch" data-fa="B"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">B</div></div>
+      <div class="wswitch" data-fa="C"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">Cin</div></div>
+    </div>
+    <svg viewBox="0 0 620 270" style="flex:1">
+      <!-- The three inputs arrive from the switches on the left: labelled arrows -->
+      <text x="8" y="61" fill="var(--teal)" font-size="24" font-weight="800">A</text>
+      <polygon points="40,50 40,60 52,55" fill="var(--teal)"/>
+      <line id="fa-a" x1="40" y1="55" x2="120" y2="55" stroke="var(--border)" stroke-width="4"/>
+      <text x="8" y="101" fill="var(--teal)" font-size="24" font-weight="800">B</text>
+      <polygon points="40,90 40,100 52,95" fill="var(--teal)"/>
+      <line id="fa-b" x1="40" y1="95" x2="120" y2="95" stroke="var(--border)" stroke-width="4"/>
+      <text x="2" y="231" fill="var(--teal)" font-size="24" font-weight="800">Cin</text>
+      <polygon points="56,220 56,230 68,225" fill="var(--teal)"/>
+      <line id="fa-cin" x1="56" y1="225" x2="270" y2="225" stroke="var(--border)" stroke-width="4"/>
+      <line id="fa-cin2" x1="270" y1="225" x2="270" y2="100" stroke="var(--border)" stroke-width="4"/>
+      <line id="fa-cin3" x1="270" y1="100" x2="310" y2="100" stroke="var(--border)" stroke-width="4"/>
+      <!-- Half Adder 1: inputs A, B -> S1, C1 -->
+      <rect x="120" y="35" width="120" height="85" rx="10" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+      <text x="180" y="72" text-anchor="middle" fill="var(--accent)" font-size="20" font-weight="700">Half Adder 1</text>
+      <text x="180" y="98" text-anchor="middle" fill="var(--muted)" font-size="17">XOR + AND</text>
+      <text x="125" y="51" fill="var(--teal)" font-size="15" font-weight="700">A</text>
+      <text x="125" y="112" fill="var(--teal)" font-size="15" font-weight="700">B</text>
+      <!-- HA1's two labelled outputs: Sum1 feeds HA2's top input; Cout1 drops into the OR gate -->
+      <text x="244" y="48" fill="var(--teal)" font-size="16" font-weight="700">Sum1</text>
+      <line id="fa-s1" x1="240" y1="55" x2="310" y2="55" stroke="var(--border)" stroke-width="4"/>
+      <text x="250" y="122" fill="var(--orange)" font-size="16" font-weight="700">Cout1</text>
+      <line id="fa-c1" x1="240" y1="105" x2="262" y2="236" stroke="var(--border)" stroke-width="4"/>
+      <line id="fa-c1b" x1="262" y1="236" x2="400" y2="236" stroke="var(--border)" stroke-width="4"/>
+      <circle cx="400" cy="236" r="4.5" fill="var(--orange)"/>
+      <!-- Half Adder 2: inputs S1, Cin -> Sum, C2 -->
+      <rect x="310" y="40" width="120" height="85" rx="10" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+      <text x="370" y="77" text-anchor="middle" fill="var(--accent)" font-size="20" font-weight="700">Half Adder 2</text>
+      <text x="370" y="103" text-anchor="middle" fill="var(--muted)" font-size="17">XOR + AND</text>
+      <text x="315" y="56" fill="var(--muted)" font-size="15">S1</text>
+      <text x="315" y="118" fill="var(--teal)" font-size="15" font-weight="700">Cin</text>
+      <!-- Sum output -->
+      <line id="fa-sum" x1="430" y1="60" x2="500" y2="60" stroke="var(--border)" stroke-width="4"/>
+      <rect x="506" y="43" width="100" height="34" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text id="fa-tsum" x="513" y="68" fill="var(--muted)" font-size="24" font-weight="800">SUM 0</text>
+      <!-- HA2's carry (Cout2) meets Cout1 at the OR gate → the final Carry-out -->
+      <text x="404" y="142" fill="var(--orange)" font-size="16" font-weight="700">Cout2</text>
+      <line id="fa-c2" x1="400" y1="125" x2="400" y2="172" stroke="var(--border)" stroke-width="4"/>
+      <path id="fa-or" d="M400,172 Q432,172 454,204 Q432,236 400,236 Q414,204 400,172 Z" fill="var(--card)" stroke="var(--accent)" stroke-width="3"/>
+      <text x="411" y="210" fill="var(--accent)" font-size="16" font-weight="700">OR</text>
+      <line id="fa-cout" x1="454" y1="204" x2="500" y2="204" stroke="var(--border)" stroke-width="4"/>
+      <rect x="506" y="187" width="108" height="34" rx="8" fill="var(--surface)" stroke="var(--border)"/>
+      <text id="fa-tcout" x="513" y="212" fill="var(--muted)" font-size="24" font-weight="800">COUT 0</text>
+    </svg>
+    <div style="width:19%">
+      <div class="readout" id="faout" style="font-size:30px">0+0+0 = 00</div>
+      <p class="muted" style="font-size:21px; margin-top:10px">Two half adders + an OR.<br><br>Sum = A ⊕ B ⊕ Cin<br>Cout = C1 OR C2</p>
+    </div>
+  </div>
+  <p class="frag" style="margin-top:14px; font-size:27px">Chain the carry: <b>32 full adders in a row = the adder inside your laptop's ALU</b>. From two switches to real arithmetic — same gates all the way.</p>
+</section>
+
+<!-- Slide 29: 0.2 key insight -->
+<section class="slide" data-ch="0.2 · Bits & Boolean Logic">
+  <div class="kicker">🔑 Key insight</div>
+  <div class="keybox">Numbers → bits → voltages → gates → <span class="k">arithmetic</span>.<br>Metal and electricity can <span class="k">add</span>. Everything else is scale.</div>
+</section>
+
+<!-- ═══════════════ CHAPTER 0.3 — THE FIRST MACHINES ═══════════════ -->
+
+<!-- Slide 30: 0.3 divider -->
+<section class="slide divider" data-ch="0.3 · The First Machines">
+  <div class="chnum">0.3</div>
+  <h1>The First Machines</h1>
+  <p class="hook">"The money has arrived. Now — what do we build the switch from?"</p>
+</section>
+
+<!-- Slide 31: Attempt 1 — the relay (photo slot: assets/relay.jpg — add any time) -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <div class="kicker">Attempt 1 · the mechanical way</div>
+  <h2>The relay — an electromagnet moves a metal arm</h2>
+  <div style="display:flex; gap:36px; align-items:center">
+    <div class="row col" style="flex:1; gap:14px">
+      <div class="card frag"><p>Send a small current through a <b>coil</b> → it becomes an <b>electromagnet</b> and pulls a <b>metal arm</b> (the armature) closed, switching a second, larger circuit. Electricity controlling a switch — a logic gate can be built from it.</p></div>
+      <div class="card frag tint-teal"><p><b style="color:var(--teal)">It really was built.</b> Zuse's <b>Z3</b> (Germany, 1941) — <b>2,000 relays</b>, the first programmable digital computer. Harvard <b>Mark I</b> (USA, 1944) — <b>3,500 relays</b>, clunking away for the US Navy.</p></div>
+      <div class="card frag tint-purple"><p>The theory came first: <b style="color:var(--purple)">Claude Shannon (1937)</b> showed a network of relays <b>is</b> Boolean algebra — switches ↔ AND/OR/NOT. The blueprint for every logic circuit since.</p></div>
+      <div class="card frag tint-yellow"><p>But a relay is a <b>moving part</b>: only ~<b>1 kHz</b>, audibly <b>clicking</b> (you could hear the computer think), and it <b>wears out</b>. The first computer <b>'bug'</b> was a real moth crushed in a Mark II relay.</p></div>
+      <div class="card frag tint-red"><p>Logic works — but it can never scale. <b style="color:var(--red)">We need a switch with no moving parts.</b></p></div>
+    </div>
+    <div class="mslot" style="width:28%">
+      <img src="assets/relay - a close up view showing the coil inside - because its a transparent casign - with the legs.webp" alt="" onerror="this.parentElement.style.display='none'">
+      <p class="cap">A relay — the coil (electromagnet) and contact legs visible through the clear casing</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 32: Attempt 2 — the vacuum tube (photo slot: assets/vacuum_tube.jpg — add any time) -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <div class="kicker">Attempt 2 · switch the electrons themselves</div>
+  <h2>The vacuum tube — a grid steers electrons</h2>
+  <div style="display:flex; gap:36px; align-items:center">
+    <div class="row col" style="flex:1; gap:14px">
+      <div class="card frag"><p>A glass bulb with the air pumped out. A heated wire (the <b>cathode</b>) boils off electrons — <b>thermionic emission</b> — that stream toward a positive plate (the <b>anode</b>). Lee de Forest added a third element in <b>1906</b>: the <b>triode</b>.</p></div>
+      <div class="card frag"><p>A metal <b>grid</b> sits in the electron path and decides: grid <b style="color:var(--green)">POSITIVE</b> → electrons flow → <b>ON (1)</b>; grid <b style="color:var(--red)">negative</b> → blocked → <b>OFF (0)</b>. A voltage controlling a current — with <b>no moving parts</b>.</p></div>
+      <div class="card frag tint-green"><p>Switching at <b>~1 MHz</b> — about <b>a thousand times faster</b> than the clicking relay, because nothing moves but electrons.</p></div>
+      <div class="card frag tint-orange"><p>But the heated filament makes it <b>hot, power-hungry, and it burns out like a light bulb</b>. <b>ENIAC (1945)</b> needed <b>18,000</b> of them, drew <b>150 kW</b>, and lost roughly <b>one tube every day</b>.</p></div>
+    </div>
+    <div class="mslot" style="width:28%">
+      <img src="assets/vacuum tubes - a collection of them in diff sizes and models.jpg" alt="" onerror="this.parentElement.style.display='none'">
+      <p class="cap">Vacuum tubes — a range of sizes and models</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 33: PHOTO — ENIAC (your wide view + tube-changing photos) -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <div class="kicker">1945 · the vacuum-tube giant</div>
+  <h2 style="margin-bottom:16px">…and here it is: ENIAC</h2>
+  <div style="display:flex; gap:26px; align-items:flex-start">
+    <div class="mslot" style="flex:1.4">
+      <img src="assets/wide-view-of-men-and-women-working-on-the-eniac-in-the-1940s-all-four-walls-from-floor-to-ceiling-host-different-pieces-of-t.webp" alt="" onerror="this.parentElement.style.display='none'">
+      <p class="cap">ENIAC, University of Pennsylvania — all four walls, floor to ceiling</p>
+    </div>
+    <div class="mslot" style="flex:1">
+      <img src="assets/ENIAC-changing_a_tube.jpg" alt="" onerror="this.parentElement.style.display='none'">
+      <p class="cap">Changing one of 18,000 tubes — a daily ritual</p>
+    </div>
+  </div>
+  <div class="row" style="margin-top:20px; gap:16px">
+    <div class="card frag" style="text-align:center"><p><b style="color:var(--orange)">18,000</b><br>vacuum tubes</p></div>
+    <div class="card frag" style="text-align:center"><p><b style="color:var(--orange)">27 tonnes</b><br>filling a large room</p></div>
+    <div class="card frag" style="text-align:center"><p><b style="color:var(--orange)">150 kW</b><br>a small neighbourhood's power</p></div>
+    <div class="card frag tint-red" style="text-align:center"><p><b style="color:var(--red)">~1 tube</b><br>died every day</p></div>
+  </div>
+</section>
+
+<!-- Slide 34: ask-the-class — why did tubes die daily? -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <div class="mic">🙋</div>
+  <h2>ENIAC lost roughly one vacuum tube <span style="color:var(--red)">every day</span>. Why?</h2>
+  <div class="answer frag">Tubes have a heated filament — hot, power-hungry, and they burn out exactly like light bulbs. 18,000 tubes = daily failures.</div>
+</section>
+
+<!-- Slide 35: VIDEO — ENIAC in action -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <h2 style="margin-bottom:18px">Watch ENIAC run</h2>
+  <!-- To change the video: replace the URL on the next line.
+       A YouTube link opens in a browser tab when you click the play card
+       (this video's owner disallows embedding, so a direct player is not possible).
+       Or use a local file (plays right inside the slide): assets/eniac.mp4 -->
+  <div id="videourl" hidden>https://www.youtube.com/watch?v=HgsklKafxG8</div>
+  <div id="videobox" style="flex:1; display:flex; align-items:center; justify-content:center"></div>
+</section>
+
+<!-- Slide 36: ENIAC's second disease — the rewiring problem (photos: rewiring, von Neumann) -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <div class="kicker">Dying tubes were only disease number one…</div>
+  <h2>The rewiring problem</h2>
+  <div style="display:flex; gap:32px; align-items:center">
+    <div class="row col" style="flex:1; gap:14px">
+      <div class="card frag tint-red"><p>ENIAC's "program" was its <b>wiring</b>. Today it computes firing tables; tomorrow you want <b>weather prediction</b> on the same machine? <b style="color:var(--red)">Days of unplugging cables and resetting switches</b> — while the machine sits idle.</p></div>
+      <div class="card frag"><p>Enter <b>John von Neumann</b>. His 1945 report asked the question that changed everything: instructions are just <b>information</b>… and we already have a place that stores information.</p></div>
+      <div class="card frag tint-purple"><p><b style="color:var(--purple)">Put the program IN the memory, beside the data — as numbers.</b> The stored-program concept.</p></div>
+    </div>
+    <div class="photocol" style="width:28%">
+      <div class="mslot"><img src="assets/human computers rewiring eniac.jpeg" alt="" onerror="this.parentElement.style.display='none'"><p class="cap">Reprogramming ENIAC = re-plugging cables</p></div>
+      <div class="mslot"><img src="assets/von-Neumann-portrait pic.jpg" alt="" onerror="this.parentElement.style.display='none'"><p class="cap">John von Neumann</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 37: The program moves inside (memory visual) -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <div class="kicker">The single most important slide of Unit 0</div>
+  <h2>The program lives in memory</h2>
+  <div style="display:flex; gap:44px; align-items:center">
+    <svg viewBox="0 0 430 340" style="width:40%">
+      <text x="55" y="32" fill="var(--muted)" font-size="21">Address</text>
+      <text x="250" y="32" fill="var(--muted)" font-size="21">Contents</text>
+      <g><text x="70" y="80" fill="var(--teal)" font-size="24" font-weight="800">0</text><rect x="120" y="52" width="280" height="42" rx="8" fill="#39D0D814" stroke="var(--teal)" stroke-width="2.5"/><text x="260" y="81" text-anchor="middle" fill="var(--text)" font-size="24" font-family="Consolas,monospace">20 05</text></g>
+      <g><text x="70" y="136" fill="var(--teal)" font-size="24" font-weight="800">1</text><rect x="120" y="108" width="280" height="42" rx="8" fill="#39D0D814" stroke="var(--teal)" stroke-width="2.5"/><text x="260" y="137" text-anchor="middle" fill="var(--text)" font-size="24" font-family="Consolas,monospace">31 06</text></g>
+      <g><text x="70" y="192" fill="var(--teal)" font-size="24" font-weight="800">2</text><rect x="120" y="164" width="280" height="42" rx="8" fill="#39D0D814" stroke="var(--teal)" stroke-width="2.5"/><text x="260" y="193" text-anchor="middle" fill="var(--text)" font-size="24" font-family="Consolas,monospace">45 00</text></g>
+      <g><text x="70" y="248" fill="var(--teal)" font-size="24" font-weight="800">5</text><rect x="120" y="220" width="280" height="42" rx="8" fill="#39D0D814" stroke="var(--teal)" stroke-width="2.5"/><text x="260" y="249" text-anchor="middle" fill="var(--text)" font-size="24" font-family="Consolas,monospace">00 07</text></g>
+      <g><text x="70" y="304" fill="var(--teal)" font-size="24" font-weight="800">6</text><rect x="120" y="276" width="280" height="42" rx="8" fill="#39D0D814" stroke="var(--teal)" stroke-width="2.5"/><text x="260" y="305" text-anchor="middle" fill="var(--text)" font-size="24" font-family="Consolas,monospace">00 03</text></g>
+      <g class="frag">
+        <rect x="120" y="52" width="280" height="154" rx="8" fill="none" stroke="var(--purple)" stroke-width="3" stroke-dasharray="10 7"/>
+        <text x="410" y="130" fill="var(--purple)" font-size="22" font-weight="800" transform="rotate(90 410 130)" text-anchor="middle">PROGRAM</text>
+      </g>
+      <g class="frag">
+        <rect x="120" y="220" width="280" height="98" rx="8" fill="none" stroke="var(--green)" stroke-width="3" stroke-dasharray="10 7"/>
+        <text x="410" y="268" fill="var(--green)" font-size="22" font-weight="800" transform="rotate(90 410 268)" text-anchor="middle">DATA</text>
+      </g>
+    </svg>
+    <div class="row col" style="flex:1; gap:14px">
+      <p class="frag" style="font-size:28px">🙋 Look at the memory. <b>Which numbers are the program, and which are data?</b></p>
+      <p class="frag" style="font-size:28px">You can't tell — <b>neither can the machine</b>. Instructions ARE numbers: "20 05" might mean "load the value 5".</p>
+      <p class="frag" style="font-size:28px">That is the whole revolution: <b style="color:var(--purple)">a new program is just new numbers in memory</b>. No rewiring. Load and run.</p>
+      <p class="frag" style="font-size:28px"><b style="color:var(--green)">One machine, infinite programs</b> — Babbage's dream, Turing's proof, von Neumann's engineering.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 38: EDVAC — the dream runs… on the wrong switch (photo: von with edvac) -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <div class="kicker">1949 · the stored program becomes real</div>
+  <h2>EDVAC — the dream runs</h2>
+  <div style="display:flex; gap:32px; align-items:center">
+    <div class="row col" style="flex:1; gap:14px">
+      <div class="card frag tint-green"><p><b>EDVAC runs stored programs</b>: load new numbers, run a new task — no rewiring, ever again. <b style="color:var(--green)">Babbage's 1821 dream, real at last — 128 years later.</b></p></div>
+      <div class="card frag tint-orange"><p>But look closely: EDVAC is still built from <b>thousands of vacuum tubes</b> — hot, power-hungry, dying daily, filling a room.</p></div>
+      <div class="card frag tint-purple"><p><b style="color:var(--purple)">The IDEA was perfect. The SWITCH was not.</b> The world needed the vacuum tube replaced…</p></div>
+    </div>
+    <div class="mslot" style="width:30%">
+      <img src="assets/von with edvac.jpg" alt="" onerror="this.parentElement.style.display='none'">
+      <p class="cap">von Neumann with EDVAC</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 39: 0.3 key insight -->
+<section class="slide" data-ch="0.3 · The First Machines">
+  <div class="kicker">🔑 Key insight</div>
+  <div class="keybox">Instructions are just <span class="k">numbers in memory</span>.<br>The stored program turned a calculator into a <span class="k">computer</span> — change the numbers, change the machine's purpose.</div>
+</section>
+
+<!-- ═══════════════ CHAPTER 0.4 — THE TRANSISTOR REVOLUTION ═══════════════ -->
+
+<!-- Slide 40: 0.4 divider -->
+<section class="slide divider" data-ch="0.4 · The Transistor Revolution">
+  <div class="chnum">0.4</div>
+  <h1>The Transistor Revolution</h1>
+  <p class="hook">"The idea was perfect. The switch was not. Bell Labs, 1947…"</p>
+</section>
+
+<!-- Slide 41: The transistor as a switch (photos: Bell Labs trio, transistor in hand) -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <div class="kicker">1947 · Bell Labs — the turning point</div>
+  <h2>The transistor — a switch with three legs</h2>
+  <div style="display:flex; gap:28px; align-items:center">
+    <svg viewBox="0 0 560 260" style="width:42%">
+      <!-- OFF state -->
+      <g class="frag">
+        <text x="120" y="26" text-anchor="middle" fill="var(--red)" font-size="24" font-weight="800">Gate = 0 → OFF</text>
+        <circle cx="120" cy="130" r="52" fill="var(--card)" stroke="var(--border)" stroke-width="3"/>
+        <line x1="20" y1="130" x2="68" y2="130" stroke="var(--muted)" stroke-width="4"/>
+        <text x="18" y="112" fill="var(--muted)" font-size="20">gate</text>
+        <line x1="120" y1="40" x2="120" y2="78" stroke="var(--yellow)" stroke-width="4"/>
+        <text x="132" y="56" fill="var(--muted)" font-size="20">leg 2 · in</text>
+        <line x1="120" y1="182" x2="120" y2="222" stroke="var(--border)" stroke-width="4"/>
+        <text x="132" y="214" fill="var(--muted)" font-size="20">leg 3 · out</text>
+        <line x1="103" y1="112" x2="120" y2="150" stroke="var(--red)" stroke-width="5" stroke-linecap="round"/>
+        <text x="120" y="248" text-anchor="middle" fill="var(--red)" font-size="21">path broken — no current</text>
+      </g>
+      <!-- ON state -->
+      <g class="frag">
+        <text x="420" y="26" text-anchor="middle" fill="var(--green)" font-size="24" font-weight="800">Gate = 1 → ON</text>
+        <circle cx="420" cy="130" r="52" fill="var(--card)" stroke="var(--green)" stroke-width="3"/>
+        <line x1="320" y1="130" x2="368" y2="130" stroke="var(--green)" stroke-width="4"/>
+        <text x="318" y="112" fill="var(--green)" font-size="20">gate = 1</text>
+        <line x1="420" y1="40" x2="420" y2="78" stroke="var(--green)" stroke-width="4"/>
+        <line x1="420" y1="78" x2="420" y2="182" stroke="var(--green)" stroke-width="5"/>
+        <line x1="420" y1="182" x2="420" y2="222" stroke="var(--green)" stroke-width="4"/>
+        <text x="420" y="248" text-anchor="middle" fill="var(--green)" font-size="21">path closed — current flows</text>
+      </g>
+    </svg>
+    <div class="row col" style="flex:1; gap:12px">
+      <p class="frag" style="font-size:26px">Three legs: a <b>gate</b> (the control) and two legs forming a path. Voltage on the gate <b>opens or closes the path</b> between the other two — a switch, in solid silicon.</p>
+      <p class="frag" style="font-size:26px"><b style="color:var(--green)">No filament. No moving parts. No vacuum.</b> Small, cool, reliable — Bardeen, Brattain &amp; Shockley, Nobel Prize 1956.</p>
+      <p class="frag" style="font-size:26px">Its output voltage can drive the next transistor's gate — <b style="color:var(--purple)">switches building gates</b>. Next slide.</p>
+    </div>
+    <div class="photocol" style="width:22%">
+      <div class="mslot"><img src="assets/Bardeen_Shockley_Brattain_1948_invention of transistor - the three in the lab.jpg" alt="" onerror="this.parentElement.style.display='none'"><p class="cap">Bardeen, Shockley &amp; Brattain — Bell Labs</p></div>
+      <div class="mslot"><img src="assets/the image of a transistor held by a human hand- fingers seen.jpg" alt="" onerror="this.parentElement.style.display='none'"><p class="cap">A single transistor</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 42: WIDGET — one transistor becomes a NOT gate (click A!) -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <div class="kicker">Hamacher App.A — watch one transistor become a gate</div>
+  <h2 style="margin-bottom:14px">One transistor = a NOT gate — try it</h2>
+  <div class="widget" id="notw" style="display:flex; gap:30px; align-items:center">
+    <div class="wswitch" data-not="A"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">input A</div></div>
+    <svg viewBox="0 0 440 330" style="width:40%">
+      <text x="150" y="22" text-anchor="middle" fill="var(--muted)" font-size="21">V supply (+5 V)</text>
+      <line id="notw-sup" x1="150" y1="30" x2="150" y2="60" stroke="var(--border)" stroke-width="4"/>
+      <!-- resistor drawn as the real zig-zag symbol (matches slide 43) -->
+      <path d="M150,60 L139,68 L161,76 L139,84 L161,92 L150,108" fill="none" stroke="var(--yellow)" stroke-width="3"/>
+      <text x="176" y="90" fill="var(--yellow)" font-size="19">resistor</text>
+      <line id="notw-w1" x1="150" y1="108" x2="150" y2="148" stroke="var(--border)" stroke-width="4"/>
+      <circle cx="150" cy="148" r="6" fill="var(--accent)"/>
+      <line id="notw-out" x1="156" y1="148" x2="310" y2="148" stroke="var(--border)" stroke-width="4"/>
+      <text id="notw-lamp" x="320" y="157" fill="var(--green)" font-size="26" font-weight="800">OUT 1</text>
+      <!-- the wire that connects the OUT node down INTO the transistor (leg 2) -->
+      <line id="notw-w2" x1="150" y1="148" x2="150" y2="178" stroke="var(--border)" stroke-width="4"/>
+      <text x="162" y="172" fill="var(--muted)" font-size="18">leg 2</text>
+      <circle id="notw-tr" cx="150" cy="212" r="34" fill="var(--card)" stroke="var(--border)" stroke-width="3"/>
+      <line id="notw-gate" x1="60" y1="212" x2="116" y2="212" stroke="var(--border)" stroke-width="4"/>
+      <text x="26" y="200" fill="var(--muted)" font-size="18">leg 1 · gate</text>
+      <line id="notw-arm" x1="133" y1="190" x2="150" y2="234" stroke="var(--red)" stroke-width="5" stroke-linecap="round"/>
+      <line id="notw-leg3" x1="150" y1="246" x2="150" y2="274" stroke="var(--border)" stroke-width="4"/>
+      <text x="162" y="268" fill="var(--muted)" font-size="18">leg 3</text>
+      <line x1="126" y1="274" x2="174" y2="274" stroke="var(--muted)" stroke-width="5"/>
+      <line x1="136" y1="284" x2="164" y2="284" stroke="var(--muted)" stroke-width="4"/>
+      <line x1="146" y1="294" x2="154" y2="294" stroke="var(--muted)" stroke-width="3"/>
+      <text x="150" y="318" text-anchor="middle" fill="var(--muted)" font-size="18">ground (0 V)</text>
+    </svg>
+    <div style="flex:1">
+      <p id="notw-cap" style="font-size:26px"><b style="color:var(--green)">A = 0 → the switch is OPEN.</b> No path to ground, so OUT stays connected to the supply — <b>OUT = 1</b>.</p>
+      <p class="muted" style="font-size:22px; margin-top:12px">One continuous wire runs supply → resistor → <b>OUT node</b> → leg 2 → transistor → leg 3 → ground. The <b>gate</b> (leg 1) decides whether that path is broken or complete.</p>
+    </div>
+    <div style="width:16%">
+      <table class="tt"><tr><th>A</th><th>OUT</th></tr>
+        <tr id="notw-r0"><td>0</td><td><b>1</b></td></tr>
+        <tr id="notw-r1"><td>1</td><td>0</td></tr></table>
+      <p class="muted" style="font-size:21px; margin-top:10px; text-align:center">the NOT truth table</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 43: WIDGET — NAND and NOR from transistors, with truth tables -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <div class="kicker">Two transistors — same idea, two wirings</div>
+  <h2 style="margin-bottom:12px">NAND and NOR — drive them</h2>
+  <div class="widget" id="nnw" style="display:flex; gap:26px; align-items:center">
+    <div style="display:flex; flex-direction:column; gap:14px">
+      <div class="wswitch" data-nn="A"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">A</div></div>
+      <div class="wswitch" data-nn="B"><div class="pad"><div class="knob"></div></div><div class="bit">0</div><div class="wlab">B</div></div>
+    </div>
+    <!-- NAND: two transistors in SERIES -->
+    <div style="flex:1; text-align:center">
+      <h3 style="color:var(--accent); font-size:28px">NAND — in SERIES</h3>
+      <svg viewBox="0 0 360 350" style="width:80%">
+        <!-- VCC supply: always ON (steady yellow) for both gates -->
+        <text x="130" y="15" text-anchor="middle" fill="var(--yellow)" font-size="18" font-weight="700">VCC (+5 V)</text>
+        <line id="nand-a1" x1="130" y1="20" x2="130" y2="46" stroke="var(--yellow)" stroke-width="4"/>
+        <!-- resistor drawn as the real zig-zag symbol -->
+        <path d="M130,46 L121,53 L139,60 L121,67 L139,74 L130,84" fill="none" stroke="var(--yellow)" stroke-width="3"/>
+        <text x="148" y="69" fill="var(--yellow)" font-size="16">R</text>
+        <line id="nand-a2" x1="130" y1="84" x2="130" y2="116" stroke="var(--yellow)" stroke-width="4"/>
+        <circle cx="130" cy="116" r="5" fill="var(--accent)"/>
+        <line id="nand-out" x1="136" y1="116" x2="212" y2="116" stroke="var(--border)" stroke-width="4"/>
+        <text id="nand-lamp" x="218" y="124" fill="var(--green)" font-size="22" font-weight="800">output 1</text>
+        <line id="nand-w1" x1="130" y1="116" x2="130" y2="146" stroke="var(--border)" stroke-width="4"/>
+        <circle id="nand-t1" cx="130" cy="176" r="30" fill="var(--card)" stroke="var(--border)" stroke-width="3"/>
+        <line id="nand-ga" x1="54" y1="176" x2="100" y2="176" stroke="var(--border)" stroke-width="4"/>
+        <text x="30" y="184" fill="var(--teal)" font-size="20" font-weight="700">A</text>
+        <line id="nand-arm1" x1="115" y1="156" x2="130" y2="196" stroke="var(--red)" stroke-width="5" stroke-linecap="round"/>
+        <line id="nand-w2" x1="130" y1="206" x2="130" y2="232" stroke="var(--border)" stroke-width="4"/>
+        <circle id="nand-t2" cx="130" cy="262" r="30" fill="var(--card)" stroke="var(--border)" stroke-width="3"/>
+        <line id="nand-gb" x1="54" y1="262" x2="100" y2="262" stroke="var(--border)" stroke-width="4"/>
+        <text x="30" y="270" fill="var(--teal)" font-size="20" font-weight="700">B</text>
+        <line id="nand-arm2" x1="115" y1="242" x2="130" y2="282" stroke="var(--red)" stroke-width="5" stroke-linecap="round"/>
+        <line id="nand-w3" x1="130" y1="292" x2="130" y2="316" stroke="var(--border)" stroke-width="4"/>
+        <line x1="108" y1="316" x2="152" y2="316" stroke="var(--muted)" stroke-width="5"/>
+        <line x1="118" y1="326" x2="142" y2="326" stroke="var(--muted)" stroke-width="4"/>
+      </svg>
+      <table class="tt"><tr><th>A</th><th>B</th><th>OUT</th></tr>
+        <tr id="nand-r0"><td>0</td><td>0</td><td><b>1</b></td></tr>
+        <tr id="nand-r1"><td>0</td><td>1</td><td><b>1</b></td></tr>
+        <tr id="nand-r2"><td>1</td><td>0</td><td><b>1</b></td></tr>
+        <tr id="nand-r3"><td>1</td><td>1</td><td>0</td></tr></table>
+    </div>
+    <!-- NOR: two transistors in PARALLEL -->
+    <div style="flex:1; text-align:center">
+      <h3 style="color:var(--accent); font-size:28px">NOR — in PARALLEL</h3>
+      <svg viewBox="0 0 360 350" style="width:80%">
+        <!-- VCC supply: always ON (steady yellow) for both gates -->
+        <text x="130" y="15" text-anchor="middle" fill="var(--yellow)" font-size="18" font-weight="700">VCC (+5 V)</text>
+        <line id="nor-a1" x1="130" y1="20" x2="130" y2="46" stroke="var(--yellow)" stroke-width="4"/>
+        <!-- resistor drawn as the real zig-zag symbol -->
+        <path d="M130,46 L121,53 L139,60 L121,67 L139,74 L130,84" fill="none" stroke="var(--yellow)" stroke-width="3"/>
+        <text x="148" y="69" fill="var(--yellow)" font-size="16">R</text>
+        <line id="nor-a2" x1="130" y1="84" x2="130" y2="116" stroke="var(--yellow)" stroke-width="4"/>
+        <circle cx="130" cy="116" r="5" fill="var(--accent)"/>
+        <line id="nor-out" x1="136" y1="116" x2="212" y2="116" stroke="var(--border)" stroke-width="4"/>
+        <text id="nor-lamp" x="218" y="124" fill="var(--green)" font-size="22" font-weight="800">output 1</text>
+        <line id="nor-w1" x1="130" y1="116" x2="130" y2="140" stroke="var(--border)" stroke-width="4"/>
+        <line id="nor-w2" x1="66" y1="140" x2="194" y2="140" stroke="var(--border)" stroke-width="4"/>
+        <line id="nor-dl" x1="66" y1="140" x2="66" y2="162" stroke="var(--border)" stroke-width="4"/>
+        <line id="nor-dr" x1="194" y1="140" x2="194" y2="162" stroke="var(--border)" stroke-width="4"/>
+        <circle id="nor-t1" cx="66" cy="190" r="28" fill="var(--card)" stroke="var(--border)" stroke-width="3"/>
+        <line id="nor-ga" x1="8" y1="190" x2="38" y2="190" stroke="var(--border)" stroke-width="4"/>
+        <text x="12" y="178" fill="var(--teal)" font-size="20" font-weight="700">A</text>
+        <line id="nor-arm1" x1="52" y1="172" x2="66" y2="210" stroke="var(--red)" stroke-width="5" stroke-linecap="round"/>
+        <circle id="nor-t2" cx="194" cy="190" r="28" fill="var(--card)" stroke="var(--border)" stroke-width="3"/>
+        <line id="nor-gb" x1="288" y1="190" x2="222" y2="190" stroke="var(--border)" stroke-width="4"/>
+        <text x="276" y="178" fill="var(--teal)" font-size="20" font-weight="700">B</text>
+        <line id="nor-arm2" x1="180" y1="172" x2="194" y2="210" stroke="var(--red)" stroke-width="5" stroke-linecap="round"/>
+        <line id="nor-bl" x1="66" y1="218" x2="66" y2="244" stroke="var(--border)" stroke-width="4"/>
+        <line id="nor-br" x1="194" y1="218" x2="194" y2="244" stroke="var(--border)" stroke-width="4"/>
+        <line id="nor-w3" x1="66" y1="244" x2="194" y2="244" stroke="var(--border)" stroke-width="4"/>
+        <line id="nor-w4" x1="130" y1="244" x2="130" y2="270" stroke="var(--border)" stroke-width="4"/>
+        <line x1="108" y1="270" x2="152" y2="270" stroke="var(--muted)" stroke-width="5"/>
+        <line x1="118" y1="280" x2="142" y2="280" stroke="var(--muted)" stroke-width="4"/>
+      </svg>
+      <table class="tt"><tr><th>A</th><th>B</th><th>OUT</th></tr>
+        <tr id="nor-r0"><td>0</td><td>0</td><td><b>1</b></td></tr>
+        <tr id="nor-r1"><td>0</td><td>1</td><td>0</td></tr>
+        <tr id="nor-r2"><td>1</td><td>0</td><td>0</td></tr>
+        <tr id="nor-r3"><td>1</td><td>1</td><td>0</td></tr></table>
+    </div>
+  </div>
+  <p class="frag" style="margin-top:12px; font-size:26px"><b style="color:var(--yellow)">VCC is always on</b> (the yellow rail through the resistor). If the transistors complete a path to ground, the output is dragged to <b>0</b>; if the path is broken, the output stays high at <b>1</b>. Series needs <b>both</b> closed → NAND. Parallel needs <b>either</b> → NOR.</p>
+</section>
+
+<!-- Slide 44: The ladder — from one transistor to arithmetic -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <div class="kicker">Putting it all together — the most important ladder in computing</div>
+  <h2 style="margin-bottom:16px">From one switch to arithmetic</h2>
+  <div class="row col" style="gap:11px">
+    <div class="card frag"><p><b style="color:var(--teal)">1 transistor</b> → a <b>NOT</b> gate. <span class="muted">(you just drove it)</span></p></div>
+    <div class="card frag"><p><b style="color:var(--teal)">2 transistors</b> → <b>NAND</b> (series) and <b>NOR</b> (parallel).</p></div>
+    <div class="card frag tint-purple"><p><b style="color:var(--purple)">A few NANDs wired together</b> → <b>AND, OR, XOR</b> — in fact, NAND alone can build <b>every gate that exists</b>.</p></div>
+    <div class="card frag"><p><b style="color:var(--accent)">XOR + AND</b> → the <b>HALF ADDER</b> from Chapter 0.2 (Sum, Carry) — roughly <b>20 transistors</b>.</p></div>
+    <div class="card frag"><p><b style="color:var(--accent)">2 half adders + OR</b> → the <b>FULL ADDER</b> — roughly <b>40 transistors</b>.</p></div>
+    <div class="card frag"><p><b style="color:var(--accent)">32 full adders chained</b> → the adder inside your laptop's <b>ALU</b> — about <b>1,300 transistors</b>.</p></div>
+    <div class="card frag tint-green"><p><b style="color:var(--green)">Billions of transistors</b> → your phone. <b>CMOS</b> pairing (NMOS + PMOS) keeps power near zero at rest — that's why it doesn't melt.</p></div>
+  </div>
+</section>
+
+<!-- Slide 45: PHOTO FILMSTRIP — the physical shrink: breadboard → IC → VLSI microprocessor -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <div class="kicker">The physical story — the SAME adder, shrinking</div>
+  <h2 style="margin-bottom:14px">From a breadboard you can touch… to a speck between your fingers</h2>
+  <!-- Five stages, each a frag so they appear one click at a time, left → right -->
+  <div style="display:flex; gap:10px; align-items:stretch; justify-content:space-between">
+
+    <!-- 1 · half adder on a breadboard -->
+    <div class="frag" style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; min-width:0">
+      <div style="font-size:20px; color:var(--teal); font-weight:800; height:40px">Half adder</div>
+      <img src="assets/half-adder-built-on-a-breadboard_using transistor.jpg" alt="" onerror="this.style.display='none'" style="width:100%; max-height:30vh; object-fit:contain; border-radius:12px; border:1px solid var(--border)">
+      <p style="font-size:18px; color:var(--muted); margin-top:8px">~20 transistors, wired by hand on a breadboard</p>
+    </div>
+
+    <div class="frag" style="align-self:center; font-size:34px; color:var(--orange); font-weight:800">→</div>
+
+    <!-- 2 · full adder on a breadboard -->
+    <div class="frag" style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; min-width:0">
+      <div style="font-size:20px; color:var(--teal); font-weight:800; height:40px">Full adder</div>
+      <img src="assets/full-adder-1-built-on-a-breadboard-using-npn-transistors.jpg" alt="" onerror="this.style.display='none'" style="width:100%; max-height:30vh; object-fit:contain; border-radius:12px; border:1px solid var(--border)">
+      <p style="font-size:18px; color:var(--muted); margin-top:8px">~40 transistors — more switches, more wires</p>
+    </div>
+
+    <div class="frag" style="align-self:center; font-size:34px; color:var(--orange); font-weight:800">→</div>
+
+    <!-- 3 · full adder as an IC -->
+    <div class="frag" style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; min-width:0">
+      <div style="font-size:20px; color:var(--purple); font-weight:800; height:40px">Same adder → one IC</div>
+      <img src="assets/full adder as an IC - smaller now - shown holding in bettween the fingers.jpg" alt="" onerror="this.style.display='none'" style="width:100%; max-height:30vh; object-fit:contain; border-radius:12px; border:1px solid var(--border)">
+      <p style="font-size:18px; color:var(--muted); margin-top:8px">The whole circuit grown on silicon — fits on a fingertip</p>
+    </div>
+
+    <div class="frag" style="align-self:center; font-size:34px; color:var(--orange); font-weight:800">→</div>
+
+    <!-- 4 · many ICs on a board = a processor -->
+    <div class="frag" style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; min-width:0">
+      <div style="font-size:20px; color:var(--purple); font-weight:800; height:40px">Many ICs = a processor</div>
+      <img src="assets/so many ICs together to become a processor - pic shows a board with many Ics..jpg" alt="" onerror="this.style.display='none'" style="width:100%; max-height:30vh; object-fit:contain; border-radius:12px; border:1px solid var(--border)">
+      <p style="font-size:18px; color:var(--muted); margin-top:8px">Each IC does one job — together they build a computer</p>
+    </div>
+
+    <div class="frag" style="align-self:center; font-size:34px; color:var(--green); font-weight:800">→</div>
+
+    <!-- 5 · the microprocessor (VLSI) -->
+    <div class="frag" style="flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; min-width:0">
+      <div style="font-size:20px; color:var(--green); font-weight:800; height:40px">VLSI microprocessor</div>
+      <img src="assets/AMD Ryzen microprocessor held in between the fingers.jpg" alt="" onerror="this.style.display='none'" style="width:100%; max-height:30vh; object-fit:contain; border-radius:12px; border:1px solid var(--border)">
+      <p style="font-size:18px; color:var(--muted); margin-top:8px">Billions of transistors — a whole processor between two fingers</p>
+    </div>
+
+  </div>
+  <p class="frag" style="margin-top:16px; font-size:26px; text-align:center">Same logic, same full adder — <b>the only thing that changed is size</b>. Breadboard → IC → VLSI. That shrink <b style="color:var(--purple)">is exactly the four generations</b> →</p>
+</section>
+
+<!-- Slide 46: The four generations -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <div class="kicker">Hamacher Ch.1 — learn this table</div>
+  <h2>Four generations of computers</h2>
+  <table style="width:100%">
+    <tr><th class="c" style="width:14%">Gen</th><th style="width:20%">Years</th><th style="width:30%">Technology</th><th style="width:36%">What it brought</th></tr>
+    <tr class="frag"><td class="c"><b>1st</b></td><td>1945–1955</td><td>Vacuum tubes</td><td>The <b>stored-program</b> concept; assembly language</td></tr>
+    <tr class="frag"><td class="c"><b>2nd</b></td><td>1955–1965</td><td>Transistors</td><td>Smaller, faster gates; high-level languages (<b>Fortran</b>)</td></tr>
+    <tr class="frag"><td class="c"><b>3rd</b></td><td>1965–1975</td><td>Integrated Circuits</td><td>Many transistors per chip; <b>pipelining &amp; cache</b> ideas emerge → Units 3 &amp; 4!</td></tr>
+    <tr class="frag"><td class="c"><b>4th</b></td><td>1975–now</td><td>VLSI</td><td>Billions of transistors → the <b>microprocessor</b></td></tr>
+  </table>
+  <p class="frag" style="margin-top:22px"><b style="color:var(--purple)">Note what evolved: the organization.</b> The architecture — the stored program — is the same dream since 1945.</p>
+</section>
+
+<!-- Slide 47: Moore's law, animated -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <div class="kicker">1965 · Gordon Moore's observation</div>
+  <h2>Moore's law — the doubling drumbeat</h2>
+  <div style="display:flex; gap:40px; align-items:flex-end">
+    <svg viewBox="0 0 640 330" style="width:58%">
+      <line x1="60" y1="10" x2="60" y2="290" stroke="var(--muted)" stroke-width="2"/>
+      <line x1="60" y1="290" x2="620" y2="290" stroke="var(--muted)" stroke-width="2"/>
+      <text x="12" y="30" fill="var(--muted)" font-size="19">count</text>
+      <text x="8" y="60" fill="var(--muted)" font-size="17">(log scale)</text>
+      <g class="frag"><rect x="90"  y="266" width="70" height="24"  rx="6" fill="#D2992288" stroke="var(--yellow)"/><text x="125" y="315" text-anchor="middle" fill="var(--muted)" font-size="19">1947</text><text x="125" y="256" text-anchor="middle" fill="var(--yellow)" font-size="19" font-weight="700">1</text></g>
+      <g class="frag"><rect x="195" y="205" width="70" height="85"  rx="6" fill="#F0883E88" stroke="var(--orange)"/><text x="230" y="315" text-anchor="middle" fill="var(--muted)" font-size="19">1971 · 4004</text><text x="230" y="195" text-anchor="middle" fill="var(--orange)" font-size="19" font-weight="700">2,300</text></g>
+      <g class="frag"><rect x="300" y="138" width="70" height="152" rx="6" fill="#58A6FF88" stroke="var(--accent)"/><text x="335" y="315" text-anchor="middle" fill="var(--muted)" font-size="19">1989 · 486</text><text x="335" y="128" text-anchor="middle" fill="var(--accent)" font-size="19" font-weight="700">1.2 M</text></g>
+      <g class="frag"><rect x="405" y="68"  width="70" height="222" rx="6" fill="#BC8CFF88" stroke="var(--purple)"/><text x="440" y="315" text-anchor="middle" fill="var(--muted)" font-size="19">2008 · Core i7</text><text x="440" y="58" text-anchor="middle" fill="var(--purple)" font-size="19" font-weight="700">~1 B</text></g>
+      <g class="frag"><rect x="510" y="18"  width="70" height="272" rx="6" fill="#3FB95088" stroke="var(--green)"/><text x="545" y="315" text-anchor="middle" fill="var(--muted)" font-size="19">2024 · M-series</text><text x="545" y="10" text-anchor="middle" fill="var(--green)" font-size="19" font-weight="700">100 B+</text></g>
+    </svg>
+    <div class="row col" style="flex:1; gap:14px">
+      <p class="frag" style="font-size:27px">Transistor count per chip <b>doubles roughly every two years</b>.</p>
+      <p class="frag" style="font-size:27px">The axis is logarithmic — a straight climb here means <b>exponential</b> growth.</p>
+      <p class="frag" style="font-size:27px">Why it works: ICs <b>grow</b> switches together on silicon — no hands, no wires.</p>
+      <p class="frag card tint-yellow" style="font-size:25px">⚠ Not a law of physics — an economic target the industry chased for 60 years. It is slowing… which is why <b>architecture</b> matters more than ever.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 48: Memory needed a switch too (photo slot: assets/core_memory.jpg — add any time) -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <h2>Memory needed a switch too</h2>
+  <div style="display:flex; gap:36px; align-items:center">
+    <div class="row col" style="flex:1; gap:16px">
+      <div class="card frag tint-yellow"><h3 style="color:var(--yellow)">Magnetic-core memory</h3><p>Each bit = the magnetisation direction of a tiny iron ring — <b>hand-threaded</b>, one ring per bit. Workers literally wove Apollo's memory.</p></div>
+      <div class="card frag tint-green"><h3 style="color:var(--green)">Transistor memory (DRAM / SRAM)</h3><p>The same bit, shrunk to one of <b>billions of cells</b> on a chip. Full story in Unit 4.</p></div>
+    </div>
+    <div class="mslot" style="width:30%">
+      <img src="assets/core_memory.jpg" alt="" onerror="this.parentElement.style.display='none'">
+      <p class="cap">Core memory: one ring, one bit</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 49: 0.4 key insight + cliffhanger -->
+<section class="slide" data-ch="0.4 · The Transistor Revolution">
+  <div class="kicker">🔑 Key insight — and a cliffhanger</div>
+  <div class="keybox" style="font-size:44px">The logic never changed since Boole. We found a <span class="k">better switch</span> — and Moore's law made it a <span class="k">billion times</span> smaller, faster, cheaper.<br><br><span style="font-size:34px" class="muted">HOW the machine actually fetches and executes those stored numbers — that is the story of <b style="color:var(--text)">Unit 1</b>. See you there.</span></div>
+</section>
+
+<!-- ═════════════════ ANIMATION ENGINE — do not edit below ═════════════════ -->
+<script>
+/* Navigation: fragments reveal first, then the slide advances. */
+const slides=[...document.querySelectorAll('.slide')];
+const bar=document.getElementById('bar'),counter=document.getElementById('counter'),chlabel=document.getElementById('chlabel');
+let cur=0;
+const frags=i=>[...slides[i].querySelectorAll('.frag')];
+function show(i,revealAll){
+  slides[cur].classList.remove('active');
+  cur=Math.max(0,Math.min(slides.length-1,i));
+  slides[cur].classList.add('active');
+  frags(cur).forEach(f=>f.classList.toggle('on',!!revealAll));
+  bar.style.width=(cur/(slides.length-1)*100)+'%';
+  counter.textContent=(cur+1)+' / '+slides.length;
+  chlabel.textContent=slides[cur].dataset.ch||'';
+}
+function next(){
+  const p=frags(cur).find(f=>!f.classList.contains('on'));
+  if(p)p.classList.add('on');
+  else if(cur<slides.length-1)show(cur+1,false);
+}
+function prev(){
+  const s=frags(cur).filter(f=>f.classList.contains('on'));
+  if(s.length)s.pop().classList.remove('on');
+  else if(cur>0)show(cur-1,true);
+}
+const dividers=slides.map((s,i)=>s.classList.contains('divider')?i:-1).filter(i=>i>=0);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+  else if(e.key==='Home')show(0,false);
+  else if(e.key==='End')show(slides.length-1,true);
+  else if(e.key>='0'&&e.key<='4'&&dividers[+e.key]!==undefined)show(dividers[+e.key],false);
+});
+/* Clicks inside a .widget operate the widget; clicks elsewhere advance. */
+document.addEventListener('click',e=>{ if(e.target.closest('.widget,#navb,a'))return; next(); });
+document.getElementById('navprev').addEventListener('click',prev);
+document.getElementById('navnext').addEventListener('click',next);
+
+/* Helper: flip a toggle switch's visual state */
+function setToggle(sw,v){
+  sw.classList.toggle('on',!!v);
+  const b=sw.querySelector('.bit'); if(b)b.textContent=v?'1':'0';
+  const st=sw.querySelector('.state'); if(st)st.textContent=v?'ON':'OFF';
+}
+
+/* ── Widget: binary builder ── */
+document.querySelectorAll('#binw .wswitch').forEach(sw=>{
+  sw.addEventListener('click',()=>{
+    setToggle(sw,!sw.classList.contains('on'));
+    const sws=[...document.querySelectorAll('#binw .wswitch')];
+    const bits=sws.map(s=>s.classList.contains('on')?1:0);
+    const val=sws.reduce((a,s)=>a+(s.classList.contains('on')?+s.dataset.w:0),0);
+    const parts=sws.filter(s=>s.classList.contains('on')).map(s=>s.dataset.w);
+    document.getElementById('binout').textContent=
+      bits.join('')+' = '+(parts.length>1?parts.join(' + ')+' = ':'')+val;
+  });
+});
+
+/* ── Widget: Shannon series/parallel circuits (source current always live) ── */
+const shan={s:[false,false],p:[false,false]};
+function shanDraw(){
+  const HOT='var(--yellow)',OFF='var(--border)';
+  const setw=(id,on)=>{const el=document.getElementById(id); if(el)el.setAttribute('stroke',on?HOT:OFF)};
+  const arm=(id,y1,x2,closed)=>{const el=document.getElementById(id);
+    el.setAttribute('y2',closed?y1:y1-32); el.setAttribute('x2',x2);};
+  arm('sw-sa',60,160,shan.s[0]); arm('sw-sb',60,310,shan.s[1]);
+  arm('sw-pa',25,180,shan.p[0]); arm('sw-pc',95,180,shan.p[1]);
+  const sOn=shan.s[0]&&shan.s[1];
+  setw('sw-s0',true); setw('sw-s1',shan.s[0]); setw('sw-s2',sOn);
+  const sb=document.getElementById('sw-sbulb');
+  sb.setAttribute('fill',sOn?'var(--yellow)':'var(--card)'); sb.setAttribute('stroke',sOn?'var(--yellow)':'var(--border)');
+  const pOn=shan.p[0]||shan.p[1];
+  setw('sw-p0',true); setw('sw-pt',true); setw('sw-pb',true); setw('sw-p1',true); setw('sw-p2',true);
+  setw('sw-p3',shan.p[0]); setw('sw-p4',shan.p[1]); setw('sw-p5',pOn); setw('sw-p6',pOn);
+  const pb=document.getElementById('sw-pbulb');
+  pb.setAttribute('fill',pOn?'var(--yellow)':'var(--card)'); pb.setAttribute('stroke',pOn?'var(--yellow)':'var(--border)');
+}
+document.querySelectorAll('#shanw .sw').forEach(g=>{
+  g.addEventListener('click',()=>{ shan[g.dataset.ckt][+g.dataset.i]^=true; shanDraw(); });
+});
+shanDraw();
+
+/* ── Widget: gate explorer (symbols + truth-table highlight) ── */
+const gin={A:0,B:0};
+function gateDraw(){
+  document.querySelectorAll('#gatew .wswitch').forEach(sw=>setToggle(sw,gin[sw.dataset.in]));
+  const HOT='var(--teal)',G='var(--green)',OFF='var(--border)';
+  const out={and:gin.A&&gin.B?1:0, or:gin.A||gin.B?1:0, xor:gin.A^gin.B, nota:gin.A?0:1};
+  const set=(id,attr,val)=>{const el=document.getElementById(id); if(el)el.setAttribute(attr,val)};
+  ['and','or','xor'].forEach(g=>{
+    set('in-'+g+'-a','stroke',gin.A?HOT:OFF); set('in-'+g+'-b','stroke',gin.B?HOT:OFF);
+    set('out-'+g,'stroke',out[g]?G:OFF);
+    const t=document.getElementById('outv-'+g); t.textContent=out[g]; t.setAttribute('fill',out[g]?G:'var(--muted)');
+    for(let r=0;r<4;r++){const tr=document.getElementById('row-'+g+'-'+r);
+      tr.style.background=(r===gin.A*2+gin.B)?'#BC8CFF33':'transparent';}
+  });
+  set('in-nota-a','stroke',gin.A?HOT:OFF); set('out-nota','stroke',out.nota?G:OFF);
+  const tn=document.getElementById('outv-nota'); tn.textContent=out.nota; tn.setAttribute('fill',out.nota?G:'var(--muted)');
+  for(let r=0;r<2;r++){const tr=document.getElementById('row-nota-'+r);
+    tr.style.background=(r===gin.A)?'#BC8CFF33':'transparent';}
+}
+document.querySelectorAll('#gatew .wswitch').forEach(sw=>{
+  sw.addEventListener('click',()=>{ gin[sw.dataset.in]^=1; gateDraw(); });
+});
+gateDraw();
+
+/* ── Widget: half adder ── */
+const ha={A:0,B:0};
+function haDraw(){
+  document.querySelectorAll('#haw .wswitch').forEach(sw=>setToggle(sw,ha[sw.dataset.ha]));
+  const T='var(--teal)',G='var(--green)',OFF='var(--border)';
+  const set=(id,attr,val)=>document.getElementById(id).setAttribute(attr,val);
+  ['ha-wa1','ha-wa2','ha-wa3'].forEach(id=>set(id,'stroke',ha.A?T:OFF));
+  ['ha-wb1','ha-wb2','ha-wb3'].forEach(id=>set(id,'stroke',ha.B?T:OFF));
+  const sum=ha.A^ha.B, carry=ha.A&&ha.B?1:0;
+  set('ha-ws','stroke',sum?G:OFF); set('ha-wc','stroke',carry?G:OFF);
+  set('ha-xor','stroke',sum?G:'var(--accent)'); set('ha-and','stroke',carry?G:'var(--accent)');
+  const ts=document.getElementById('ha-ts'),tc=document.getElementById('ha-tc');
+  ts.textContent='SUM '+sum; ts.setAttribute('fill',sum?G:'var(--muted)');
+  tc.textContent='CARRY '+carry; tc.setAttribute('fill',carry?G:'var(--muted)');
+  document.getElementById('haout').textContent=ha.A+' + '+ha.B+' = '+carry+''+sum;
+}
+document.querySelectorAll('#haw .wswitch').forEach(sw=>{
+  sw.addEventListener('click',()=>{ ha[sw.dataset.ha]^=1; haDraw(); });
+});
+haDraw();
+
+/* ── Widget: full adder (two half adders + OR) ── */
+const fa={A:0,B:0,C:0};
+function faDraw(){
+  document.querySelectorAll('#faw .wswitch').forEach(sw=>setToggle(sw,fa[sw.dataset.fa]));
+  const T='var(--teal)',G='var(--green)',OFF='var(--border)';
+  const set=(id,on,col)=>document.getElementById(id).setAttribute('stroke',on?col:OFF);
+  const s1=fa.A^fa.B, c1=fa.A&&fa.B?1:0;
+  const sum=s1^fa.C, c2=s1&&fa.C?1:0, cout=c1||c2?1:0;
+  set('fa-a',fa.A,T); set('fa-b',fa.B,T);
+  set('fa-cin',fa.C,T); set('fa-cin2',fa.C,T); set('fa-cin3',fa.C,T);
+  set('fa-s1',s1,T); set('fa-c1',c1,T); set('fa-c1b',c1,T); set('fa-c2',c2,T);
+  set('fa-sum',sum,G); set('fa-cout',cout,G);
+  document.getElementById('fa-or').setAttribute('stroke',cout?G:'var(--accent)');
+  const ts=document.getElementById('fa-tsum'),tc=document.getElementById('fa-tcout');
+  ts.textContent='SUM '+sum; ts.setAttribute('fill',sum?G:'var(--muted)');
+  tc.textContent='COUT '+cout; tc.setAttribute('fill',cout?G:'var(--muted)');
+  document.getElementById('faout').textContent=fa.A+'+'+fa.B+'+'+fa.C+' = '+cout+''+sum;
+}
+document.querySelectorAll('#faw .wswitch').forEach(sw=>{
+  sw.addEventListener('click',()=>{ fa[sw.dataset.fa]^=1; faDraw(); });
+});
+faDraw();
+
+/* ── Widget: one transistor = NOT gate ── */
+let notA=0;
+function notDraw(){
+  const sw=document.querySelector('#notw .wswitch'); if(!sw)return;
+  setToggle(sw,notA);
+  const G='var(--green)',HOT='var(--yellow)',OFF='var(--border)',T='var(--teal)';
+  const set=(id,attr,val)=>document.getElementById(id).setAttribute(attr,val);
+  set('notw-gate','stroke',notA?T:OFF);
+  const arm=document.getElementById('notw-arm');
+  if(notA){ arm.setAttribute('x1',150); arm.setAttribute('y1',178);
+    arm.setAttribute('x2',150); arm.setAttribute('y2',246); arm.setAttribute('stroke',HOT);
+  }else{ arm.setAttribute('x1',133); arm.setAttribute('y1',190);
+    arm.setAttribute('x2',150); arm.setAttribute('y2',234); arm.setAttribute('stroke','var(--red)'); }
+  set('notw-tr','stroke',notA?HOT:OFF);
+  /* A=1: current drains supply→resistor→OUT node→leg2→transistor→leg3→ground; OUT low.
+     A=0: path broken at the transistor; OUT held high. */
+  set('notw-sup','stroke',notA?HOT:OFF); set('notw-w1','stroke',notA?HOT:OFF);
+  set('notw-w2','stroke',notA?HOT:OFF); set('notw-leg3','stroke',notA?HOT:OFF);
+  set('notw-out','stroke',notA?OFF:G);
+  const lamp=document.getElementById('notw-lamp');
+  lamp.textContent='OUT '+(notA?0:1); lamp.setAttribute('fill',notA?'var(--muted)':G);
+  document.getElementById('notw-r0').style.background=notA?'transparent':'#BC8CFF33';
+  document.getElementById('notw-r1').style.background=notA?'#BC8CFF33':'transparent';
+  document.getElementById('notw-cap').innerHTML = notA
+    ? '<b style="color:var(--yellow)">A = 1 → the switch CLOSES.</b> The path is complete: current drains supply → resistor → OUT node → leg 2 → leg 3 → ground. OUT is dragged low: <b>OUT = 0</b>.'
+    : '<b style="color:var(--green)">A = 0 → the switch is OPEN.</b> The path to ground is broken, so OUT stays connected to the supply — <b>OUT = 1</b>.';
+}
+const notsw=document.querySelector('#notw .wswitch');
+if(notsw){ notsw.addEventListener('click',()=>{ notA^=1; notDraw(); }); notDraw(); }
+
+/* ── Widget: NAND & NOR from transistors (shared A/B inputs) ── */
+const nn={A:0,B:0};
+function nnDraw(){
+  document.querySelectorAll('#nnw .wswitch').forEach(sw=>setToggle(sw,nn[sw.dataset.nn]));
+  const G='var(--green)',HOT='var(--yellow)',OFF='var(--border)',T='var(--teal)';
+  const set=(id,attr,val)=>{const el=document.getElementById(id); if(el)el.setAttribute(attr,val)};
+  const armSet=(id,cx,cy,r,closed)=>{const el=document.getElementById(id);
+    if(closed){ el.setAttribute('x1',cx); el.setAttribute('y1',cy-r); el.setAttribute('x2',cx); el.setAttribute('y2',cy+r); el.setAttribute('stroke',HOT); }
+    else{ el.setAttribute('x1',cx-15); el.setAttribute('y1',cy-20); el.setAttribute('x2',cx); el.setAttribute('y2',cy+20); el.setAttribute('stroke','var(--red)'); }};
+  /* NAND: conducts only when A AND B */
+  const nandOn=nn.A&&nn.B?1:0, nandOut=nandOn?0:1;
+  set('nand-ga','stroke',nn.A?T:OFF); set('nand-gb','stroke',nn.B?T:OFF);
+  armSet('nand-arm1',130,176,32,nn.A); armSet('nand-arm2',130,262,32,nn.B);
+  set('nand-t1','stroke',nn.A?HOT:OFF); set('nand-t2','stroke',nn.B?HOT:OFF);
+  /* VCC rail (nand-a1/a2 + resistor) stays steady yellow in the HTML — always powered.
+     Only the path BELOW the output node lights when current actually flows. */
+  ['nand-w1','nand-w2','nand-w3'].forEach(id=>set(id,'stroke',nandOn?HOT:OFF));
+  set('nand-out','stroke',nandOut?G:OFF);
+  const nl=document.getElementById('nand-lamp'); nl.textContent='output '+nandOut; nl.setAttribute('fill',nandOut?G:'var(--muted)');
+  for(let r=0;r<4;r++)document.getElementById('nand-r'+r).style.background=(r===nn.A*2+nn.B)?'#BC8CFF33':'transparent';
+  /* NOR: conducts when A OR B */
+  const norOn=nn.A||nn.B?1:0, norOut=norOn?0:1;
+  set('nor-ga','stroke',nn.A?T:OFF); set('nor-gb','stroke',nn.B?T:OFF);
+  armSet('nor-arm1',66,190,30,nn.A); armSet('nor-arm2',194,190,30,nn.B);
+  set('nor-t1','stroke',nn.A?HOT:OFF); set('nor-t2','stroke',nn.B?HOT:OFF);
+  /* VCC rail (nor-a1/a2 + resistor) stays steady yellow — always powered. */
+  ['nor-w1','nor-w2'].forEach(id=>set(id,'stroke',norOn?HOT:OFF));
+  set('nor-dl','stroke',nn.A?HOT:OFF); set('nor-bl','stroke',nn.A?HOT:OFF);
+  set('nor-dr','stroke',nn.B?HOT:OFF); set('nor-br','stroke',nn.B?HOT:OFF);
+  ['nor-w3','nor-w4'].forEach(id=>set(id,'stroke',norOn?HOT:OFF));
+  set('nor-out','stroke',norOut?G:OFF);
+  const ol=document.getElementById('nor-lamp'); ol.textContent='output '+norOut; ol.setAttribute('fill',norOut?G:'var(--muted)');
+  for(let r=0;r<4;r++)document.getElementById('nor-r'+r).style.background=(r===nn.A*2+nn.B)?'#BC8CFF33':'transparent';
+}
+document.querySelectorAll('#nnw .wswitch').forEach(sw=>{
+  sw.addEventListener('click',()=>{ nn[sw.dataset.nn]^=1; nnDraw(); });
+});
+if(document.getElementById('nnw'))nnDraw();
+
+/* ── Video slide: local .mp4 plays inline; YouTube opens in a new tab
+      (many YouTube videos, including this one, disallow embedding — error 153) ── */
+(function(){
+  const el=document.getElementById('videourl');
+  const url=el?el.textContent.trim():'';
+  const box=document.getElementById('videobox'); if(!box)return;
+  if(!url||url==='PASTE_URL_HERE'){
+    box.innerHTML='<p style="font-size:27px;color:var(--muted);padding:70px 50px;border:2px dashed var(--border);border-radius:18px;max-width:900px">🎬 To show a video: open this file in Notepad, find the videourl line, and paste a YouTube link or a local file like assets/eniac.mp4</p>';
+  }else if(url.endsWith('.mp4')){
+    box.innerHTML='<video src="'+url+'" controls style="max-width:90%;max-height:70vh;border-radius:16px"></video>';
+  }else{
+    box.innerHTML='<a href="'+url+'" target="_blank" style="text-decoration:none">'+
+      '<div style="padding:70px 90px;border:2px solid var(--accent);border-radius:24px;background:var(--card);text-align:center">'+
+      '<div style="font-size:110px;line-height:1">▶️</div>'+
+      '<p style="font-size:34px;color:var(--text);margin-top:24px;font-weight:700">ENIAC in action</p>'+
+      '<p style="font-size:24px;color:var(--muted);margin-top:10px">click to play on YouTube · press Alt+Tab to return to the deck</p>'+
+      '</div></a>';
+  }
+})();
+
+show(0,false);
+</script>
+<!-- end of deck -->
+</body>
+</html>

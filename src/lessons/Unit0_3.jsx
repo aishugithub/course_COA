@@ -62,9 +62,11 @@ function RelayGateWidget() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        A gate needs a controllable switch. The first electrical one was the <strong style={{ color: C.text }}>relay</strong>:
-        a small current energises a coil, the coil's magnet pulls a metal arm shut, and that closes the
-        circuit. Two relays in series make an <strong style={{ color: C.text }}>AND</strong> gate. Toggle the inputs.
+        A logic gate is really just <strong style={{ color: C.text }}>switches wired together</strong> —
+        "gate" and "switch" are two words for the same idea. The first controllable electrical switch was
+        the <strong style={{ color: C.text }}>relay</strong>: a small current energises a coil, the coil's
+        magnet pulls a metal arm shut, and that closes the circuit. Two relays in series make an
+        <strong style={{ color: C.text }}> AND</strong> gate. Toggle the inputs.
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -363,6 +365,148 @@ function MemoryEvolutionWidget() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  Section — Gates from Transistors (NOT / NAND / NOR), no moving parts
+// ══════════════════════════════════════════════════════════════════
+function TransistorGatesWidget() {
+  const [gate, setGate] = useState("NAND");
+  const [a, setA] = useState(1);
+  const [b, setB] = useState(0);
+  const two = gate !== "NOT";
+  const conduct = gate === "NOT" ? !!a : gate === "NAND" ? !!(a && b) : !!(a || b);
+  const out = conduct ? 0 : 1;
+  const ON = C.yellow, OFF = C.border, GRN = C.green;
+  const gndY = gate === "NAND" ? 214 : 206;
+
+  const ibtn = (v) => ({ flex: 1, padding: "8px", borderRadius: 8, border: `2px solid ${v ? C.teal : C.border}`, background: v ? C.teal + "22" : C.card, color: v ? C.teal : C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer" });
+
+  // a transistor drawn as a vertical switch between (x,yTop) and (x,yBot); closed when input=1
+  const Tr = ({ x, yTop, yBot, input, label }) => (
+    <g>
+      <circle cx={x} cy={yTop} r={3.5} fill={C.muted} />
+      <circle cx={x} cy={yBot} r={3.5} fill={C.muted} />
+      {input
+        ? <line x1={x} y1={yTop} x2={x} y2={yBot} stroke={ON} strokeWidth={4} strokeLinecap="round" />
+        : <line x1={x} y1={yTop} x2={x + 16} y2={(yTop + yBot) / 2} stroke={C.red} strokeWidth={3.5} strokeLinecap="round" />}
+      <line x1={x - 40} y1={(yTop + yBot) / 2} x2={x - 10} y2={(yTop + yBot) / 2} stroke={input ? C.teal : OFF} strokeWidth={3} />
+      <text x={x - 48} y={(yTop + yBot) / 2 + 4} fill={input ? C.teal : C.muted} fontSize={12} fontWeight="800" textAnchor="middle">{label}</text>
+    </g>
+  );
+
+  const rows = gate === "NOT"
+    ? [[0, 1], [1, 0]]
+    : gate === "NAND"
+      ? [[0, 0, 1], [0, 1, 1], [1, 0, 1], [1, 1, 0]]
+      : [[0, 0, 1], [0, 1, 0], [1, 0, 0], [1, 1, 0]];
+  const curRow = gate === "NOT" ? a : a * 2 + b;
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 12, lineHeight: 1.7 }}>
+        A transistor is a silent, solid-state switch: a voltage on its gate opens or closes the channel —
+        no moving metal. Tie a pull-up resistor to <strong style={{ color: C.text }}>VCC</strong> and wire
+        one or two transistors down to ground, and you get real logic gates. Pick a gate and drive the inputs.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        {["NOT", "NAND", "NOR"].map((g) => (
+          <button key={g} onClick={() => setGate(g)} style={{ flex: 1, padding: "7px", borderRadius: 8, border: `2px solid ${gate === g ? C.accent : C.border}`, background: gate === g ? C.accent + "22" : C.card, color: gate === g ? C.accent : C.muted, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{g}</button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, justifyContent: "center" }}>
+        <button onClick={() => setA((v) => (v ? 0 : 1))} style={ibtn(a)}>A = {a}</button>
+        {two && <button onClick={() => setB((v) => (v ? 0 : 1))} style={ibtn(b)}>B = {b}</button>}
+      </div>
+
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 200px", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "8px 4px" }}>
+          <svg viewBox="0 0 260 250" style={{ width: "100%", display: "block" }}>
+            <text x={150} y={16} fill={ON} fontSize={12} fontWeight="800" textAnchor="middle">VCC (+5V)</text>
+            <line x1={150} y1={20} x2={150} y2={34} stroke={ON} strokeWidth={3} />
+            <polyline points="150,34 142,40 158,48 142,56 158,64 150,70" fill="none" stroke={ON} strokeWidth={2.5} strokeLinejoin="round" />
+            <text x={166} y={54} fill={ON} fontSize={11}>R</text>
+            <line x1={150} y1={70} x2={150} y2={90} stroke={ON} strokeWidth={3} />
+            <circle cx={150} cy={90} r={5} fill={C.accent} />
+            <line x1={150} y1={90} x2={206} y2={90} stroke={out ? GRN : OFF} strokeWidth={4} strokeLinecap="round" />
+            <circle cx={224} cy={90} r={14} fill={out ? GRN + "33" : C.card} stroke={out ? GRN : C.border} strokeWidth={2.5} />
+            <text x={224} y={95} fill={out ? GRN : C.muted} fontSize={14} fontWeight="800" textAnchor="middle">{out}</text>
+            <text x={224} y={116} fill={C.accent} fontSize={9} fontWeight="700" textAnchor="middle">OUT</text>
+
+            {gate === "NOT" && (
+              <g>
+                <line x1={150} y1={90} x2={150} y2={112} stroke={conduct ? ON : OFF} strokeWidth={4} />
+                <Tr x={150} yTop={112} yBot={168} input={a} label="A" />
+                <line x1={150} y1={168} x2={150} y2={206} stroke={conduct ? ON : OFF} strokeWidth={4} />
+              </g>
+            )}
+            {gate === "NAND" && (
+              <g>
+                <line x1={150} y1={90} x2={150} y2={108} stroke={conduct ? ON : OFF} strokeWidth={4} />
+                <Tr x={150} yTop={108} yBot={150} input={a} label="A" />
+                <line x1={150} y1={150} x2={150} y2={164} stroke={(a && b) ? ON : OFF} strokeWidth={4} />
+                <Tr x={150} yTop={164} yBot={206} input={b} label="B" />
+                <line x1={150} y1={206} x2={150} y2={214} stroke={conduct ? ON : OFF} strokeWidth={4} />
+              </g>
+            )}
+            {gate === "NOR" && (
+              <g>
+                <line x1={150} y1={90} x2={150} y2={104} stroke={conduct ? ON : OFF} strokeWidth={4} />
+                <line x1={108} y1={104} x2={192} y2={104} stroke={conduct ? ON : OFF} strokeWidth={4} />
+                <line x1={108} y1={104} x2={108} y2={120} stroke={a ? ON : OFF} strokeWidth={4} />
+                <line x1={192} y1={104} x2={192} y2={120} stroke={b ? ON : OFF} strokeWidth={4} />
+                <Tr x={108} yTop={120} yBot={172} input={a} label="A" />
+                <Tr x={192} yTop={120} yBot={172} input={b} label="B" />
+                <line x1={108} y1={172} x2={108} y2={190} stroke={a ? ON : OFF} strokeWidth={4} />
+                <line x1={192} y1={172} x2={192} y2={190} stroke={b ? ON : OFF} strokeWidth={4} />
+                <line x1={108} y1={190} x2={192} y2={190} stroke={conduct ? ON : OFF} strokeWidth={4} />
+                <line x1={150} y1={190} x2={150} y2={206} stroke={conduct ? ON : OFF} strokeWidth={4} />
+              </g>
+            )}
+            <g>
+              <line x1={132} y1={gndY} x2={168} y2={gndY} stroke={C.muted} strokeWidth={4} />
+              <line x1={139} y1={gndY + 6} x2={161} y2={gndY + 6} stroke={C.muted} strokeWidth={3} />
+              <line x1={145} y1={gndY + 12} x2={155} y2={gndY + 12} stroke={C.muted} strokeWidth={2} />
+            </g>
+          </svg>
+        </div>
+
+        <div style={{ flex: "1 1 150px" }}>
+          <div style={{ fontSize: 11, color: C.muted, letterSpacing: 1, marginBottom: 6 }}>{gate} TRUTH TABLE</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr>
+                {(two ? ["A", "B", "OUT"] : ["A", "OUT"]).map((h) => (
+                  <th key={h} style={{ background: C.card, color: C.muted, padding: "6px 10px", border: `1px solid ${C.border}` }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i} style={{ background: i === curRow ? C.accent + "22" : "transparent" }}>
+                  {r.map((v, j) => (
+                    <td key={j} style={{ padding: "6px 10px", textAlign: "center", border: `1px solid ${C.border}`, color: i === curRow ? C.accent : C.text, fontWeight: i === curRow ? 800 : 400 }}>{v}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ marginTop: 10, fontFamily: "monospace", fontSize: 13, color: out ? GRN : C.muted, textAlign: "center" }}>
+            {gate}({a}{two ? `, ${b}` : ""}) = {out}
+          </div>
+        </div>
+      </div>
+
+      <Key color={C.yellow}>
+        VCC is always on. When the transistors complete a path to ground they drag OUT to 0; break the path
+        and OUT floats up to 1. <strong style={{ color: C.text }}>Series needs both</strong> (NAND),
+        <strong style={{ color: C.text }}> parallel needs either</strong> (NOR), one transistor inverts (NOT)
+        — and NAND alone can build every other gate.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  Quiz — 4 MCQs, instant feedback, explanation, completion card
 // ══════════════════════════════════════════════════════════════════
 function Quiz({ onComplete }) {
@@ -495,9 +639,10 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 export default function Unit0_3({ student, onUnitComplete }) {
   const sections = [
-    { id: "relay", label: "Relay Gates" },
+    { id: "relay", label: "Relay Switch-Gates" },
     { id: "tube", label: "Vacuum Tubes" },
     { id: "transistor", label: "The Transistor" },
+    { id: "tgates", label: "Gates from Transistors" },
     { id: "timeline", label: "Timeline" },
     { id: "memory", label: "Memory" },
     { id: "quiz", label: "Quiz & Wrap-up" },
@@ -510,15 +655,16 @@ export default function Unit0_3({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>A gate built from relays</h3><RelayGateWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>A switch-gate built from relays</h3><RelayGateWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>A faster switch: the vacuum tube</h3><TubeGateWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>The invention that changed everything</h3><TransistorWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>NOT, NAND and NOR from transistors</h3><TransistorGatesWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>The march of the switch</h3><EraTimelineWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>How memory was transformed</h3><MemoryEvolutionWidget /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 0.3.</p>
-      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(6); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 

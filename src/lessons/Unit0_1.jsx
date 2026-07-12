@@ -23,6 +23,76 @@ function Key({ color = C.purple, children }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  Section 0 — Before Electronics: what the pre-electronic world had,
+//  and where it hit a wall (gears + punched cards + printed tables)
+// ══════════════════════════════════════════════════════════════════
+function BeforeElectronicsWidget() {
+  // Capability probe: which tasks could an 1800s machine do directly,
+  // and which forced you to look the answer up in a hand-computed table?
+  const tasks = [
+    { t: "Add  47 + 89", gears: true,  note: "Pascal's Pascaline (1642) adds directly with toothed gears — turn the dials, read the sum." },
+    { t: "Multiply  12 × 15", gears: true,  note: "Leibniz's stepped drum turns multiplication into repeated addition. Still just gears." },
+    { t: "log(4713) for a ship's position", gears: false, note: "No gear machine does this. You open a printed table of logarithms and read the value off the page." },
+    { t: "Firing angle: 1000 m, 10 km/h wind", gears: false, note: "~50 hand steps per shot, thousands of shots → a whole printed firing table, computed by people." },
+  ];
+  const [picked, setPicked] = useState(null);
+  const [seen, setSeen] = useState([]);
+  const pick = (i) => { setPicked(i); setSeen((s) => (s.includes(i) ? s : [...s, i])); };
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Three hundred years before electronics, a "machine" meant <strong style={{ color: C.text }}>gears</strong>,
+        and the first "program" was a <strong style={{ color: C.text }}>punched card</strong>. But gears could
+        only do arithmetic. Tap each task — can a machine of the day do it, or must you{" "}
+        <strong style={{ color: C.text }}>look the answer up in a hand-computed table</strong>?
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+        {tasks.map((task, i) => {
+          const on = picked === i;
+          const col = task.gears ? C.green : C.orange;
+          return (
+            <button key={i} onClick={() => pick(i)} style={{
+              textAlign: "left", padding: "11px 13px", borderRadius: 9, cursor: "pointer",
+              background: on ? col + "22" : C.card,
+              border: `1.5px solid ${on ? col : C.border}`,
+              color: on ? col : C.text, fontSize: 13, transition: "all 0.2s",
+            }}>
+              {seen.includes(i) && <span>{task.gears ? "⚙️ " : "📖 "}</span>}{task.t}
+            </button>
+          );
+        })}
+      </div>
+
+      {picked !== null && (
+        <div style={{ background: C.card, border: `1px solid ${(tasks[picked].gears ? C.green : C.orange)}55`, borderRadius: 10, padding: "12px 15px" }}>
+          <div style={{ color: tasks[picked].gears ? C.green : C.orange, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
+            {tasks[picked].gears ? "⚙️ A gear machine can do this directly" : "📖 No machine — look it up in a printed table"}
+          </div>
+          <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>{tasks[picked].note}</div>
+        </div>
+      )}
+
+      <div style={{ marginTop: 14, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 15px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <span style={{ fontSize: 22 }}>🧵</span>
+        <div style={{ color: C.muted, fontSize: 12.5, lineHeight: 1.6 }}>
+          <strong style={{ color: C.teal }}>The first "programming":</strong> the Jacquard loom (1804) read
+          <strong style={{ color: C.text }}> punched cards</strong> to weave any pattern — the very idea
+          Babbage borrowed to feed instructions to his Analytical Engine.
+        </div>
+      </div>
+
+      <Key color={C.orange}>
+        Gears hit a wall at arithmetic. Everything harder — navigation, logarithms, artillery — ran on{" "}
+        <strong style={{ color: C.text }}>printed tables computed by hand</strong>, slow and only as correct
+        as a tired person's worst sum. That gap is exactly what a real machine had to close.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  Section 1 — The Crisis (Need): find the wrong firing angle by hand
 // ══════════════════════════════════════════════════════════════════
 function FiringTableWidget() {
@@ -180,6 +250,7 @@ function DreamersWidget() {
   const people = [
     { icon: "⚙️", name: "Charles Babbage", year: "1837", idea: "Designs the Analytical Engine — a general machine with a Store (memory) and a Mill (calculator), driven by punched cards. Mechanical, never finished, but the shape of every computer since.", color: C.orange },
     { icon: "👩‍💻", name: "Ada Lovelace", year: "1843", idea: "Writes the first algorithm for that engine — and sees further than Babbage: a machine that follows rules can manipulate ANY symbols, not just numbers. That is what 'computer' really means.", color: C.purple },
+    { icon: "🔣", name: "George Boole", year: "1847", idea: "Turns reasoning itself into algebra: AND, OR and NOT operating on just true and false. Ninety years before any circuit exists, he writes down the exact mathematics that logic gates will one day run on.", color: C.yellow },
     { icon: "🧩", name: "Alan Turing", year: "1936", idea: "Proves that a single 'universal' machine, following simple rules, can compute anything that is computable. You don't need a new machine per problem — one machine, different instructions.", color: C.teal },
     { icon: "⚡", name: "Claude Shannon", year: "1937", idea: "Shows Boolean logic (AND, OR, NOT) maps exactly onto electrical switches. Now the abstract logic can be built from real circuits — theory meets hardware.", color: C.green },
     { icon: "🏛️", name: "John von Neumann", year: "1945", idea: "The stored-program idea: keep the instructions in memory, right alongside the data. Change the program by loading different numbers — no rewiring. One machine, infinite programs.", color: C.accent },
@@ -190,7 +261,7 @@ function DreamersWidget() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 16, lineHeight: 1.7 }}>
-        Five people turned "we need a tireless machine" into a real idea. Tap each to hear their
+        Six people turned "we need a tireless machine" into a real idea. Tap each to hear their
         one big contribution.
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
@@ -220,7 +291,7 @@ function DreamersWidget() {
       </div>
 
       <Key color={C.accent}>
-        One thread runs through all five: a single general machine, instructed by symbols that live
+        One thread runs through all six: a single general machine, instructed by symbols that live
         in memory as data, built out of logic circuits. That sentence describes the device in your
         pocket — and everything we study in this course.
       </Key>
@@ -424,9 +495,10 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 export default function Unit0_1({ student, onUnitComplete }) {
   const sections = [
+    { id: "roots", label: "Before Electronics" },
     { id: "crisis", label: "The Crisis" },
     { id: "human", label: "Be the Computer" },
-    { id: "dreamers", label: "Five Dreamers" },
+    { id: "dreamers", label: "The Dreamers" },
     { id: "timeline", label: "The Timeline" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
@@ -438,6 +510,7 @@ export default function Unit0_1({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>Before the machine: gears, cards and tables</h3><BeforeElectronicsWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>A table that could cost lives</h3><FiringTableWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>Feel the cost of computing by hand</h3><HumanComputerWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>The dream of a tireless machine</h3><DreamersWidget /></div>,
@@ -445,7 +518,7 @@ export default function Unit0_1({ student, onUnitComplete }) {
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 0.1.</p>
-      <Quiz onComplete={() => { markComplete(4); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 
@@ -494,3 +567,4 @@ export default function Unit0_1({ student, onUnitComplete }) {
     </div>
   );
 }
+// end of Unit0_1
