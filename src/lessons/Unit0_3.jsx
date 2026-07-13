@@ -507,7 +507,125 @@ function TransistorGatesWidget() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Quiz — 4 MCQs, instant feedback, explanation, completion card
+//  Section — The Stored-Program Leap (deck 0.3 climax): ENIAC had to be
+//  rewired for every new program; EDVAC/von Neumann stored the program
+//  in memory, as numbers beside the data. Change the program = change
+//  the numbers, no rewiring. The idea the whole course is built on.
+// ══════════════════════════════════════════════════════════════════
+function StoredProgramWidget() {
+  // Two machines, same tiny job: first ADD the two numbers, then the user
+  // wants it to SUBTRACT instead. Feel how each machine "changes program".
+  const [mode, setMode] = useState("eniac"); // "eniac" | "edvac"
+  const [op, setOp] = useState("ADD");
+  const [rewiring, setRewiring] = useState(0); // 0 = idle; 1..N = simulated rewire days
+  const a = 7, b = 3;
+  const result = op === "ADD" ? a + b : a - b;
+
+  // ENIAC: switching the operation means physically re-plugging cables.
+  const startRewire = () => {
+    if (rewiring) return;
+    let day = 0;
+    setRewiring(1);
+    const tick = () => {
+      day += 1;
+      if (day >= 3) { setRewiring(0); setOp((o) => (o === "ADD" ? "SUB" : "ADD")); }
+      else { setRewiring(day + 1); setTimeout(tick, 500); }
+    };
+    setTimeout(tick, 500);
+  };
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        You can now build fast switches and store bits in memory. But ENIAC (1945) had one
+        crippling flaw: to give it a <strong style={{ color: C.text }}>new program</strong> you had to
+        physically <strong style={{ color: C.text }}>rewire it</strong> — re-plugging hundreds of cables
+        and setting thousands of switches, for days. The fix became the blueprint of every computer since.
+      </p>
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        <button onClick={() => { setMode("eniac"); setOp("ADD"); setRewiring(0); }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${mode === "eniac" ? C.red : C.border}`, background: mode === "eniac" ? C.red + "18" : C.card, color: mode === "eniac" ? C.red : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🔌 ENIAC — rewire it</button>
+        <button onClick={() => { setMode("edvac"); setOp("ADD"); setRewiring(0); }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${mode === "edvac" ? C.green : C.border}`, background: mode === "edvac" ? C.green + "18" : C.card, color: mode === "edvac" ? C.green : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🧠 EDVAC — store the program</button>
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px" }}>
+        {mode === "eniac" ? (
+          <div>
+            <div style={{ color: C.red, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Program lives in the WIRING</div>
+            {/* patch panel: cables you'd re-plug by hand */}
+            <svg viewBox="0 0 300 90" style={{ width: "100%", maxWidth: 340, display: "block", margin: "0 auto 10px" }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <g key={i}>
+                  <circle cx={30 + i * 60} cy={20} r={6} fill={C.bg} stroke={C.muted} strokeWidth={2} />
+                  <circle cx={30 + i * 60} cy={70} r={6} fill={C.bg} stroke={C.muted} strokeWidth={2} />
+                </g>
+              ))}
+              {/* cables — jiggle while "rewiring" */}
+              {[0, 1, 2, 3].map((i) => (
+                <path key={i} d={`M${30 + i * 60},20 C ${60 + i * 60},${rewiring ? 20 + (i % 2 ? 30 : -5) : 45} ${30 + i * 60},${rewiring ? 55 : 45} ${90 + i * 60},70`}
+                  fill="none" stroke={rewiring ? C.yellow : (op === "ADD" ? C.accent : C.purple)} strokeWidth={3} strokeLinecap="round" opacity={0.85} />
+              ))}
+            </svg>
+            {rewiring ? (
+              <div style={{ color: C.yellow, fontSize: 13, textAlign: "center", fontWeight: 700 }}>🔧 Rewiring… day {rewiring} of 3</div>
+            ) : (
+              <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 15, color: C.text }}>
+                Wired to <strong style={{ color: op === "ADD" ? C.accent : C.purple }}>{op}</strong> · {a} {op === "ADD" ? "+" : "−"} {b} = <strong style={{ color: C.green }}>{result}</strong>
+              </div>
+            )}
+            <button onClick={startRewire} disabled={!!rewiring} style={{ width: "100%", marginTop: 12, padding: "10px", borderRadius: 8, border: "none", background: rewiring ? C.border : C.red, color: "#fff", fontWeight: 700, fontSize: 13, cursor: rewiring ? "default" : "pointer" }}>
+              {rewiring ? "Rewiring the whole machine…" : `Change program to ${op === "ADD" ? "SUBTRACT" : "ADD"} (rewire) →`}
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div style={{ color: C.green, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Program lives in MEMORY, as numbers</div>
+            {/* memory cells: one holds the instruction, others hold data */}
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10, flexWrap: "wrap" }}>
+              {[
+                { addr: "0", val: op === "ADD" ? "ADD" : "SUB", isInstr: true },
+                { addr: "1", val: String(a), isInstr: false },
+                { addr: "2", val: String(b), isInstr: false },
+                { addr: "3", val: String(result), isInstr: false },
+              ].map((cell) => (
+                <div key={cell.addr}
+                  onClick={() => { if (cell.isInstr) setOp((o) => (o === "ADD" ? "SUB" : "ADD")); }}
+                  style={{
+                    width: 62, textAlign: "center", borderRadius: 8, padding: "8px 4px",
+                    background: cell.isInstr ? C.green + "18" : C.bg,
+                    border: `1.5px solid ${cell.isInstr ? C.green : C.border}`,
+                    cursor: cell.isInstr ? "pointer" : "default",
+                  }}>
+                  <div style={{ color: C.muted, fontSize: 9 }}>addr {cell.addr}</div>
+                  <div style={{ color: cell.isInstr ? C.green : C.text, fontWeight: 800, fontSize: 14, fontFamily: "monospace" }}>{cell.val}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 15, color: C.text }}>
+              {a} {op === "ADD" ? "+" : "−"} {b} = <strong style={{ color: C.green }}>{result}</strong>
+            </div>
+            <button onClick={() => setOp((o) => (o === "ADD" ? "SUB" : "ADD"))} style={{ width: "100%", marginTop: 12, padding: "10px", borderRadius: 8, border: "none", background: C.green, color: "#0D1117", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              Change program to {op === "ADD" ? "SUBTRACT" : "ADD"} (load one number) →
+            </button>
+            <div style={{ color: C.muted, fontSize: 11.5, textAlign: "center", marginTop: 8 }}>
+              Tap the green instruction cell too — the program is just a number you can overwrite.
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Key color={C.green}>
+        This is <strong style={{ color: C.text }}>von Neumann's stored-program idea</strong>: keep the
+        instructions in memory, as numbers, right beside the data. Changing the program means loading
+        different numbers — no rewiring. EDVAC (1949) was the first to run this way, and it's the shape of
+        every machine you'll study from Module 1 on.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Quiz — 5 MCQs, instant feedback, explanation, completion card
 // ══════════════════════════════════════════════════════════════════
 function Quiz({ onComplete }) {
   const questions = [
@@ -555,6 +673,17 @@ function Quiz({ onComplete }) {
       answer: 0,
       explain: "Magnetic-core memory stored each bit as the magnetic direction of a hand-threaded ferrite ring. Transistor DRAM/SRAM later shrank this to billions of cells on a chip.",
     },
+    {
+      q: "What was von Neumann's stored-program idea, and why did it matter?",
+      options: [
+        "Use transistors instead of tubes, to save power",
+        "Keep the program in memory as numbers beside the data, so a new program is just new numbers — no rewiring",
+        "Print the program on punched cards for backup",
+        "Give each program its own dedicated machine",
+      ],
+      answer: 1,
+      explain: "ENIAC had to be physically rewired for every new program. EDVAC stored instructions in memory as data, so changing the program meant loading different numbers — the blueprint of every modern computer.",
+    },
   ];
 
   const [current, setCurrent] = useState(0);
@@ -575,21 +704,23 @@ function Quiz({ onComplete }) {
   if (done) {
     return (
       <div style={{ textAlign: "center", padding: 20 }}>
-        <div style={{ fontSize: 52 }}>{score >= 3 ? "🎉" : "👍"}</div>
+        <div style={{ fontSize: 52 }}>{score >= 4 ? "🎉" : "👍"}</div>
         <div style={{ fontSize: 24, fontWeight: 700, color: C.text, marginTop: 10 }}>You scored {score} / {questions.length}</div>
         <div style={{ color: C.muted, marginTop: 8, marginBottom: 20 }}>
-          {score === 4 ? "Excellent — you can trace the switch from clicking relays to billions of transistors."
-            : score >= 2 ? "Good. Replay the Timeline and Memory tabs to firm up the progression."
-              : "Worth another pass — the Vacuum Tubes and Memory tabs are the ones to revisit."}
+          {score === 5 ? "Excellent — from clicking relays to billions of transistors to the stored-program leap."
+            : score >= 3 ? "Good. Replay the Timeline and Stored-Program tabs to firm up the progression."
+              : "Worth another pass — the Vacuum Tubes and Stored-Program tabs are the ones to revisit."}
         </div>
-        <div style={{ padding: 20, borderRadius: 12, background: `linear-gradient(135deg, ${C.accentGlow}22, ${C.purple}22)`, border: `1px solid ${C.accent}55`, textAlign: "left" }}>
-          <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Unit 0.3 Complete!</div>
+        <div style={{ padding: 20, borderRadius: 12, background: `linear-gradient(135deg, ${C.green}22, ${C.accentGlow}22)`, border: `1px solid ${C.green}55`, textAlign: "left" }}>
+          <div style={{ color: C.green, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🏔️ Module 0 Complete!</div>
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
-            You've seen the same logic built from relays, tubes, and transistors — and watched memory move from
-            magnetic rings to transistor cells. You now know what the machine is physically made of.
+            You've met the whole "before the machine" story: <em>why</em> the computer was invented, the bit and
+            the logic gate, the switch from relays to transistors, and the stored-program leap that turned a
+            wired calculator into a true computer. That's the foundation the rest of the course builds on.
             <br /><br />
-            <strong style={{ color: C.accent }}>Next up: Unit 0.4 — The Von Neumann Model.</strong>{" "}
-            We assemble these switches and memory cells into the architecture behind every computer in this course.
+            <strong style={{ color: C.accent }}>Next up: Module 1 — Basic Structure of Computers.</strong>{" "}
+            We open the box and meet the five functional units, the bus that connects them, and how a stored
+            program actually runs — the von Neumann model, made concrete.
           </div>
         </div>
       </div>
@@ -645,6 +776,7 @@ export default function Unit0_3({ student, onUnitComplete }) {
     { id: "tgates", label: "Gates from Transistors" },
     { id: "timeline", label: "Timeline" },
     { id: "memory", label: "Memory" },
+    { id: "storedprog", label: "Stored-Program Leap" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -661,10 +793,11 @@ export default function Unit0_3({ student, onUnitComplete }) {
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>NOT, NAND and NOR from transistors</h3><TransistorGatesWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>The march of the switch</h3><EraTimelineWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>How memory was transformed</h3><MemoryEvolutionWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>From rewiring to a program in memory</h3><StoredProgramWidget /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 0.3.</p>
-      <Quiz onComplete={() => { markComplete(6); onUnitComplete && onUnitComplete(); }} />
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>5 questions to check your understanding of Unit 0.3.</p>
+      <Quiz onComplete={() => { markComplete(7); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 

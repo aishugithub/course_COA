@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 160" width="520" height="320">
+  <defs></defs>
+  <g transform="translate(95,6) scale(0.70)">
+  <rect x="8" y="60" width="26" height="26" rx="7" fill="#16294A"></rect>
+  <rect x="37" y="37" width="26" height="26" rx="7" fill="#16294A"></rect>
+  <rect x="66" y="14" width="26" height="26" rx="7" fill="#E7A13E"></rect></g>
+  <text class="wm" x="130" y="122">Foothold</text>
+  <text class="mt" x="130" y="146">Get your footing. Keep climbing.</text>
+</svg>

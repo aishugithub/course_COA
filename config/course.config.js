@@ -11,34 +11,44 @@
 //      Dashboard.jsx renders module/unit cards straight from this list.
 //    - `icon` is an optional emoji shown on the module card.
 //    - Units ending in "_C" are the module capstones.
+//    - `hook`  — the two attention lines at the top of the Dashboard.
+//    - `blurb` — one catchy line per module (always shown on the module
+//      row) and, optionally, per unit (shown under the unit title). Edit
+//      all learner-facing copy HERE; the shell never hardcodes it.
 // ============================================================
 
 const COURSE_CONFIG = {
 
-  courseId:    "course_COA",                                  // localStorage + backend key; keep stable
-  courseTitle: "Computer Organization & Architecture",        // CSE23CT201
+  courseId:    "course_COA",
+  courseTitle: "Computer Organization & Architecture",
   subtitle:    "How a computer really works — from gates to running programs",
   batch:       "2025",
 
+  hook: {
+    line1: "You don't read Foothold. You click it, run it, and watch the machine think.",
+    line2: "Every lesson is something you do — open any module below and see for yourself.",
+  },
+
   modules: [
-    // ── M0 — the "why" before the machinery: the stored-program dream ──
     {
       moduleId:    "M0",
       moduleTitle: "Before the Machine",
       icon:        "💡",
+      blurb:       "Before you can build a computer, meet the problem it was born to solve. Where the whole idea came from.",
       units: [
-        { unitId: "Unit0_1", title: "The Problem & The Dream" },
-        { unitId: "Unit0_2", title: "Bits & Boolean Logic" },
-        { unitId: "Unit0_3", title: "From Relays to Transistors" },
-        { unitId: "Unit0_4", title: "The Von Neumann Model" },
+        { unitId: "Unit0_1", title: "The Problem & The Dream",
+          blurb: "For centuries, 'computer' was a job, not a machine. Meet the dream of making calculation automatic." },
+        { unitId: "Unit0_2", title: "Bits & Boolean Logic",
+          blurb: "Two symbols — 0 and 1 — and three tiny rules. That's the entire alphabet a computer thinks in." },
+        { unitId: "Unit0_3", title: "From Relays to Transistors",
+          blurb: "How a switch you can hear click became a switch too small to see — and the stored-program leap that made it a computer." },
       ],
     },
-
-    // ── M1 — Syllabus Unit 1: Basic Structure of Computers ──
     {
       moduleId:    "M1",
       moduleTitle: "Basic Structure of Computers",
       icon:        "🖥️",
+      blurb:       "Five parts, one bus, and a handful of operations. The whole skeleton of every computer, laid bare.",
       units: [
         { unitId: "Unit1_1", title: "The Five Functional Units" },
         { unitId: "Unit1_2", title: "Basic Operational Concepts" },
@@ -49,12 +59,11 @@ const COURSE_CONFIG = {
         { unitId: "Unit1_C", title: "Capstone: Run a Program by Hand" },
       ],
     },
-
-    // ── M2 — Syllabus Unit 2: Processing Units ──
     {
       moduleId:    "M2",
       moduleTitle: "Inside the Processor",
       icon:        "⚙️",
+      blurb:       "Open the CPU and watch a single instruction travel through it, one clock tick at a time.",
       units: [
         { unitId: "Unit2_1", title: "Register Transfers (RTL)" },
         { unitId: "Unit2_2", title: "Arithmetic & Logic Operations" },
@@ -66,12 +75,11 @@ const COURSE_CONFIG = {
         { unitId: "Unit2_C", title: "Capstone: Build the Control Sequence" },
       ],
     },
-
-    // ── M3 — Syllabus Unit 3: Pipelining ──
     {
       moduleId:    "M3",
       moduleTitle: "Pipelining",
       icon:        "🏭",
+      blurb:       "Why wait for one instruction to finish before starting the next? Turn the CPU into an assembly line.",
       units: [
         { unitId: "Unit3_1", title: "The Role of Cache Memory" },
         { unitId: "Unit3_2", title: "The Pipeline Idea & Performance" },
@@ -81,12 +89,11 @@ const COURSE_CONFIG = {
         { unitId: "Unit3_C", title: "Capstone: Schedule to Avoid Stalls" },
       ],
     },
-
-    // ── M4 — Syllabus Unit 4: Memory Organization ──
     {
       moduleId:    "M4",
       moduleTitle: "Memory Organization",
       icon:        "🗄️",
+      blurb:       "Fast, big, cheap — pick two. How computers fake having all three with a clever hierarchy of memory.",
       units: [
         { unitId: "Unit4_1", title: "The Memory Hierarchy" },
         { unitId: "Unit4_2", title: "RAM & ROM Chips" },
@@ -97,12 +104,11 @@ const COURSE_CONFIG = {
         { unitId: "Unit4_C", title: "Capstone: Trace an Address" },
       ],
     },
-
-    // ── M5 — Syllabus Unit 5: Input / Output Organization ──
     {
       moduleId:    "M5",
       moduleTitle: "Input / Output Organization",
       icon:        "🔌",
+      blurb:       "A keyboard, a disk, a network card — all far slower than the CPU. How they talk without wasting it.",
       units: [
         { unitId: "Unit5_1", title: "Accessing I/O Devices" },
         { unitId: "Unit5_2", title: "Interrupts" },

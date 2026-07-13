@@ -23,7 +23,115 @@ function Key({ color = C.purple, children }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 0 — Before Electronics: what the pre-electronic world had,
+//  Section 0 — Why This Course? (the framing the classroom deck opens
+//  with): architecture (WHAT) vs organization (HOW), seen through one
+//  addition at three levels, and the "billion times faster, unchanged"
+//  reveal. Motivation first: why the machine matters to any branch.
+// ══════════════════════════════════════════════════════════════════
+function WhyThisCourseWidget() {
+  // (a) why it matters — one concrete stake per field the learner might be in
+  const fields = [
+    { k: "ai", icon: "🤖", label: "AI / ML", color: C.accent, line: "Training a model is really feeding a GPU. Batch size, memory bandwidth and cache misses decide whether it takes 3 hours or 3 days. The best ML engineers think in hardware." },
+    { k: "cyber", icon: "🔐", label: "Security", color: C.red, line: "Attacks live in architecture: buffer overflows abuse how memory is laid out; Spectre & Meltdown broke the world's CPUs through cache tricks. You can't defend what you don't understand." },
+    { k: "iot", icon: "📡", label: "IoT / ECE", color: C.orange, line: "On a microcontroller every byte and every milliwatt counts. Registers, memory maps and interrupts are your daily tools — all of it starts here." },
+    { k: "all", icon: "🎓", label: "Everyone", color: C.green, line: "Every slow program and every performance bug you'll ever chase. Engineers who understand the machine beneath their code are rare — and valued like it." },
+  ];
+  const [field, setField] = useState("all");
+  const f = fields.find((x) => x.k === field);
+
+  // (b) same addition, three levels — architecture is the top two (what the
+  //     programmer sees); organization is how the bottom becomes voltages.
+  const levels = [
+    { k: "c",   tag: "C — a language you write",     code: "total = a + b;",           col: C.green,  note: "High-level. Comfortable for humans, but the CPU has never heard of it — a compiler must translate it down." },
+    { k: "asm", tag: "Assembly — the machine's ISA",  code: "Add  R4, R2, R3",          col: C.accent, note: "One line = one machine instruction, nothing hidden. This is the ARCHITECTURE: the computer as the programmer sees it." },
+    { k: "mc",  tag: "Machine code — bits",           code: "0011 0100 0010 0011",      col: C.orange, note: "The same instruction as raw bits the hardware decodes. Below this there are only voltages — that's ORGANIZATION." },
+  ];
+  const [lvl, setLvl] = useState(1);
+  const L = levels[lvl];
+
+  // (c) the punchline reveal
+  const [guess, setGuess] = useState(null);
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Whatever you go on to build, it runs on <strong style={{ color: C.text }}>this machine</strong>.
+        Tap where you see yourself — see why the hardware underneath is your problem too.
+      </p>
+
+      {/* (a) branch relevance */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        {fields.map((x) => (
+          <button key={x.k} onClick={() => setField(x.k)} style={{
+            flex: "1 1 90px", minWidth: 90, padding: "10px 6px", borderRadius: 10, cursor: "pointer",
+            background: field === x.k ? x.color + "22" : C.card,
+            border: `1.5px solid ${field === x.k ? x.color : C.border}`,
+            color: field === x.k ? x.color : C.muted, transition: "all 0.2s",
+          }}>
+            <div style={{ fontSize: 20 }}>{x.icon}</div>
+            <div style={{ fontSize: 11, marginTop: 3, fontWeight: 600 }}>{x.label}</div>
+          </button>
+        ))}
+      </div>
+      <div style={{ background: C.card, border: `1px solid ${f.color}55`, borderRadius: 10, padding: "12px 15px", color: C.muted, fontSize: 13, lineHeight: 1.6 }}>
+        {f.line}
+      </div>
+
+      {/* (b) same instruction, three levels */}
+      <div style={{ marginTop: 20, color: C.muted, fontSize: 11, letterSpacing: 1, marginBottom: 8 }}>ONE ADDITION, THREE LEVELS</div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        {levels.map((x, i) => (
+          <button key={x.k} onClick={() => setLvl(i)} style={{
+            flex: 1, padding: "8px 4px", borderRadius: 8, cursor: "pointer", fontSize: 11.5, fontWeight: 600,
+            background: lvl === i ? x.col + "22" : C.card,
+            border: `1.5px solid ${lvl === i ? x.col : C.border}`, color: lvl === i ? x.col : C.muted, transition: "all 0.2s",
+          }}>{x.tag.split(" — ")[0]}</button>
+        ))}
+      </div>
+      <div style={{ background: C.bg, border: `1px solid ${L.col}55`, borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ color: L.col, fontSize: 11, fontWeight: 700, marginBottom: 8, letterSpacing: 0.5 }}>{L.tag}</div>
+        <div style={{ fontFamily: "'Space Mono', Consolas, monospace", fontSize: 18, color: C.text, letterSpacing: 1 }}>{L.code}</div>
+        <div style={{ color: C.muted, fontSize: 12.5, lineHeight: 1.6, marginTop: 10 }}>{L.note}</div>
+      </div>
+
+      {/* (c) the billion-times reveal */}
+      <div style={{ marginTop: 20, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px" }}>
+        <div style={{ color: C.text, fontSize: 13.5, fontWeight: 600, lineHeight: 1.6, marginBottom: 10 }}>
+          A program written for a 1970s processor runs on a modern chip <strong style={{ color: C.purple }}>a billion times faster — unchanged</strong>. What changed?
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[["arch", "The architecture"], ["org", "The organization"], ["both", "Both"]].map(([k, lbl]) => {
+            const on = guess === k, correct = k === "org";
+            return (
+              <button key={k} onClick={() => setGuess(k)} style={{
+                flex: "1 1 100px", padding: "9px 8px", borderRadius: 8, cursor: "pointer", fontSize: 12.5, fontWeight: 600,
+                background: on ? (correct ? C.green : C.red) + "22" : C.card,
+                border: `1.5px solid ${on ? (correct ? C.green : C.red) : C.border}`,
+                color: on ? (correct ? C.green : C.red) : C.text, transition: "all 0.2s",
+              }}>{on ? (correct ? "✓ " : "✗ ") : ""}{lbl}</button>
+            );
+          })}
+        </div>
+        {guess && (
+          <div style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.6 }}>
+            The <strong style={{ color: C.orange }}>organization</strong> changed — billions of transistors, caches, pipelines (VLSI).
+            The <strong style={{ color: C.accent }}>architecture</strong> — the instruction set, the blueprint — survived untouched.
+            Same <em>what</em>, radically better <em>how</em>.
+          </div>
+        )}
+      </div>
+
+      <Key color={C.accent}>
+        <strong style={{ color: C.text }}>Architecture = what</strong> the machine can do (the instruction set the programmer sees).{" "}
+        <strong style={{ color: C.text }}>Organization = how</strong> it does it (the circuits underneath). This course teaches
+        both — the floor every other subject in computing stands on.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 1 — Before Electronics: what the pre-electronic world had,
 //  and where it hit a wall (gears + punched cards + printed tables)
 // ══════════════════════════════════════════════════════════════════
 function BeforeElectronicsWidget() {
@@ -366,6 +474,17 @@ function TimelineWidget() {
 function Quiz({ onComplete }) {
   const questions = [
     {
+      q: "In this course's terms, what is the difference between architecture and organization?",
+      options: [
+        "Architecture is the hardware; organization is the software",
+        "Architecture is WHAT the machine can do (the instruction set the programmer sees); organization is HOW it does it (the circuits)",
+        "Architecture is old computers; organization is modern ones",
+        "They mean the same thing",
+      ],
+      answer: 1,
+      explain: "Architecture = the blueprint the programmer sees (ISA, data formats). Organization = how the hardware implements it. That's why a 1970s program runs unchanged on a modern chip: same architecture, new organization.",
+    },
+    {
       q: "Why were WWI artillery firing tables dangerous to rely on?",
       options: [
         "The cannons were poorly built",
@@ -429,12 +548,12 @@ function Quiz({ onComplete }) {
   if (done) {
     return (
       <div style={{ textAlign: "center", padding: 20 }}>
-        <div style={{ fontSize: 52 }}>{score >= 3 ? "🎉" : "👍"}</div>
+        <div style={{ fontSize: 52 }}>{score >= 4 ? "🎉" : "👍"}</div>
         <div style={{ fontSize: 24, fontWeight: 700, color: C.text, marginTop: 10 }}>You scored {score} / {questions.length}</div>
         <div style={{ color: C.muted, marginTop: 8, marginBottom: 20 }}>
-          {score === 4 ? "Perfect — you've got the whole arc from the crisis to the stored program."
-            : score >= 2 ? "Solid. Replay the Dreamers or Timeline tab to lock in the names and order."
-              : "Worth another pass — revisit the Dreamers and Timeline tabs, then retry."}
+          {score === 5 ? "Perfect — from architecture-vs-organization all the way to the stored program."
+            : score >= 3 ? "Solid. Replay the Dreamers or Timeline tab to lock in the names and order."
+              : "Worth another pass — revisit the Why-This-Course and Dreamers tabs, then retry."}
         </div>
         <div style={{ padding: 20, borderRadius: 12, background: `linear-gradient(135deg, ${C.accentGlow}22, ${C.purple}22)`, border: `1px solid ${C.accent}55`, textAlign: "left" }}>
           <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Unit 0.1 Complete!</div>
@@ -495,6 +614,7 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 export default function Unit0_1({ student, onUnitComplete }) {
   const sections = [
+    { id: "why", label: "Why This Course?" },
     { id: "roots", label: "Before Electronics" },
     { id: "crisis", label: "The Crisis" },
     { id: "human", label: "Be the Computer" },
@@ -510,6 +630,7 @@ export default function Unit0_1({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>Why this course — and what its name means</h3><WhyThisCourseWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>Before the machine: gears, cards and tables</h3><BeforeElectronicsWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>A table that could cost lives</h3><FiringTableWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>Feel the cost of computing by hand</h3><HumanComputerWidget /></div>,
@@ -517,8 +638,8 @@ export default function Unit0_1({ student, onUnitComplete }) {
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>One idea built on the last</h3><TimelineWidget /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 0.1.</p>
-      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>5 questions to check your understanding of Unit 0.1.</p>
+      <Quiz onComplete={() => { markComplete(6); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 
