@@ -137,7 +137,7 @@ export default function Landing({ onExploreGuest, onGoToLogin }) {
             paddingTop: 16, borderTop: `1px solid ${D.border}`,
           }}>
             <strong style={{ color: D.ink }}>The research behind this course:</strong> I'm{' '}
-            <strong style={{ color: D.ink }}>Aishwarya</strong>, a professor of engineering, and
+            <strong style={{ color: D.ink }}>Aishwarya</strong>, an Assistant Professor of Engineering, and
             Foothold is my action research in education — a study of whether active learning through
             interactive content helps beginners learn better than reading or watching alone. That's
             why every single lesson here is something you <em>do</em>, not something you sit through.
