@@ -4,7 +4,7 @@
 // Story arc: build a gate from RELAYS → the problem → from VACUUM TUBES →
 // the problem → the timeline of progress → the TRANSISTOR (celebrated) →
 // how transistors transformed MEMORY (magnetic cores → transistor cells).
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const C = {
   bg: "#0D1117", surface: "#161B22", card: "#1C2333",
@@ -62,11 +62,11 @@ function RelayGateWidget() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        A logic gate is really just <strong style={{ color: C.text }}>switches wired together</strong> —
-        "gate" and "switch" are two words for the same idea. The first controllable electrical switch was
-        the <strong style={{ color: C.text }}>relay</strong>: a small current energises a coil, the coil's
-        magnet pulls a metal arm shut, and that closes the circuit. Two relays in series make an
-        <strong style={{ color: C.text }}> AND</strong> gate. Toggle the inputs.
+        A logic gate is <strong style={{ color: C.text }}>built from switches wired together</strong> — the
+        switch is the building block, the gate is what you make with it. The first controllable electrical
+        switch was the <strong style={{ color: C.text }}>relay</strong>: a small current energises a coil, the
+        coil's magnet pulls a metal arm shut, and that closes the circuit. Wire two relays in series and you
+        get an <strong style={{ color: C.text }}> AND</strong> gate. Toggle the inputs.
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -517,21 +517,70 @@ function StoredProgramWidget() {
   // wants it to SUBTRACT instead. Feel how each machine "changes program".
   const [mode, setMode] = useState("eniac"); // "eniac" | "edvac"
   const [op, setOp] = useState("ADD");
-  const [rewiring, setRewiring] = useState(0); // 0 = idle; 1..N = simulated rewire days
+  const [phase, setPhase] = useState("idle"); // "idle" | "rewiring"
+  const [plug, setPlug] = useState(0);         // 1-based index of the cable being re-plugged (label)
+  const [, forceTick] = useState(0);           // bump to re-render each animation frame
   const a = 7, b = 3;
   const result = op === "ADD" ? a + b : a - b;
 
-  // ENIAC: switching the operation means physically re-plugging cables.
+  // ── ENIAC patch panel: each cable plugs a TOP pin into a BOTTOM pin. The
+  //    operation is decided by WHICH bottom pins the cables sit in — so to
+  //    change the program you literally move the plugs. ADD = straight down,
+  //    SUB = a re-routed (crossed) wiring. Positions animate one cable at a
+  //    time, so you watch the machine being physically rewired. ──
+  const NCABLE = 4;
+  const WIRING = { ADD: [0, 1, 2, 3], SUB: [2, 3, 0, 1] };
+  const posRef = useRef([...WIRING.ADD]); // live, fractional bottom-pin index per cable
+  const activeRef = useRef(-1);           // which cable is moving right now (-1 = none)
+  const targetRef = useRef(null);         // destination wiring
+  const newOpRef = useRef("ADD");         // op we're rewiring toward
+  const rafRef = useRef(null);
+  const pinX = (i) => 46 + i * 72;        // x of bottom/top pin i
+
+  const cancelAnim = () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); rafRef.current = null; };
+  const resetPanel = () => { cancelAnim(); activeRef.current = -1; posRef.current = [...WIRING.ADD]; setPhase("idle"); setOp("ADD"); setPlug(0); };
+
   const startRewire = () => {
-    if (rewiring) return;
-    let day = 0;
-    setRewiring(1);
-    const tick = () => {
-      day += 1;
-      if (day >= 3) { setRewiring(0); setOp((o) => (o === "ADD" ? "SUB" : "ADD")); }
-      else { setRewiring(day + 1); setTimeout(tick, 500); }
+    if (phase === "rewiring") return;
+    targetRef.current = op === "ADD" ? WIRING.SUB : WIRING.ADD;
+    newOpRef.current = op === "ADD" ? "SUB" : "ADD";
+    activeRef.current = 0;
+    setPlug(1);
+    setPhase("rewiring");
+  };
+
+  // Drive the plug-by-plug animation while phase === "rewiring".
+  useEffect(() => {
+    if (phase !== "rewiring") return;
+    const step = () => {
+      const k = activeRef.current;
+      if (k < 0) return;
+      const pos = posRef.current;
+      const dest = targetRef.current[k];
+      const d = dest - pos[k];
+      if (Math.abs(d) < 0.02) {
+        pos[k] = dest;                         // this plug has reached its new pin
+        if (k < NCABLE - 1) { activeRef.current = k + 1; setPlug(k + 2); }
+        else { activeRef.current = -1; setOp(newOpRef.current); setPhase("idle"); setPlug(0); forceTick((t) => t + 1); return; }
+      } else {
+        pos[k] = pos[k] + d * 0.14;            // ease the moving plug toward its pin
+      }
+      forceTick((t) => t + 1);
+      rafRef.current = requestAnimationFrame(step);
     };
-    setTimeout(tick, 500);
+    rafRef.current = requestAnimationFrame(step);
+    return cancelAnim;
+  }, [phase]);
+
+  // Cable colour tells the story: already-moved plugs take the new op's colour,
+  // the one in motion is amber, the rest still show the old op.
+  const cableColor = (k) => {
+    const act = activeRef.current;
+    const oldCol = op === "ADD" ? C.accent : C.purple;
+    if (phase !== "rewiring") return oldCol;
+    if (k < act) return newOpRef.current === "ADD" ? C.accent : C.purple;
+    if (k === act) return C.yellow;
+    return oldCol;
   };
 
   return (
@@ -544,38 +593,57 @@ function StoredProgramWidget() {
       </p>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-        <button onClick={() => { setMode("eniac"); setOp("ADD"); setRewiring(0); }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${mode === "eniac" ? C.red : C.border}`, background: mode === "eniac" ? C.red + "18" : C.card, color: mode === "eniac" ? C.red : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🔌 ENIAC — rewire it</button>
-        <button onClick={() => { setMode("edvac"); setOp("ADD"); setRewiring(0); }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${mode === "edvac" ? C.green : C.border}`, background: mode === "edvac" ? C.green + "18" : C.card, color: mode === "edvac" ? C.green : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🧠 EDVAC — store the program</button>
+        <button onClick={() => { resetPanel(); setMode("eniac"); }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${mode === "eniac" ? C.red : C.border}`, background: mode === "eniac" ? C.red + "18" : C.card, color: mode === "eniac" ? C.red : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🔌 ENIAC — rewire it</button>
+        <button onClick={() => { resetPanel(); setMode("edvac"); }} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${mode === "edvac" ? C.green : C.border}`, background: mode === "edvac" ? C.green + "18" : C.card, color: mode === "edvac" ? C.green : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🧠 EDVAC — store the program</button>
       </div>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px" }}>
         {mode === "eniac" ? (
           <div>
             <div style={{ color: C.red, fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Program lives in the WIRING</div>
-            {/* patch panel: cables you'd re-plug by hand */}
-            <svg viewBox="0 0 300 90" style={{ width: "100%", maxWidth: 340, display: "block", margin: "0 auto 10px" }}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <g key={i}>
-                  <circle cx={30 + i * 60} cy={20} r={6} fill={C.bg} stroke={C.muted} strokeWidth={2} />
-                  <circle cx={30 + i * 60} cy={70} r={6} fill={C.bg} stroke={C.muted} strokeWidth={2} />
-                </g>
-              ))}
-              {/* cables — jiggle while "rewiring" */}
-              {[0, 1, 2, 3].map((i) => (
-                <path key={i} d={`M${30 + i * 60},20 C ${60 + i * 60},${rewiring ? 20 + (i % 2 ? 30 : -5) : 45} ${30 + i * 60},${rewiring ? 55 : 45} ${90 + i * 60},70`}
-                  fill="none" stroke={rewiring ? C.yellow : (op === "ADD" ? C.accent : C.purple)} strokeWidth={3} strokeLinecap="round" opacity={0.85} />
-              ))}
+            {/* patch panel: TOP pins wired to BOTTOM pins by movable cables */}
+            <svg viewBox="0 0 320 132" style={{ width: "100%", maxWidth: 360, display: "block", margin: "0 auto 10px" }}>
+              {/* top + bottom sockets */}
+              {[0, 1, 2, 3].map((i) => {
+                const isTarget = phase === "rewiring" && activeRef.current === i;             // top pin being worked
+                const destPin = phase === "rewiring" && targetRef.current ? targetRef.current[activeRef.current] : -1;
+                const litBottom = phase === "rewiring" && destPin === i;
+                return (
+                  <g key={i}>
+                    <circle cx={pinX(i)} cy={22} r={7} fill={C.bg} stroke={isTarget ? C.yellow : C.muted} strokeWidth={isTarget ? 3 : 2} />
+                    <text x={pinX(i)} y={14} fill={C.muted} fontSize={8} textAnchor="middle">T{i}</text>
+                    <circle cx={pinX(i)} cy={110} r={7} fill={litBottom ? C.yellow + "33" : C.bg} stroke={litBottom ? C.yellow : C.muted} strokeWidth={litBottom ? 3 : 2}
+                      style={{ filter: litBottom ? `drop-shadow(0 0 5px ${C.yellow})` : "none" }} />
+                    <text x={pinX(i)} y={128} fill={C.muted} fontSize={8} textAnchor="middle">B{i}</text>
+                  </g>
+                );
+              })}
+              {/* movable cables: top pin k → its live (fractional) bottom pin */}
+              {[0, 1, 2, 3].map((k) => {
+                const bx = pinX(posRef.current[k]);
+                const col = cableColor(k);
+                return (
+                  <g key={k}>
+                    <path d={`M ${pinX(k)},29 C ${pinX(k)},60 ${bx},72 ${bx},103`} fill="none" stroke={col} strokeWidth={3.5} strokeLinecap="round" opacity={0.9} />
+                    {/* the plug head at the moving (bottom) end */}
+                    <circle cx={bx} cy={103} r={4} fill={col} />
+                  </g>
+                );
+              })}
             </svg>
-            {rewiring ? (
-              <div style={{ color: C.yellow, fontSize: 13, textAlign: "center", fontWeight: 700 }}>🔧 Rewiring… day {rewiring} of 3</div>
+            {phase === "rewiring" ? (
+              <div style={{ color: C.yellow, fontSize: 13, textAlign: "center", fontWeight: 700 }}>🔧 Re-plugging cable {plug} of {NCABLE}…</div>
             ) : (
               <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 15, color: C.text }}>
                 Wired to <strong style={{ color: op === "ADD" ? C.accent : C.purple }}>{op}</strong> · {a} {op === "ADD" ? "+" : "−"} {b} = <strong style={{ color: C.green }}>{result}</strong>
               </div>
             )}
-            <button onClick={startRewire} disabled={!!rewiring} style={{ width: "100%", marginTop: 12, padding: "10px", borderRadius: 8, border: "none", background: rewiring ? C.border : C.red, color: "#fff", fontWeight: 700, fontSize: 13, cursor: rewiring ? "default" : "pointer" }}>
-              {rewiring ? "Rewiring the whole machine…" : `Change program to ${op === "ADD" ? "SUBTRACT" : "ADD"} (rewire) →`}
+            <button onClick={startRewire} disabled={phase === "rewiring"} style={{ width: "100%", marginTop: 12, padding: "10px", borderRadius: 8, border: "none", background: phase === "rewiring" ? C.border : C.red, color: "#fff", fontWeight: 700, fontSize: 13, cursor: phase === "rewiring" ? "default" : "pointer" }}>
+              {phase === "rewiring" ? "Moving the plugs by hand…" : `Change program to ${op === "ADD" ? "SUBTRACT" : "ADD"} (rewire) →`}
             </button>
+            <div style={{ color: C.muted, fontSize: 11.5, textAlign: "center", marginTop: 8 }}>
+              Watch each cable get unplugged and moved to a new socket — that's what "reprogramming" meant.
+            </div>
           </div>
         ) : (
           <div>
@@ -770,7 +838,7 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 export default function Unit0_3({ student, onUnitComplete }) {
   const sections = [
-    { id: "relay", label: "Relay Switch-Gates" },
+    { id: "relay", label: "Gates from Relays" },
     { id: "tube", label: "Vacuum Tubes" },
     { id: "transistor", label: "The Transistor" },
     { id: "tgates", label: "Gates from Transistors" },
@@ -787,7 +855,7 @@ export default function Unit0_3({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>A switch-gate built from relays</h3><RelayGateWidget /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>A logic gate built from relays</h3><RelayGateWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>A faster switch: the vacuum tube</h3><TubeGateWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>The invention that changed everything</h3><TransistorWidget /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>NOT, NAND and NOR from transistors</h3><TransistorGatesWidget /></div>,
