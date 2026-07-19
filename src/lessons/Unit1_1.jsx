@@ -531,6 +531,136 @@ function MemoryFloors() {
   );
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+//  Section 5 — The Word & the Blueprint (memory organisation, one blueprint at every scale)
+// ═══════════════════════════════════════════════════════════════
+function WordAndBlueprint() {
+  const [bits, setBits] = useState(32);        // the machine word: 32-bit or 64-bit
+  const [picked, setPicked] = useState(null);  // address of the word copied into R0
+  const [size, setSize] = useState(0);         // which computer scale is selected
+
+  const bytesPerWord = bits / 8;                            // 32-bit -> 4 bytes, 64-bit -> 8 bytes
+  const addrs = [0, 1, 2, 3].map((i) => i * bytesPerWord);  // word addresses step by the word size
+
+  const sizes = [
+    { label: "Embedded",      icon: "⌚", tag: "a ₹500 smart-watch",         blurb: "Inside cars, ACs, watches. Tiny, one fixed job — yet still all five units." },
+    { label: "Personal",      icon: "💻", tag: "a laptop or desktop",       blurb: "Laptops, desktops, workstations — the everyday computer." },
+    { label: "Server",        icon: "🗄️", tag: "a networked server",  blurb: "Shared over a network; serves huge databases to many users at once." },
+    { label: "Supercomputer", icon: "🌦️", tag: "a ₹50-crore supercomputer", blurb: "Weather, simulation — thousands of these units running in parallel." },
+  ];
+  const units = [["Input", C.green], ["Memory", C.teal], ["ALU", C.accent], ["Output", C.orange], ["Control", C.yellow]];
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Inside the Memory unit, bytes are not handled one at a time — they are grouped into a{" "}
+        <strong style={{ color: C.text }}>word</strong>: the bunch of bits the CPU stores and works on{" "}
+        <em>as a single unit</em>. Flip the switch — a <strong style={{ color: C.accent }}>32-bit</strong> machine
+        moves 4 bytes per word, a <strong style={{ color: C.purple }}>64-bit</strong> machine moves 8.
+      </p>
+
+      {/* word-size toggle */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+        {[32, 64].map((b) => (
+          <button key={b} onClick={() => { setBits(b); setPicked(null); }} style={{
+            flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13,
+            background: bits === b ? (b === 32 ? C.accent + "22" : C.purple + "22") : C.card,
+            border: `2px solid ${bits === b ? (b === 32 ? C.accent : C.purple) : C.border}`,
+            color: bits === b ? (b === 32 ? C.accent : C.purple) : C.muted,
+          }}>{b}-bit computer · {b / 8} bytes/word</button>
+        ))}
+      </div>
+
+      {/* memory column of words + R0 register */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 190 }}>
+          <div style={{ color: C.muted, fontSize: 11, marginBottom: 6, textAlign: "center" }}>MEMORY — click a word to load it</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {addrs.map((a) => {
+              const on = picked === a;
+              return (
+                <button key={a} onClick={() => setPicked(a)} style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 8, cursor: "pointer",
+                  background: on ? C.teal + "22" : C.card, border: `2px solid ${on ? C.teal : C.border}`, transition: "all 0.25s",
+                }}>
+                  <span style={{ color: C.muted, fontFamily: "monospace", fontSize: 12, width: 26, textAlign: "right" }}>{a}</span>
+                  <span style={{ display: "flex", gap: 3 }}>
+                    {Array.from({ length: bytesPerWord }).map((_, k) => (
+                      <span key={k} style={{ width: 15, height: 18, borderRadius: 3, background: on ? C.teal : C.border + "88" }} />
+                    ))}
+                  </span>
+                  <span style={{ marginLeft: "auto", color: on ? C.teal : C.muted, fontSize: 10 }}>word · {bytesPerWord} B</span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ color: C.muted, fontSize: 11, marginTop: 6, textAlign: "center" }}>
+            addresses step by <strong style={{ color: C.text }}>{bytesPerWord}</strong>: {addrs.join(", ")} …
+          </div>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div style={{ background: C.card, border: `2px solid ${picked !== null ? C.teal : C.border}`, borderRadius: 10, padding: "16px", textAlign: "center", transition: "all 0.3s" }}>
+            <div style={{ color: C.muted, fontSize: 11 }}>PROCESSOR · register</div>
+            <div style={{ color: C.teal, fontWeight: 800, fontSize: 20, fontFamily: "monospace", margin: "4px 0" }}>R0</div>
+            <div style={{ color: picked !== null ? C.text : C.muted, fontSize: 12, minHeight: 18 }}>
+              {picked !== null ? `holds the word @ ${picked}` : "empty"}
+            </div>
+          </div>
+          <div style={{ color: C.muted, fontSize: 11, marginTop: 8, lineHeight: 1.6, textAlign: "center" }}>
+            To use a value, the CPU copies the <strong style={{ color: C.text }}>whole word</strong> from its address into a register.
+          </div>
+        </div>
+      </div>
+
+      {/* exam definitions */}
+      <div style={{ background: C.card, border: `1px solid ${C.accent}44`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
+        <div style={{ color: C.accent, fontWeight: 700, marginBottom: 6 }}>🧠 Get this into memory — bit, byte, word</div>
+        <div><strong style={{ color: C.text }}>Bit</strong> — the smallest unit of information: a single 0 or 1.</div>
+        <div><strong style={{ color: C.text }}>Byte</strong> — a group of 8 bits (holds one character).</div>
+        <div><strong style={{ color: C.text }}>Word</strong> — a group of n bits the processor stores, retrieves and operates on as one unit.</div>
+        <div><strong style={{ color: C.text }}>Word length</strong> — the number of bits in a word; typically 16, 32 or 64.</div>
+      </div>
+
+      {/* four sizes, one blueprint */}
+      <p style={{ color: C.muted, fontSize: 13, margin: "4px 0 10px", lineHeight: 1.7 }}>
+        Word size changes, price changes, speed changes — but the <strong style={{ color: C.text }}>blueprint</strong> never
+        does. Pick any machine below; the same five units light up every time.
+      </p>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        {sizes.map((z, i) => (
+          <button key={z.label} onClick={() => setSize(i)} style={{
+            flex: 1, minWidth: 78, padding: "8px 4px", borderRadius: 9, cursor: "pointer", textAlign: "center",
+            background: size === i ? C.accentGlow : C.card, border: `2px solid ${size === i ? C.accent : C.border}`,
+            color: size === i ? "#fff" : C.muted, fontSize: 11, fontWeight: 700,
+          }}>
+            <div style={{ fontSize: 18 }}>{z.icon}</div>{z.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 10 }}>
+        <div style={{ color: C.text, fontSize: 13, marginBottom: 10 }}>
+          <strong>{sizes[size].tag}</strong> — {sizes[size].blurb}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {units.map(([u, col]) => (
+            <span key={u} style={{ flex: 1, minWidth: 64, textAlign: "center", padding: "6px 4px", borderRadius: 8, background: col + "1E", border: `1.5px solid ${col}`, color: col, fontSize: 11, fontWeight: 700 }}>{u}</span>
+          ))}
+        </div>
+        <div style={{ color: C.muted, fontSize: 11, marginTop: 8, textAlign: "center" }}>same five functional units — every scale, every price</div>
+      </div>
+
+      <Key color={C.purple}>
+        A <strong style={{ color: C.text }}>word</strong> is how much the CPU grabs at once (32 or 64 bits);
+        its byte addresses step by the word size. And whether it costs ₹500 or ₹50 crore, every computer is
+        the <strong style={{ color: C.purple }}>same five functional units</strong> — you now know the blueprint of them all.
+      </Key>
+    </div>
+  );
+}
+
+
 // ══════════════════════════════════════════════════════════════════
 //  Quiz — 4 MCQs, instant feedback, completion card
 // ══════════════════════════════════════════════════════════════════
@@ -570,15 +700,15 @@ function Quiz({ onComplete }) {
       explain: "Registers (inside the CPU) are fastest, then cache, then main memory, then disk. Each step down is roughly 10–100× slower but bigger and cheaper — remember the '1 second vs 1 year' table!",
     },
     {
-      q: "Which units together form the PROCESSOR?",
+      q: "On a 32-bit computer, what is a \"word\" and how are words addressed?",
       options: [
-        "ALU + Memory + Input",
-        "ALU + Control + registers",
-        "Control + Cache + Output",
-        "ALU + RAM + Control",
+        "4 bytes; word addresses step 0, 4, 8, 12 …",
+        "32 bytes; addresses step 0, 32, 64 …",
+        "1 byte; every byte address is a separate word",
+        "8 bytes; addresses step 0, 8, 16, 24 …",
       ],
-      answer: 1,
-      explain: "Processor = ALU + Control unit + registers. Main memory (RAM) sits OUTSIDE the processor, reached over the bus.",
+      answer: 0,
+      explain: "A word is the group of bits the CPU stores and operates on as a unit. 32 bits = 4 bytes, so each word spans 4 byte-addresses and word addresses step 0, 4, 8, 12. A 64-bit machine uses 8-byte words: 0, 8, 16, 24. (Processor = ALU + Control + registers, taught in the key-insight box.)",
     },
   ];
 
@@ -615,7 +745,7 @@ function Quiz({ onComplete }) {
           <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Unit 1.1 Complete!</div>
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
             You can now name all five functional units, explain why a coordinator is essential,
-            and rank every level of memory by speed. A ₹500 smart-watch and a ₹50-crore supercomputer —
+            rank every level of memory by speed, and read a machine's word. A ₹500 smart-watch and a ₹50-crore supercomputer —
             you now know the blueprint of both.
             <br /><br />
             <strong style={{ color: C.accent }}>Next up: Unit 1.2 — Basic Operational Concepts.</strong>{" "}
@@ -675,6 +805,7 @@ export default function Unit1_1({ student, onUnitComplete }) {
     { id: "beat", label: "The Beat" },
     { id: "five", label: "The Five at Work" },
     { id: "memory", label: "Memory's Floors" },
+    { id: "word", label: "Word & Blueprint" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -702,10 +833,14 @@ export default function Unit1_1({ student, onUnitComplete }) {
       <MemoryFloors />
     </div>,
     <div>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>🧠 The Word & the Blueprint</h3>
+      <WordAndBlueprint />
+    </div>,
+    <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 1.1.</p>
       {/* The quiz's onComplete is the ONLY caller of onUnitComplete. */}
-      <Quiz onComplete={() => { markComplete(4); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 
