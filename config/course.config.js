@@ -57,7 +57,6 @@ const COURSE_CONFIG = {
         { unitId: "Unit1_5", title: "Memory Operations & Instructions" },
         { unitId: "Unit1_6", title: "Addressing Modes" },
         { unitId: "Unit1_7", title: "Instruction Sequencing" },
-        { unitId: "Unit1_C", title: "Capstone: Run a Program by Hand" },
       ],
     },
     {
@@ -66,8 +65,10 @@ const COURSE_CONFIG = {
       icon:        "⚙️",
       blurb:       "Open the CPU and watch a single instruction travel through it, one clock tick at a time.",
       units: [
-        { unitId: "Unit2_1", title: "Register Transfers (RTL)" },
-        { unitId: "Unit2_2", title: "Arithmetic & Logic Operations" },
+        { unitId: "Unit2_1", title: "Register Transfers (RTL)",
+          blurb: "Unit 1 said 'Load moves a word.' But how does one bit actually cross from register to register? Meet the smallest step there is." },
+        { unitId: "Unit2_2", title: "Arithmetic & Logic Operations",
+          blurb: "Moving bits isn't computing. Watch one adder — plus a MUX and a few select lines — add, subtract, mask, and shift its way into being an ALU." },
         { unitId: "Unit2_3", title: "Fetching a Word from Memory" },
         { unitId: "Unit2_4", title: "Storing a Word in Memory" },
         { unitId: "Unit2_5", title: "Executing a Complete Instruction" },

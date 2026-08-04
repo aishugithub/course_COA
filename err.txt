@@ -1,0 +1,1 @@
+bash: line 5: esbuild: command not found
