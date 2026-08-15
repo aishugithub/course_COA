@@ -1,9 +1,15 @@
 // Unit1_3.jsx — Module 1 › Unit 1.3 — "Bus Structures"
 // Foothold formula: GitHub-dark palette, free-nav tab strip, one interactive
 // widget per section, 🔑 key-insight callouts, 4-question quiz.
-// Arc: wire explosion (why we need a shared path) → single-bus (take turns) →
-// more buses (parallelism vs cost) → the three buses by job → quiz.
-// Scaffolds on Unit 1.1 (five functional units) — now we wire them together.
+// Source: Unit-1 classroom deck, Chapter 3 (Bus Structures, Hamacher §1.2 / Mano §5).
+// SCOPE (important): this is the SYSTEM bus that connects the whole-computer
+// components — processor, memory and I/O devices. The bus INSIDE the processor
+// (registers ↔ ALU, the single-/multiple-bus datapath) belongs to Unit 2.6 and
+// is deliberately kept out of here.
+// Arc: wire explosion (why a shared path) → single-bus (take turns) → dual &
+// the system bus (parallelism vs cost, matched to speed) → the three line-groups
+// (address / data / control) → quiz.
+// Scaffolds on Unit 1.1 (functional units) — now we wire the machine together.
 import { useState } from "react";
 
 const C = {
@@ -29,7 +35,9 @@ function WireExplosion() {
   const [n, setN] = useState(5);
   const [shared, setShared] = useState(false);
 
-  const names = ["Input", "ALU", "Control", "Memory", "Output", "Reg A", "Reg B", "Reg C"];
+  // Whole-computer components (NOT internal registers): the processor as one box,
+  // memory, and the I/O devices that hang off the system bus.
+  const names = ["Processor", "Memory", "Input", "Output", "Disk", "Keyboard", "Network", "Printer"];
   const units = names.slice(0, n);
 
   // point-to-point: every pair needs its own link  → n(n-1)/2
@@ -47,9 +55,9 @@ function WireExplosion() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        In Unit 1.1 you met the five units. They must swap data <em>constantly</em>. The lazy first idea:
-        run a private wire between every pair. Drag the slider and watch how fast that gets out of hand —
-        then flip to <strong style={{ color: C.green }}>one shared bus</strong>.
+        A computer's main components — the <strong style={{ color: C.text }}>processor, memory, and I/O devices</strong> —
+        must swap data <em>constantly</em>. The lazy first idea: run a private wire between every pair. Drag the slider and
+        watch how fast that gets out of hand — then flip to <strong style={{ color: C.green }}>one shared bus</strong>.
       </p>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -122,7 +130,7 @@ function WireExplosion() {
 //  Section 2 — Single-Bus Organisation (one highway, take turns)
 // ══════════════════════════════════════════════════════════════════
 function SingleBus() {
-  const devices = ["R0", "R1", "R2", "Memory", "ALU"];
+  const devices = ["Processor", "Memory", "Input", "Output"];
   const [src, setSrc] = useState(null);
   const [dst, setDst] = useState(null);
 
@@ -138,9 +146,10 @@ function SingleBus() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Here every unit hangs off <strong style={{ color: C.accent }}>one</strong> bus. Click a <strong>source</strong>
-        (who puts data on the bus), then a <strong>destination</strong> (who reads it). Only one source may drive the
-        bus at a time — the others stay disconnected via <em>tri-state buffers</em>.
+        In the <strong style={{ color: C.accent }}>single-bus organisation</strong> every component of the machine hangs off
+        <strong style={{ color: C.accent }}> one</strong> common bus — the sole path for every transfer. Click a
+        <strong> source</strong> (who puts data on the bus), then a <strong>destination</strong> (who reads it). Only one
+        source may drive the bus at a time — the others stay disconnected via <em>tri-state buffers</em>.
       </p>
 
       <svg viewBox="0 0 380 210" style={{ width: "100%", background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
@@ -207,83 +216,123 @@ function SingleBus() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 3 — More Buses (parallelism vs cost)
+//  Section 3 — Dual & the system bus (parallelism vs cost, by speed)
+//  Deck Ch 3: single → two-bus (instruction + data) → multiple/system bus.
 // ══════════════════════════════════════════════════════════════════
-function MultiBus() {
-  const [buses, setBuses] = useState(1);
+function BusOrganisations() {
+  const [mode, setMode] = useState("single");
 
-  // The job: R3 ← R1 + R2. Move two operands IN, one result OUT.
-  // 1 bus  → 3 sequential steps.  2 buses → 2 steps.  3 buses → 1 step.
-  const steps = buses === 1 ? 3 : buses === 2 ? 2 : 1;
-  const labels = {
-    1: "Single bus: send R1, then R2, then write R3 back — three trips down the one lane.",
-    2: "Two buses: two operands can move at once; the result still needs its own trip.",
-    3: "Three buses (A, B, C): both operands reach the ALU AND the result returns — all in one step.",
+  const info = {
+    single: { label: "Single bus", color: C.accent,
+      caption: "One shared path for everything — cheap and simple, but only one transfer at a time.",
+      body: "All components share a single bus. A fetch and a data move cannot overlap: whoever holds the bus, everyone else waits. Low cost, easy to extend — but the bus is the bottleneck." },
+    dual: { label: "Two-bus (dual)", color: C.green,
+      caption: "One bus for instructions, one for data — a fetch and a data move overlap.",
+      body: "Split traffic in two: an instruction bus and a data bus. Now the processor can fetch the next instruction WHILE data moves on the other bus — no waiting. It eases the single-bus bottleneck at the cost of extra wiring." },
+    system: { label: "Multiple / system bus", color: C.orange,
+      caption: "Several buses, each matched to the speed of what it joins.",
+      body: "Real machines use several buses at different speeds: a very fast processor–cache bus, the system bus to main memory, and a slower expansion (I/O) bus for peripherals, joined by a bridge. More parallelism, more wiring." },
   };
+  const cur = info[mode];
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The ALU is greedy: to compute <code style={{ color: C.teal }}>R3 ← R1 + R2</code> it wants <strong>two</strong>
-        operands in and <strong>one</strong> result out. On one bus that is three separate trips. Add buses and watch
-        the trips collapse.
+        One shared bus is cheap but single-file. To move more at once we add buses — but not just for the processor's own
+        arithmetic (that internal datapath is Unit 2). Here we organise the buses <strong style={{ color: C.text }}>between the
+        whole-machine components</strong>. Step through the three organisations.
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        {[1, 2, 3].map((b) => (
-          <button key={b} onClick={() => setBuses(b)} style={{
-            flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
-            border: `1px solid ${buses === b ? C.accent : C.border}`,
-            background: buses === b ? C.accentGlow : "transparent",
-            color: buses === b ? "#fff" : C.muted,
-          }}>{b} bus{b > 1 ? "es" : ""}</button>
+        {Object.entries(info).map(([k, v]) => (
+          <button key={k} onClick={() => setMode(k)} style={{
+            flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600,
+            border: `1px solid ${mode === k ? v.color : C.border}`,
+            background: mode === k ? v.color + "22" : "transparent",
+            color: mode === k ? v.color : C.muted,
+          }}>{v.label}</button>
         ))}
       </div>
 
-      <svg viewBox="0 0 380 180" style={{ width: "100%", background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
-        {/* register file on the left, ALU on the right, N buses between */}
-        <rect x={20} y={40} width={70} height={100} rx={8} fill={C.card} stroke={C.purple} />
-        <text x={55} y={30} fontSize={10} fill={C.purple} textAnchor="middle">Registers</text>
-        <text x={55} y={70} fontSize={11} fill={C.text} textAnchor="middle">R1</text>
-        <text x={55} y={95} fontSize={11} fill={C.text} textAnchor="middle">R2</text>
-        <text x={55} y={120} fontSize={11} fill={C.text} textAnchor="middle">R3</text>
-
-        <rect x={290} y={55} width={70} height={70} rx={8} fill={C.card} stroke={C.orange} />
-        <text x={325} y={95} fontSize={12} fill={C.orange} textAnchor="middle">ALU</text>
-
-        {Array.from({ length: buses }).map((_, i) => {
-          const y = 55 + (i * 70) / Math.max(1, buses - 1 || 1);
-          const isC = buses === 3 && i === 2; // Bus C carries the result back
-          const col = isC ? C.green : C.accent;
-          return (
-            <g key={i}>
-              <line x1={90} y1={y} x2={290} y2={y} stroke={col} strokeWidth={4} strokeLinecap="round" />
-              <text x={190} y={y - 6} fontSize={9} fill={col} textAnchor="middle">
-                Bus {String.fromCharCode(65 + i)}{isC ? " (result →)" : " (operand →)"}
-              </text>
-              <circle r={4} fill={col}>
-                <animate attributeName="cx" values={isC ? "290;90" : "90;290"} dur="1s" repeatCount="indefinite" />
-                <animate attributeName="cy" values={`${y};${y}`} dur="1s" repeatCount="indefinite" />
-              </circle>
-            </g>
-          );
-        })}
+      <svg viewBox="0 0 380 200" style={{ width: "100%", background: C.bg, borderRadius: 10, border: `1px solid ${C.border}` }}>
+        {mode === "single" && (
+          <>
+            <line x1={30} y1={100} x2={350} y2={100} stroke={C.accent} strokeWidth={6} strokeLinecap="round" />
+            <text x={190} y={92} fontSize={10} fill={C.accent} textAnchor="middle">SINGLE COMMON BUS</text>
+            {["Processor", "Memory", "Input", "Output"].map((d, i) => {
+              const x = 55 + (i * 260) / 3;
+              const up = i % 2 === 0; const uy = up ? 45 : 155;
+              return (
+                <g key={d}>
+                  <line x1={x} y1={100} x2={x} y2={up ? uy + 16 : uy - 16} stroke={C.muted} strokeWidth={2} />
+                  <rect x={x - 32} y={uy - 16} width={64} height={32} rx={7} fill={C.card} stroke={C.border} />
+                  <text x={x} y={uy + 4} fontSize={9} fill={C.text} textAnchor="middle">{d}</text>
+                </g>
+              );
+            })}
+            <circle r={4} fill={C.accent}><animate attributeName="cx" values="60;320;60" dur="2.4s" repeatCount="indefinite" /><animate attributeName="cy" values="100;100;100" dur="2.4s" repeatCount="indefinite" /></circle>
+          </>
+        )}
+        {mode === "dual" && (
+          <>
+            <rect x={20} y={70} width={90} height={70} rx={8} fill={C.card} stroke={C.purple} />
+            <text x={65} y={110} fontSize={11} fill={C.purple} textAnchor="middle">Processor</text>
+            <rect x={280} y={35} width={90} height={44} rx={8} fill={C.card} stroke={C.accent} />
+            <text x={325} y={61} fontSize={10} fill={C.accent} textAnchor="middle">Instructions</text>
+            <rect x={280} y={128} width={90} height={44} rx={8} fill={C.card} stroke={C.teal} />
+            <text x={325} y={154} fontSize={10} fill={C.teal} textAnchor="middle">Data</text>
+            <line x1={110} y1={57} x2={280} y2={57} stroke={C.accent} strokeWidth={5} strokeLinecap="round" />
+            <text x={195} y={48} fontSize={9} fill={C.accent} textAnchor="middle">INSTRUCTION BUS</text>
+            <line x1={110} y1={150} x2={280} y2={150} stroke={C.teal} strokeWidth={5} strokeLinecap="round" />
+            <text x={195} y={172} fontSize={9} fill={C.teal} textAnchor="middle">DATA BUS</text>
+            <circle r={4} fill={C.accent}><animate attributeName="cx" values="280;115" dur="1.4s" repeatCount="indefinite" /><animate attributeName="cy" values="57;57" dur="1.4s" repeatCount="indefinite" /></circle>
+            <circle r={4} fill={C.teal}><animate attributeName="cx" values="280;115" dur="1.4s" repeatCount="indefinite" /><animate attributeName="cy" values="150;150" dur="1.4s" repeatCount="indefinite" /></circle>
+          </>
+        )}
+        {mode === "system" && (
+          <>
+            <rect x={20} y={40} width={70} height={40} rx={7} fill={C.card} stroke={C.purple} />
+            <text x={55} y={64} fontSize={9} fill={C.purple} textAnchor="middle">Processor</text>
+            <rect x={110} y={40} width={54} height={40} rx={7} fill={C.card} stroke={C.purple} />
+            <text x={137} y={64} fontSize={9} fill={C.purple} textAnchor="middle">Cache</text>
+            <rect x={210} y={40} width={90} height={40} rx={7} fill={C.card} stroke={C.accent} />
+            <text x={255} y={64} fontSize={9} fill={C.accent} textAnchor="middle">Main Memory</text>
+            {/* fast processor-cache bus */}
+            <line x1={90} y1={60} x2={110} y2={60} stroke={C.purple} strokeWidth={6} />
+            {/* system bus backbone */}
+            <line x1={164} y1={60} x2={210} y2={60} stroke={C.accent} strokeWidth={7} />
+            <text x={187} y={30} fontSize={9} fill={C.accent} textAnchor="middle">SYSTEM BUS</text>
+            <line x1={255} y1={80} x2={255} y2={120} stroke={C.yellow} strokeWidth={5} />
+            <rect x={215} y={120} width={80} height={30} rx={6} fill={C.card} stroke={C.yellow} />
+            <text x={255} y={139} fontSize={9} fill={C.yellow} textAnchor="middle">Bridge</text>
+            {/* slow expansion / IO bus */}
+            <line x1={70} y1={175} x2={350} y2={175} stroke={C.orange} strokeWidth={5} strokeLinecap="round" />
+            <line x1={255} y1={150} x2={255} y2={175} stroke={C.orange} strokeWidth={4} />
+            <text x={150} y={195} fontSize={9} fill={C.orange} textAnchor="middle">expansion / I-O bus (slower)</text>
+            {[["Disk", 100], ["USB·Net", 330]].map(([d, x]) => (
+              <g key={d}>
+                <line x1={x} y1={158} x2={x} y2={175} stroke={C.orange} strokeWidth={3} />
+                <rect x={x - 30} y={130} width={60} height={28} rx={6} fill={C.card} stroke={C.green} />
+                <text x={x} y={148} fontSize={9} fill={C.green} textAnchor="middle">{d}</text>
+              </g>
+            ))}
+            <circle r={3} fill={C.accent}><animate attributeName="cx" values="210;168" dur="1.5s" repeatCount="indefinite" /><animate attributeName="cy" values="60;60" dur="1.5s" repeatCount="indefinite" /></circle>
+            <circle r={3} fill={C.orange}><animate attributeName="cx" values="330;80" dur="3s" repeatCount="indefinite" /><animate attributeName="cy" values="175;175" dur="3s" repeatCount="indefinite" /></circle>
+          </>
+        )}
       </svg>
 
-      <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "stretch", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 130, padding: "12px 14px", borderRadius: 8, background: C.accent + "14", border: `1px solid ${C.accent}44`, textAlign: "center" }}>
-          <div style={{ color: C.muted, fontSize: 11 }}>Steps to do R3 ← R1 + R2</div>
-          <div style={{ color: C.text, fontSize: 30, fontWeight: 800 }}>{steps}</div>
-        </div>
-        <div style={{ flex: 2, minWidth: 180, padding: "12px 14px", borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, color: C.muted, fontSize: 13, lineHeight: 1.6, display: "flex", alignItems: "center" }}>
-          {labels[buses]}
-        </div>
+      <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 10, background: cur.color + "12", border: `1px solid ${cur.color}44` }}>
+        <div style={{ color: cur.color, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{cur.label}</div>
+        <div style={{ color: C.text, fontSize: 12.5, fontStyle: "italic", marginBottom: 6 }}>{cur.caption}</div>
+        <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>{cur.body}</div>
       </div>
 
       <Key>
-        More buses = more transfers in parallel = fewer steps per instruction = faster. But each bus is
-        real copper, real multiplexers, real chip area. Designers pick the number of buses to balance
-        <strong style={{ color: C.text }}> speed against cost</strong> — you'll meet a 3-bus datapath again in Module 2.
+        More buses = more transfers in parallel = fewer waits, at the cost of extra copper and controllers. The
+        <strong style={{ color: C.text }}> system bus</strong> is the machine's main highway, tying the processor (through its
+        cache) to main memory and — via a bridge — to slower I/O. (The bus <em>inside</em> the processor is a separate story:
+        Unit 2.6.)
       </Key>
     </div>
   );
@@ -394,10 +443,15 @@ function Quiz({ onComplete }) {
       explain: "Only one source may drive the bus per cycle (the rest are held off by tri-state buffers). That single-transfer-at-a-time limit is the single bus's main weakness.",
     },
     {
-      q: "To compute R3 ← R1 + R2 in ONE step, how many buses does the datapath need?",
-      options: ["One bus", "Two buses", "Three buses (A, B and C)", "It can never be done in one step"],
-      answer: 2,
-      explain: "Two operands must reach the ALU and the result must return — three simultaneous transfers, so three buses. This is exactly the multiple-bus organisation you'll build in Module 2.",
+      q: "In a two-bus (dual) organisation, what does the second bus buy you?",
+      options: [
+        "It lets memory run at twice the clock speed",
+        "A fetch and a data transfer can happen at the same time — instructions on one bus, data on the other",
+        "It removes the need for an address bus",
+        "It doubles the number of registers",
+      ],
+      answer: 1,
+      explain: "Splitting traffic into an instruction bus and a data bus lets the processor fetch the next instruction WHILE data moves on the other bus — easing the single-bus bottleneck, at the cost of extra wiring.",
     },
     {
       q: "In the address / data / control split, which bus carries WHICH memory location the CPU wants?",
@@ -501,7 +555,7 @@ export default function Unit1_3({ student, onUnitComplete }) {
   const sections = [
     { id: "wires", label: "Wire Explosion" },
     { id: "single", label: "Single Bus" },
-    { id: "multi", label: "More Buses" },
+    { id: "multi", label: "Dual & System Bus" },
     { id: "three", label: "Address/Data/Control" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
@@ -522,8 +576,8 @@ export default function Unit1_3({ student, onUnitComplete }) {
       <SingleBus />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>🚦 More Buses — buy speed with parallelism</h3>
-      <MultiBus />
+      <h3 style={{ color: C.text, marginBottom: 6 }}>🚦 Dual &amp; the System Bus — buy speed with parallelism</h3>
+      <BusOrganisations />
     </div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>🎯 One Bus, Three Jobs — address, data, control</h3>

@@ -23,6 +23,10 @@ function Key({ color = C.purple, children }) {
 }
 
 // Small reusable memory-listing viewer with a PC arrow.
+// A row's `asm` is the instruction ONLY (monospace). A human note goes in a
+// separate `comment` field, rendered with an explicit "comment" chip and a
+// distinct serif-italic font — never glued onto the instruction with a bare ";",
+// which students read as part of the code.
 function Listing({ rows, pc, done }) {
   return (
     <div style={{ background: C.bg, borderRadius: 10, border: `1px solid ${C.border}`, padding: "12px 10px" }}>
@@ -36,7 +40,15 @@ function Listing({ rows, pc, done }) {
           }}>
             <span style={{ width: 16, color: C.accent }}>{here ? "▶" : ""}</span>
             <span style={{ width: 36, fontFamily: "monospace", fontSize: 12, color: C.muted }}>{r.addr}</span>
-            <span style={{ fontFamily: "monospace", fontSize: 13, color: here ? C.text : C.muted, fontWeight: here ? 700 : 400 }}>{r.asm}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", flex: 1 }}>
+              <span style={{ fontFamily: "monospace", fontSize: 13, color: here ? C.text : C.muted, fontWeight: here ? 700 : 400 }}>{r.asm}</span>
+              {r.comment && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ fontSize: 8, letterSpacing: 0.6, textTransform: "uppercase", color: C.green, border: `1px solid ${C.green}66`, background: C.green + "14", borderRadius: 4, padding: "1px 5px", fontFamily: "'Segoe UI', sans-serif" }}>comment</span>
+                  <span style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontStyle: "italic", fontSize: 12.5, color: C.green }}>{r.comment}</span>
+                </span>
+              )}
+            </span>
           </div>
         );
       })}
@@ -167,9 +179,9 @@ function Unconditional() {
 // ══════════════════════════════════════════════════════════════════
 function Conditional() {
   const rows = [
-    { addr: 200, asm: "Load  R1, #3    ; counter" },
+    { addr: 200, asm: "Load  R1, #3", comment: "set the counter to 3" },
     { addr: 204, asm: "Sub   R1, R1, #1", loopBody: true },
-    { addr: 208, asm: "Branch>0  204   ; if R1>0 loop", loopBody: true },
+    { addr: 208, asm: "Branch>0  204", comment: "if R1 > 0, loop back to 204", loopBody: true },
     { addr: 212, asm: "Store R1, RESULT" },
   ];
 
@@ -204,6 +216,12 @@ function Conditional() {
         A <strong style={{ color: C.orange }}>conditional</strong> branch only jumps if a test passes — that's how loops
         exist. This one counts <code style={{ color: C.teal }}>R1</code> down from 3 and branches back while R1 &gt; 0.
         Step and watch it circle.
+      </p>
+
+      <p style={{ color: C.muted, fontSize: 12, marginBottom: 12, lineHeight: 1.6, background: C.green + "10", border: `1px solid ${C.green}33`, borderRadius: 8, padding: "8px 12px" }}>
+        📝 Anything tagged <span style={{ fontSize: 8, letterSpacing: 0.6, textTransform: "uppercase", color: C.green, border: `1px solid ${C.green}66`, background: C.green + "14", borderRadius: 4, padding: "1px 5px" }}>comment</span>{" "}
+        <span style={{ fontFamily: "Georgia, serif", fontStyle: "italic", color: C.green }}>in this italic font</span> is a note for
+        humans — the CPU ignores it. It is <strong style={{ color: C.text }}>not</strong> part of the instruction.
       </p>
 
       <Listing rows={rows} pc={cur.pc} done={done} />

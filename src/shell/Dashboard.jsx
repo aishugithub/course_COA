@@ -38,7 +38,7 @@ function FootholdMark({ size = 34 }) {
   );
 }
 
-export default function Dashboard({ student, completedUnits, onSelectUnit, onRequestLogin, onSignOff }) {
+export default function Dashboard({ student, completedUnits, onSelectUnit, onRequestLogin, onSignOff, returnUnitId }) {
   // Optional units (Crucibles) are bonus: excluded from the % so skipping
   // challenges never blocks 100%. completedUnits may also hold stage
   // pseudo-ids like "Unit4_C@spark"; counting only required ids filters those.
@@ -64,10 +64,20 @@ export default function Dashboard({ student, completedUnits, onSelectUnit, onReq
     }
   }
 
-  // Accordion state: a Set of open moduleIds. Starts with only the next-up
-  // module open (or the first module for a brand-new / fully-done learner).
+  // Which module did the learner just come back from? If App handed us a
+  // returnUnitId (the last lesson they opened), find its module so we can
+  // re-expand it. This is what stops the dashboard from snapping back to
+  // Module 0 every time you leave a lesson.
+  const returnModuleId = returnUnitId
+    ? COURSE_CONFIG.modules.find(m => m.units.some(u => u.unitId === returnUnitId))?.moduleId
+    : null;
+
+  // Accordion state: a Set of open moduleIds. Priority for what starts open:
+  //   1. the module the learner just returned from (returnModuleId), else
+  //   2. the next-up module (first incomplete unit), else
+  //   3. the very first module (brand-new / fully-done learner).
   const [openModules, setOpenModules] = useState(
-    () => new Set([nextModuleId || COURSE_CONFIG.modules[0].moduleId])
+    () => new Set([returnModuleId || nextModuleId || COURSE_CONFIG.modules[0].moduleId])
   );
   function toggleModule(moduleId) {
     setOpenModules(prev => {

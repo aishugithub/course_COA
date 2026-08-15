@@ -36,6 +36,14 @@ export default function App() {
   const [student, setStudent]                 = useState(null); // null = guest
   const [completedUnits, setCompletedUnits]   = useState([]);
   const [activeUnit, setActiveUnit]           = useState(null);
+  // Remembers the LAST unit opened even after we return to the dashboard
+  // (activeUnit is cleared on "back", this is not). The dashboard uses it to
+  // re-expand the module the learner just came from, instead of snapping back
+  // to Module 0. Persisted so a page reload also restores the right module.
+  const [lastUnitId, setLastUnitId]           = useState(() => {
+    try { return localStorage.getItem('foothold_lastUnit_' + COURSE_CONFIG.courseId) || null; }
+    catch { return null; }
+  });
   const [LessonComponent, setLessonComponent] = useState(null);
   const [loadingLesson, setLoadingLesson]     = useState(false);
   const [savingProgress, setSavingProgress]   = useState(false);
@@ -77,6 +85,10 @@ export default function App() {
   async function handleSelectUnit(unitId) {
     setLoadingLesson(true);
     setActiveUnit(unitId);
+    // Record which unit (hence which module) we're entering, so the dashboard
+    // can re-open that module when the learner comes back.
+    setLastUnitId(unitId);
+    try { localStorage.setItem('foothold_lastUnit_' + COURSE_CONFIG.courseId, unitId); } catch { /* ignore */ }
     try {
       const path = `../lessons/${unitId}.jsx`;
       const loader = LESSONS[path];
@@ -194,6 +206,7 @@ export default function App() {
       onSelectUnit={handleSelectUnit}
       onRequestLogin={handleGoToLogin}
       onSignOff={handleSignOff}
+      returnUnitId={lastUnitId}
     />
   );
 }

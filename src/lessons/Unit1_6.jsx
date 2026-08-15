@@ -69,8 +69,17 @@ function FourAnswers() {
             {m.acc} memory access{m.acc === 1 ? "" : "es"}{m.acc === 0 ? " — fastest" : ""}
           </div>
         </div>
-        <div style={{ fontFamily: "monospace", fontSize: 15, color: C.text, margin: "10px 0" }}>
-          {m.asm} <span style={{ color: C.muted }}>→</span> {m.rtn}
+        {/* Assembly and its RTL meaning, each clearly LABELLED — never joined by
+            a bare "→", which would read like an RTL transfer arrow it is not. */}
+        <div style={{ margin: "10px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+            <span style={{ color: C.muted, fontSize: 9.5, width: 74, letterSpacing: 0.5, textTransform: "uppercase" }}>Assembly</span>
+            <code style={{ fontFamily: "monospace", fontSize: 15, color: C.text }}>{m.asm}</code>
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+            <span style={{ color: C.muted, fontSize: 9.5, width: 74, letterSpacing: 0.5, textTransform: "uppercase" }}>Means (RTL)</span>
+            <code style={{ fontFamily: "monospace", fontSize: 15, color: m.color }}>{m.rtn}</code>
+          </div>
         </div>
         <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>{m.body}</div>
       </div>
@@ -302,6 +311,116 @@ function RelativeMode() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  Section 5 — Match the following (mode ↔ example) — the pre-quiz drill
+// ══════════════════════════════════════════════════════════════════
+function MatchGame() {
+  // Left = addressing modes; right = one example each. rightId ties an example
+  // back to its mode. The right column is shown in a deliberately jumbled order.
+  const pairs = [
+    { id: "imm", mode: "Immediate",       ex: "Move #5, R2" },
+    { id: "reg", mode: "Register",        ex: "Add R4, R2, R3" },
+    { id: "abs", mode: "Absolute / Direct", ex: "Load R2, A" },
+    { id: "ind", mode: "Indirect",        ex: "Load R2, (R5)" },
+    { id: "idx", mode: "Index",           ex: "Load R2, 20(R5)" },
+    { id: "rel", mode: "Relative",        ex: "Branch>0 X(PC)" },
+  ];
+  const rightOrder = ["idx", "abs", "rel", "imm", "ind", "reg"]; // jumbled
+  const rights = rightOrder.map((id) => pairs.find((p) => p.id === id));
+
+  const [picked, setPicked] = useState(null);   // a left mode id awaiting a match
+  const [matched, setMatched] = useState([]);   // ids correctly matched
+  const [wrong, setWrong] = useState(null);     // {left, right} flashing red
+
+  const clickLeft = (id) => {
+    if (matched.includes(id)) return;
+    setPicked(id); setWrong(null);
+  };
+  const clickRight = (id) => {
+    if (matched.includes(id) || picked === null) return;
+    if (picked === id) {
+      setMatched((m) => [...m, id]); setPicked(null);
+    } else {
+      setWrong({ left: picked, right: id });
+      setTimeout(() => setWrong(null), 600);
+      setPicked(null);
+    }
+  };
+  const reset = () => { setPicked(null); setMatched([]); setWrong(null); };
+  const allDone = matched.length === pairs.length;
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Before the quiz, a quick drill. Click an <strong style={{ color: C.accent }}>addressing mode</strong> on the left, then
+        the <strong style={{ color: C.teal }}>example</strong> on the right that fits it. Correct pairs lock in green.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {/* left: modes */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ color: C.muted, fontSize: 10, textAlign: "center", letterSpacing: 0.5 }}>ADDRESSING MODE</div>
+          {pairs.map((p) => {
+            const isMatched = matched.includes(p.id);
+            const isPicked = picked === p.id;
+            const isWrong = wrong && wrong.left === p.id;
+            const col = isMatched ? C.green : isWrong ? C.red : isPicked ? C.accent : C.border;
+            return (
+              <button key={p.id} onClick={() => clickLeft(p.id)} disabled={isMatched} style={{
+                padding: "10px 8px", borderRadius: 8, textAlign: "center", fontSize: 12.5, fontWeight: 600,
+                cursor: isMatched ? "default" : "pointer",
+                border: `1.5px solid ${col}`, background: isMatched ? C.green + "1e" : isPicked ? C.accent + "1e" : C.card,
+                color: isMatched ? C.green : C.text, transition: "all 0.15s",
+              }}>{isMatched ? "✓ " : ""}{p.mode}</button>
+            );
+          })}
+        </div>
+        {/* right: examples (jumbled) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ color: C.muted, fontSize: 10, textAlign: "center", letterSpacing: 0.5 }}>EXAMPLE</div>
+          {rights.map((p) => {
+            const isMatched = matched.includes(p.id);
+            const isWrong = wrong && wrong.right === p.id;
+            const col = isMatched ? C.green : isWrong ? C.red : C.border;
+            return (
+              <button key={p.id} onClick={() => clickRight(p.id)} disabled={isMatched} style={{
+                padding: "10px 8px", borderRadius: 8, textAlign: "center", fontSize: 12.5, fontFamily: "monospace",
+                cursor: isMatched ? "default" : "pointer",
+                border: `1.5px solid ${col}`, background: isMatched ? C.green + "1e" : isWrong ? C.red + "1e" : C.card,
+                color: isMatched ? C.green : C.text, transition: "all 0.15s",
+              }}>{p.ex}</button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 14, display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ flex: 1, height: 6, background: C.card, borderRadius: 3, overflow: "hidden" }}>
+          <div style={{ height: "100%", width: `${(matched.length / pairs.length) * 100}%`, background: C.green, transition: "width 0.3s" }} />
+        </div>
+        <span style={{ color: C.muted, fontSize: 12 }}>{matched.length} / {pairs.length}</span>
+        <button onClick={reset} style={{ padding: "6px 12px", borderRadius: 7, border: `1px solid ${C.border}`, background: "transparent", color: C.muted, cursor: "pointer", fontSize: 12 }}>↺ Reset</button>
+      </div>
+
+      {allDone && (
+        <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 8, background: C.green + "14", border: `1px solid ${C.green}55`, color: C.green, fontSize: 13, lineHeight: 1.6 }}>
+          🎉 All six matched! Notice: <code style={{ fontFamily: "monospace" }}>#</code> = immediate,
+          <code style={{ fontFamily: "monospace" }}> (Rn)</code> = indirect, <code style={{ fontFamily: "monospace" }}>X(Rn)</code> = index,
+          and <code style={{ fontFamily: "monospace" }}>X(PC)</code> = relative. The notation gives the mode away.
+        </div>
+      )}
+
+      <Key>
+        Read the syntax and you can name the mode: a bare label is <strong style={{ color: C.text }}>absolute</strong>, a
+        register is <strong style={{ color: C.text }}>register</strong>, <code style={{ fontFamily: "monospace" }}>#k</code> is
+        <strong style={{ color: C.text }}> immediate</strong>, <code style={{ fontFamily: "monospace" }}>(Rn)</code> is
+        <strong style={{ color: C.text }}> indirect</strong>, and <code style={{ fontFamily: "monospace" }}>X(Rn)</code> is
+        <strong style={{ color: C.text }}> index</strong> (or <strong style={{ color: C.text }}>relative</strong> when the register is the PC).
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  Quiz
 // ══════════════════════════════════════════════════════════════════
 function Quiz({ onComplete }) {
@@ -428,6 +547,7 @@ export default function Unit1_6({ student, onUnitComplete }) {
     { id: "index", label: "Index (Arrays)" },
     { id: "auto", label: "Auto ± Walk" },
     { id: "rel", label: "Relative" },
+    { id: "match", label: "Match the Mode" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -455,10 +575,14 @@ export default function Unit1_6({ student, onUnitComplete }) {
       <RelativeMode />
     </div>,
     <div>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>🔗 Match the Mode — spot it from the syntax</h3>
+      <MatchGame />
+    </div>,
+    <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 1.6.</p>
       {/* The quiz's onComplete is the ONLY caller of onUnitComplete. */}
-      <Quiz onComplete={() => { markComplete(4); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 
