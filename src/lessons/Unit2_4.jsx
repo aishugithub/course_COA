@@ -28,7 +28,9 @@ function Key({ color = C.purple, children }) {
 //  Section 1 — The Need: results must travel back OUT to memory
 // ══════════════════════════════════════════════════════════════════
 function TheNeed() {
-  const [dir, setDir] = useState(null); // "in" | "out"
+  const [dir, setDir] = useState("out"); // "in" (load) | "out" (store)
+  const isStore = dir === "out";
+  const col = isStore ? C.green : C.orange;
 
   return (
     <div>
@@ -36,193 +38,245 @@ function TheNeed() {
         Unit 2.3 pulled a word <strong style={{ color: C.orange }}>into</strong> the CPU. But a program that only reads is
         useless — the answer <code style={{ color: C.teal, fontFamily: "monospace" }}>C = A + B</code> is computed in a register,
         and it must be written back <strong style={{ color: C.text }}>out</strong> to memory so it survives. That is
-        <strong style={{ color: C.green }}> Store</strong>. Toggle the direction of travel.
+        <strong style={{ color: C.green }}> Store</strong>. Watch the data flow through <strong style={{ color: C.yellow }}>MDR</strong>.
       </p>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        {[["in", "Load — memory → CPU", C.orange], ["out", "Store — CPU → memory", C.green]].map(([k, label, col]) => (
+        {[["out", "Store — R4 → memory", C.green], ["in", "Load — memory → R4", C.orange]].map(([k, label, c]) => (
           <button key={k} onClick={() => setDir(k)} style={{
             flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-            background: dir === k ? col + "22" : C.card,
-            border: `2px solid ${dir === k ? col : C.border}`, color: dir === k ? col : C.muted,
+            background: dir === k ? c + "22" : C.card,
+            border: `2px solid ${dir === k ? c : C.border}`, color: dir === k ? c : C.muted,
           }}>{label}</button>
         ))}
       </div>
 
+      {/* R4 — MDR — Memory, with FLOWING arrows showing the two hops */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
-        <svg viewBox="0 0 520 120" style={{ width: "100%", display: "block" }}>
-          <rect x={30} y={40} width={120} height={44} rx={8} fill={C.card} stroke={C.teal} strokeWidth={1.8} />
-          <text x={90} y={66} textAnchor="middle" fill={C.teal} fontSize={13} fontWeight="700">Register R4</text>
-          <rect x={370} y={40} width={120} height={44} rx={8} fill={C.card} stroke={C.red} strokeWidth={1.8} />
-          <text x={430} y={66} textAnchor="middle" fill={C.red} fontSize={13} fontWeight="700">Memory</text>
-          <rect x={210} y={44} width={100} height={36} rx={8} fill={C.yellow + "1E"} stroke={C.yellow} strokeWidth={1.5} />
-          <text x={260} y={66} textAnchor="middle" fill={C.yellow} fontSize={12} fontWeight="700">MDR</text>
-          {/* arrow */}
-          {dir && (
-            <g>
-              <line x1={dir === "out" ? 150 : 370} y1={100} x2={dir === "out" ? 370 : 150} y2={100} stroke={dir === "out" ? C.green : C.orange} strokeWidth={3} markerEnd="url(#u24a)" />
-              <text x={260} y={116} textAnchor="middle" fill={dir === "out" ? C.green : C.orange} fontSize={10} fontWeight="700">{dir === "out" ? "Store: R4 → MDR → memory" : "Load: memory → MDR → register"}</text>
-            </g>
+        <svg viewBox="0 0 520 150" style={{ width: "100%", display: "block" }} key={dir}>
+          {/* R4 */}
+          <rect x={20} y={54} width={110} height={46} rx={8} fill={C.teal + "14"} stroke={C.teal} strokeWidth={1.8} />
+          <text x={75} y={74} textAnchor="middle" fill={C.teal} fontSize={12} fontWeight="700">Register R4</text>
+          <text x={75} y={91} textAnchor="middle" fill={C.text} fontSize={12} fontFamily="monospace">8</text>
+          {/* MDR (the gateway) */}
+          <rect x={205} y={54} width={110} height={46} rx={8} fill={C.yellow + "14"} stroke={C.yellow} strokeWidth={1.8} />
+          <text x={260} y={74} textAnchor="middle" fill={C.yellow} fontSize={12} fontWeight="700">MDR</text>
+          <text x={260} y={91} textAnchor="middle" fill={C.muted} fontSize={9}>the gateway</text>
+          {/* Memory */}
+          <rect x={390} y={54} width={110} height={46} rx={8} fill={C.red + "14"} stroke={C.red} strokeWidth={1.8} />
+          <text x={445} y={74} textAnchor="middle" fill={C.red} fontSize={12} fontWeight="700">Memory</text>
+          <text x={445} y={91} textAnchor="middle" fill={C.muted} fontSize={9}>location C</text>
+
+          {/* hop 1 + hop 2, direction depends on store/load, with flowing packets */}
+          {isStore ? (
+            <>
+              <line x1={130} y1={77} x2={205} y2={77} stroke={C.green} strokeWidth={3} markerEnd="url(#u24flow)" />
+              <line x1={315} y1={77} x2={390} y2={77} stroke={C.green} strokeWidth={3} markerEnd="url(#u24flow)" />
+              <circle r={5} fill={C.green}><animate attributeName="cx" values="132;203" dur="1.6s" repeatCount="indefinite" /><animate attributeName="cy" values="77;77" dur="1.6s" repeatCount="indefinite" /></circle>
+              <circle r={5} fill={C.green}><animate attributeName="cx" values="317;388" dur="1.6s" begin="0.8s" repeatCount="indefinite" /><animate attributeName="cy" values="77;77" dur="1.6s" begin="0.8s" repeatCount="indefinite" /></circle>
+              <text x={167} y={44} textAnchor="middle" fill={C.green} fontSize={9} fontWeight="700">① R4 → MDR</text>
+              <text x={352} y={44} textAnchor="middle" fill={C.green} fontSize={9} fontWeight="700">② MDR → memory</text>
+            </>
+          ) : (
+            <>
+              <line x1={390} y1={77} x2={315} y2={77} stroke={C.orange} strokeWidth={3} markerEnd="url(#u24flow2)" />
+              <line x1={205} y1={77} x2={130} y2={77} stroke={C.orange} strokeWidth={3} markerEnd="url(#u24flow2)" />
+              <circle r={5} fill={C.orange}><animate attributeName="cx" values="388;317" dur="1.6s" repeatCount="indefinite" /><animate attributeName="cy" values="77;77" dur="1.6s" repeatCount="indefinite" /></circle>
+              <circle r={5} fill={C.orange}><animate attributeName="cx" values="203;132" dur="1.6s" begin="0.8s" repeatCount="indefinite" /><animate attributeName="cy" values="77;77" dur="1.6s" begin="0.8s" repeatCount="indefinite" /></circle>
+              <text x={352} y={44} textAnchor="middle" fill={C.orange} fontSize={9} fontWeight="700">① memory → MDR</text>
+              <text x={167} y={44} textAnchor="middle" fill={C.orange} fontSize={9} fontWeight="700">② MDR → R4</text>
+            </>
           )}
-          <defs><marker id="u24a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={dir === "out" ? C.green : C.orange} /></marker></defs>
-        </svg>
-      </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 40, lineHeight: 1.6 }}>
-        {dir === null
-          ? "Pick a direction."
-          : dir === "in"
-            ? <span>Load reads memory into a register — the trip you traced in Unit 2.3. Notice the data still passes <strong style={{ color: C.yellow }}>through MDR</strong>.</span>
-            : <span>Store is the mirror image: the register's value goes <strong style={{ color: C.green }}>R4 → MDR → memory</strong>. Same gateway, opposite direction. R4 never reaches memory directly — the MDR rule from Unit 2.1 holds both ways.</span>}
-      </div>
-
-      <Key color={C.green}>
-        <strong style={{ color: C.green }}>Store</strong> sends a computed result from a register back out to memory so it
-        persists. Just like Load, the data must pass <strong style={{ color: C.yellow }}>through MDR</strong> and the address
-        through MAR — only the direction of flow flips.
-      </Key>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  Section 2 — Read vs Write over one MAR/MDR gateway
-// ══════════════════════════════════════════════════════════════════
-function ReadVsWrite() {
-  const [op, setOp] = useState("write"); // "read" | "write"
-
-  return (
-    <div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Memory has exactly one gateway — <strong style={{ color: C.orange }}>MAR</strong> for the address,
-        <strong style={{ color: C.yellow }}> MDR</strong> for the data — and one control line that picks the direction:
-        <strong style={{ color: C.green }}> Read</strong> or <strong style={{ color: C.red }}>Write</strong>. Flip it and watch
-        which way MDR moves.
-      </p>
-
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        {[["read", "Read (Load)", C.orange], ["write", "Write (Store)", C.green]].map(([k, label, col]) => (
-          <button key={k} onClick={() => setOp(k)} style={{
-            flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13,
-            background: op === k ? col + "22" : C.card,
-            border: `2px solid ${op === k ? col : C.border}`, color: op === k ? col : C.muted,
-          }}>{label}</button>
-        ))}
-      </div>
-
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
-        <svg viewBox="0 0 520 170" style={{ width: "100%", display: "block" }}>
-          {/* internal bus */}
-          <line x1={30} y1={40} x2={300} y2={40} stroke={C.accent} strokeWidth={4} />
-          <text x={165} y={26} textAnchor="middle" fill={C.accent} fontSize={10} fontWeight="700">internal bus</text>
-          {/* MAR / MDR */}
-          <rect x={60} y={54} width={90} height={34} rx={6} fill={C.card} stroke={C.orange} strokeWidth={1.8} />
-          <text x={105} y={76} textAnchor="middle" fill={C.orange} fontSize={12} fontWeight="700">MAR</text>
-          <line x1={105} y1={54} x2={105} y2={40} stroke={C.border} strokeWidth={1.5} />
-          <rect x={190} y={54} width={90} height={34} rx={6} fill={C.card} stroke={C.yellow} strokeWidth={1.8} />
-          <text x={235} y={76} textAnchor="middle" fill={C.yellow} fontSize={12} fontWeight="700">MDR</text>
-          <line x1={235} y1={54} x2={235} y2={40} stroke={C.border} strokeWidth={1.5} />
-          {/* memory */}
-          <rect x={370} y={50} width={120} height={90} rx={8} fill={C.surface} stroke={C.red} strokeWidth={1.8} />
-          <text x={430} y={80} textAnchor="middle" fill={C.red} fontSize={12} fontWeight="700">Main Memory</text>
-          {/* address line */}
-          <line x1={150} y1={71} x2={370} y2={71} stroke={C.orange} strokeWidth={2} markerEnd="url(#u24addr)" />
-          <text x={260} y={64} textAnchor="middle" fill={C.orange} fontSize={9}>address</text>
-          {/* data line — direction depends on op */}
-          <line
-            x1={op === "write" ? 280 : 370} y1={110}
-            x2={op === "write" ? 370 : 280} y2={110}
-            stroke={op === "write" ? C.green : C.orange} strokeWidth={2.5} markerEnd="url(#u24data)"
-          />
-          <text x={325} y={132} textAnchor="middle" fill={op === "write" ? C.green : C.orange} fontSize={9} fontWeight="700">
-            {op === "write" ? "MDR → memory (Write)" : "memory → MDR (Read)"}
+          <text x={260} y={128} textAnchor="middle" fill={col} fontSize={11} fontWeight="700">
+            {isStore ? "Store:  R4 → MDR → memory" : "Load:  memory → MDR → R4"}
           </text>
           <defs>
-            <marker id="u24addr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.orange} /></marker>
-            <marker id="u24data" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={op === "write" ? C.green : C.orange} /></marker>
+            <marker id="u24flow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.green} /></marker>
+            <marker id="u24flow2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.orange} /></marker>
           </defs>
         </svg>
       </div>
 
-      <div style={{ background: op === "write" ? C.green + "12" : C.orange + "12", border: `1px solid ${op === "write" ? C.green : C.orange}55`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, lineHeight: 1.6 }}>
-        {op === "write"
-          ? <span><strong style={{ color: C.green }}>Write / Store:</strong> the CPU first fills MDR from a register, then MDR is copied out to <code style={{ fontFamily: "monospace" }}>M[MAR]</code>. Address flows out, data flows out.</span>
-          : <span><strong style={{ color: C.orange }}>Read / Load:</strong> the address flows out, and the data flows the other way — <code style={{ fontFamily: "monospace" }}>MDR ← M[MAR]</code>. This was Unit 2.3.</span>}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 40, lineHeight: 1.6 }}>
+        {isStore
+          ? <span>Store flows <strong style={{ color: C.green }}>R4 → MDR → memory</strong>: the register's value hops into MDR first, then MDR drives it out to memory. R4 never reaches memory directly.</span>
+          : <span>Load is the mirror: <strong style={{ color: C.orange }}>memory → MDR → R4</strong>. Same gateway, arrows reversed — this was Unit 2.3.</span>}
       </div>
 
-      <Key color={C.accent}>
-        Same two registers, same address line — only the <strong style={{ color: C.text }}>data direction</strong> and the
-        <strong style={{ color: C.green }}> Read/Write</strong> control line change. For a Store, MDR is a
-        <em> source</em> (drives memory); for a Load, MDR is a <em>destination</em> (receives from memory).
+      <Key color={C.green}>
+        <strong style={{ color: C.green }}>Store</strong> sends a computed result back out to memory so it persists. Whether
+        loading or storing, the data always passes <strong style={{ color: C.yellow }}>through MDR</strong> and the address
+        through MAR — only the <strong style={{ color: C.text }}>direction of the arrows</strong> flips.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 3 — The store sequence, step by step (live register panels)
+//  Section 2 (was §3) — The store, driven by the control unit (full animation)
+//  Store R4, C on the single-bus datapath. Control fires address→MAR,
+//  R4out/MDRin, then Write; the three external buses carry address + data out
+//  and Write/MFC on control. RTL per step. Mirrors the Unit 2.3 fetch animation.
 // ══════════════════════════════════════════════════════════════════
 function StoreSequence() {
   const [step, setStep] = useState(0);
 
-  // Canonical C = A + B result: Store R4, C. R4 holds 8; C is address 200.
+  // bus: "int-addr-mar" | "int-r4-mdr" | "out" (addr+data out) | null
   const steps = [
-    { rtn: "—", narr: "Before store. R4 holds the result 8. We must write it to memory location C (address 200).",
-      r4: "8", mar: "—", mdr: "—", mem: "?", write: false, mfc: false },
-    { rtn: "MAR ← C", narr: "T1 — put the destination address into MAR. Memory now knows WHERE we intend to write.",
-      r4: "8", mar: "200", mdr: "—", mem: "?", write: false, mfc: false },
-    { rtn: "MDR ← [R4]", narr: "T2 — move the data from R4 into MDR. Only MDR can drive memory, so the value must sit here first.",
-      r4: "8", mar: "200", mdr: "8", mem: "?", write: false, mfc: false },
-    { rtn: "Write;  wait for MFC;  M[MAR] ← [MDR]", narr: "T3 — raise Write and wait for MFC. When memory finishes, M[200] now holds 8. The result is saved.",
-      r4: "8", mar: "200", mdr: "8", mem: "8", write: true, mfc: true },
+    { beat: "—", rtl: "—", sig: [], bus: null, waiting: false, write: false, mfc: false,
+      r4: "8", mar: "—", mdr: "—", mem: "?",
+      narr: "Ready. R4 holds the result 8. We must store it into memory location C (address 200)." },
+    { beat: "T1", rtl: "MAR ← C", sig: ["MARin"], bus: "int-addr-mar", waiting: false, write: false, mfc: false,
+      r4: "8", mar: "200", mdr: "—", mem: "?",
+      narr: "Control loads MAR with the destination address C (200), taken from the instruction. Memory now knows WHERE we intend to write." },
+    { beat: "T2", rtl: "MDR ← [R4]", sig: ["R4out", "MDRin"], bus: "int-r4-mdr", waiting: false, write: false, mfc: false,
+      r4: "8", mar: "200", mdr: "8", mem: "?",
+      narr: "Control fires R4out and MDRin: the data (8) rides the internal bus from R4 into MDR. Only MDR can drive memory, so the value must sit here first." },
+    { beat: "T3", rtl: "Write;  M[MAR] ← [MDR]", sig: ["Write"], bus: "out", waiting: false, write: true, mfc: false,
+      r4: "8", mar: "200", mdr: "8", mem: "?",
+      narr: "With both MAR and MDR loaded, control raises Write. The address (200) goes out on the address bus, the data (8) goes out on the data bus, and Write goes high on the control bus." },
+    { beat: "wait", rtl: "wait for MFC", sig: [], bus: "out", waiting: true, write: true, mfc: false,
+      r4: "8", mar: "200", mdr: "8", mem: "?",
+      narr: "The CPU waits — often several cycles — with address, data and Write held, while memory performs the write." },
+    { beat: "—", rtl: "M[200] = 8 ✓", sig: ["MFC"], bus: "out", waiting: false, write: false, mfc: true,
+      r4: "8", mar: "200", mdr: "8", mem: "8",
+      narr: "Memory finishes and asserts MFC on the control bus. Location 200 now holds 8 — the result is saved." },
   ];
   const s = steps[step];
+  const active = (name) => s.sig.includes(name);
 
-  const Panel = ({ label, val, col }) => (
-    <div style={{ flex: 1, minWidth: 70, background: C.card, border: `1.5px solid ${val !== "—" && val !== "?" ? col : C.border}`, borderRadius: 8, padding: "8px 6px", textAlign: "center", transition: "all 0.25s" }}>
-      <div style={{ color: C.muted, fontSize: 10, marginBottom: 3 }}>{label}</div>
-      <div style={{ color: val !== "—" && val !== "?" ? col : C.muted, fontFamily: "monospace", fontSize: 13, fontWeight: 700 }}>{val}</div>
-    </div>
+  const Sig = ({ name, y, input }) => {
+    const on = active(name);
+    const col = input ? C.teal : (name === "Write" ? C.red : C.green);
+    return (
+      <g>
+        <rect x={16} y={y} width={80} height={22} rx={5} fill={on ? col + "26" : C.card} stroke={on ? col : C.border} strokeWidth={on ? 2 : 1} style={{ transition: "all 0.2s" }} />
+        <text x={56} y={y + 15} textAnchor="middle" fill={on ? col : C.muted} fontSize={10} fontWeight="700">{name}{on ? " ●" : ""}</text>
+      </g>
+    );
+  };
+
+  const Packet = ({ from, to, y, label, color }) => (
+    <g>
+      <rect x={-15} y={-9} width={30} height={18} rx={4} fill={color} />
+      <text y={4} textAnchor="middle" fill="#0D1117" fontSize={9} fontWeight="800">{label}</text>
+      <animateMotion dur="1s" repeatCount="indefinite" path={`M ${from} ${y} L ${to} ${y}`} />
+    </g>
   );
+
+  const Reg = ({ x, y, w, label, val, col }) => {
+    const has = val !== "—" && val !== "?";
+    return (
+      <g>
+        <rect x={x} y={y} width={w} height={30} rx={6} fill={has ? col + "1E" : C.card} stroke={has ? col : C.border} strokeWidth={1.7} style={{ transition: "all 0.25s" }} />
+        <text x={x + w / 2} y={y + 13} textAnchor="middle" fill={col} fontSize={10} fontWeight="700">{label}</text>
+        <text x={x + w / 2} y={y + 25} textAnchor="middle" fill={has ? C.text : C.muted} fontSize={9} fontFamily="monospace">{val}</text>
+      </g>
+    );
+  };
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Our old friend <code style={{ color: C.teal, fontFamily: "monospace" }}>C = A + B</code> ends with
-        <code style={{ color: C.purple, fontFamily: "monospace" }}> Store R4, C</code>. R4 holds the result
-        <strong style={{ color: C.text }}> 8</strong>; C is address 200. Step the three beats and watch the value cross out to
-        memory — data always <strong style={{ color: C.yellow }}>through MDR</strong>.
+        Now the <strong style={{ color: C.text }}>control unit</strong> drives a full store, exactly like the fetch in Unit 2.3.
+        It fires <code style={{ color: C.green, fontFamily: "monospace" }}>MARin</code>, then
+        <code style={{ color: C.green, fontFamily: "monospace" }}> R4out·MDRin</code>, then
+        <code style={{ color: C.red, fontFamily: "monospace" }}> Write</code> — and the three external buses carry it out.
+        Instruction: <code style={{ color: C.purple, fontFamily: "monospace" }}>Store R4, C</code> (R4 = 8, C = 200).
       </p>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-        <Panel label="R4" val={s.r4} col={C.teal} />
-        <Panel label="MAR" val={s.mar} col={C.orange} />
-        <Panel label="MDR" val={s.mdr} col={C.yellow} />
-        <Panel label="M[200]" val={s.mem} col={C.green} />
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 10 }}>
+        <svg viewBox="0 0 540 290" style={{ width: "100%", display: "block" }}>
+          {/* control unit */}
+          <rect x={8} y={20} width={98} height={250} rx={10} fill={C.surface} stroke={C.purple} strokeWidth={1.6} />
+          <text x={57} y={38} textAnchor="middle" fill={C.purple} fontSize={10} fontWeight="700">CONTROL UNIT</text>
+          <Sig name="MARin" y={48} />
+          <Sig name="R4out" y={78} />
+          <Sig name="MDRin" y={108} />
+          <Sig name="Write" y={150} />
+          <text x={57} y={210} textAnchor="middle" fill={C.muted} fontSize={8}>input from memory ↓</text>
+          <Sig name="MFC" y={220} input />
+
+          {/* processor boundary */}
+          <rect x={118} y={20} width={296} height={250} rx={10} fill={C.bg} stroke={C.purple} strokeWidth={1.3} strokeDasharray="5 4" />
+          <text x={130} y={36} fill={C.purple} fontSize={9} fontWeight="700">PROCESSOR</text>
+
+          {/* internal bus */}
+          <line x1={135} y1={95} x2={395} y2={95} stroke={s.bus && s.bus.startsWith("int") ? C.accent : C.border} strokeWidth={s.bus && s.bus.startsWith("int") ? 5 : 3} style={{ transition: "all 0.2s" }} />
+          <text x={200} y={88} fill={C.accent} fontSize={8.5} fontWeight="700">internal bus</text>
+
+          {/* R4 on the bus */}
+          <line x1={165} y1={95} x2={165} y2={115} stroke={C.border} strokeWidth={1.4} />
+          <Reg x={140} y={115} w={50} label="R4" val={s.r4} col={C.teal} />
+          {/* MAR above bus, MDR below bus (right edge) */}
+          <line x1={368} y1={78} x2={368} y2={95} stroke={C.border} strokeWidth={1.4} />
+          <Reg x={343} y={48} w={54} label="MAR" val={s.mar} col={C.orange} />
+          <line x1={368} y1={95} x2={368} y2={150} stroke={C.border} strokeWidth={1.4} />
+          <Reg x={343} y={150} w={54} label="MDR" val={s.mdr} col={C.teal} />
+
+          {/* main memory */}
+          <rect x={452} y={45} width={80} height={200} rx={10} fill={C.surface} stroke={C.red} strokeWidth={1.6} />
+          <text x={492} y={70} textAnchor="middle" fill={C.red} fontSize={10} fontWeight="700">MAIN</text>
+          <text x={492} y={84} textAnchor="middle" fill={C.red} fontSize={10} fontWeight="700">MEMORY</text>
+          <rect x={462} y={100} width={60} height={30} rx={4} fill={s.mem === "8" ? C.green + "26" : C.card} stroke={s.mem === "8" ? C.green : C.border} strokeWidth={s.mem === "8" ? 2 : 1} style={{ transition: "all 0.25s" }} />
+          <text x={492} y={112} textAnchor="middle" fill={C.muted} fontSize={7}>M[200]</text>
+          <text x={492} y={124} textAnchor="middle" fill={s.mem === "8" ? C.green : C.muted} fontSize={11} fontFamily="monospace" fontWeight="700">{s.mem}</text>
+
+          {/* address bus: MAR → memory (out during Write/wait) */}
+          <line x1={397} y1={63} x2={452} y2={63} stroke={s.write || s.waiting ? C.orange : C.border} strokeWidth={s.write || s.waiting ? 3 : 2} style={{ transition: "all 0.2s" }} markerEnd="url(#u24f_ab)" />
+          <text x={424} y={56} textAnchor="middle" fill={C.orange} fontSize={7.5} fontWeight="700">address</text>
+          {/* data bus: MDR → memory (out during Write/wait) */}
+          <line x1={397} y1={165} x2={452} y2={165} stroke={s.write || s.waiting ? C.teal : C.border} strokeWidth={s.write || s.waiting ? 3 : 2} style={{ transition: "all 0.2s" }} markerEnd="url(#u24f_db)" />
+          <text x={424} y={158} textAnchor="middle" fill={C.teal} fontSize={7.5} fontWeight="700">data</text>
+          {/* control bus: Write out / MFC in */}
+          <line x1={330} y1={258} x2={492} y2={258} stroke={s.write || s.mfc ? C.yellow : C.border} strokeWidth={s.write || s.mfc ? 3 : 2} style={{ transition: "all 0.2s" }} />
+          <line x1={330} y1={258} x2={330} y2={95} stroke={s.write || s.mfc ? C.yellow : C.border} strokeWidth={1.4} opacity={0.5} strokeDasharray="3 3" />
+          <line x1={492} y1={245} x2={492} y2={258} stroke={s.write || s.mfc ? C.yellow : C.border} strokeWidth={1.4} opacity={0.6} />
+          <text x={405} y={272} textAnchor="middle" fill={C.yellow} fontSize={7.5} fontWeight="700">
+            control bus {s.write ? "· Write HIGH →" : s.mfc ? "· ← MFC" : ""}
+          </text>
+
+          {/* moving packets — each bus animates its own traffic */}
+          {s.bus === "int-addr-mar" && <Packet from={200} to={368} y={95} label="200" color={C.orange} />}
+          {s.bus === "int-r4-mdr" && <Packet from={165} to={368} y={95} label="8" color={C.teal} />}
+          {(s.write || s.waiting) && <Packet from={399} to={450} y={63} label="200" color={C.orange} />}
+          {(s.write || s.waiting) && <Packet from={399} to={450} y={165} label="8" color={C.teal} />}
+          {/* control-bus packets: Write travels OUT to memory; MFC comes BACK */}
+          {(s.write || s.waiting) && <Packet from={340} to={486} y={258} label="Write" color={C.yellow} />}
+          {s.mfc && <Packet from={486} to={340} y={258} label="MFC" color={C.yellow} />}
+
+          {s.waiting && (
+            <text x={424} y={110} textAnchor="middle" fill={C.red} fontSize={9} fontWeight="700">⏳ waiting…
+              <animate attributeName="opacity" values="0.35;1;0.35" dur="1s" repeatCount="indefinite" />
+            </text>
+          )}
+
+          <defs>
+            <marker id="u24f_ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.orange} /></marker>
+            <marker id="u24f_db" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.teal} /></marker>
+          </defs>
+        </svg>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <div style={{ flex: 1, textAlign: "center", padding: "6px", borderRadius: 8, fontSize: 11, fontWeight: 700, background: s.write ? C.red + "22" : C.card, border: `1.5px solid ${s.write ? C.red : C.border}`, color: s.write ? C.red : C.muted }}>
-          Write {s.write ? "● HIGH" : "○ low"}
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+        <div style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.waiting ? C.red + "22" : C.accentGlow, border: `1.5px solid ${s.waiting ? C.red : C.accent}`, color: s.waiting ? C.red : "#fff" }}>
+          {s.beat === "—" ? (step === 0 ? "ready" : "MFC") : s.beat}
         </div>
-        <div style={{ flex: 1, textAlign: "center", padding: "6px", borderRadius: 8, fontSize: 11, fontWeight: 700, background: s.mfc ? C.teal + "22" : C.card, border: `1.5px solid ${s.mfc ? C.teal : C.border}`, color: s.mfc ? C.teal : C.muted }}>
-          MFC {s.mfc ? "● arrived" : "○ waiting"}
+        <div style={{ flex: 1, fontFamily: "monospace", fontSize: 13, color: step === 0 ? C.muted : C.accent, fontWeight: 700 }}>
+          RTL: {s.rtl}
         </div>
       </div>
-
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 10 }}>
-        <div style={{ fontFamily: "monospace", fontSize: 13, color: step === 0 ? C.muted : C.accent, fontWeight: 700, marginBottom: 6 }}>
-          {step === 0 ? "(idle)" : `T${step}:  ${s.rtn}`}
-        </div>
-        <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>{s.narr}</div>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 44, lineHeight: 1.6, marginBottom: 10 }}>
+        {s.narr}
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={() => setStep(v => Math.min(3, v + 1))} disabled={step === 3} style={{
+        <button onClick={() => setStep(v => Math.min(steps.length - 1, v + 1))} disabled={step === steps.length - 1} style={{
           flex: 2, padding: "10px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: 13,
-          background: step === 3 ? C.card : C.accentGlow, color: step === 3 ? C.muted : "#fff",
-          cursor: step === 3 ? "default" : "pointer",
-        }}>Next clock beat ▶ ({step} / 3)</button>
+          background: step === steps.length - 1 ? C.card : C.accentGlow, color: step === steps.length - 1 ? C.muted : "#fff",
+          cursor: step === steps.length - 1 ? "default" : "pointer",
+        }}>Next step ▶ ({step} / {steps.length - 1})</button>
         <button onClick={() => setStep(0)} style={{
           flex: 1, padding: "10px", borderRadius: 8, background: C.card, border: `1px solid ${C.border}`,
           color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer",
@@ -230,10 +284,10 @@ function StoreSequence() {
       </div>
 
       <Key color={C.green}>
-        Store on the single bus is three beats: <code style={{ fontFamily: "monospace" }}>MAR ← address</code> (where),
+        Store on the single bus: <code style={{ fontFamily: "monospace" }}>MAR ← address</code> (where),
         <code style={{ fontFamily: "monospace" }}> MDR ← [R4]</code> (what), then <code style={{ fontFamily: "monospace" }}>Write</code>
-        + wait for MFC (<code style={{ fontFamily: "monospace" }}>M[MAR] ← [MDR]</code>). Address and data are both loaded
-        <strong style={{ color: C.text }}> before</strong> Write is raised.
+        (address + data out, Write high) and wait for <strong style={{ color: C.teal }}>MFC</strong>. Address and data are both
+        loaded <strong style={{ color: C.text }}>before</strong> Write is raised — the very next lesson shows why.
       </Key>
     </div>
   );
@@ -276,6 +330,38 @@ function OrderGotcha() {
             <div style={{ color: C.red }}>T3&nbsp; MDR ← [R4]&nbsp;&nbsp;<span style={{ color: C.muted }}>// too late</span></div>
           </div>
         )}
+      </div>
+
+      {/* little animation: MDR (loaded or empty) → Write → memory cell */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
+        <svg viewBox="0 0 520 130" style={{ width: "100%", display: "block" }} key={String(correct)}>
+          {/* MDR */}
+          <rect x={30} y={45} width={110} height={46} rx={8} fill={correct ? C.teal + "1E" : C.card} stroke={correct ? C.teal : C.red} strokeWidth={1.8} />
+          <text x={85} y={65} textAnchor="middle" fill={correct ? C.teal : C.red} fontSize={12} fontWeight="700">MDR</text>
+          <text x={85} y={82} textAnchor="middle" fill={correct ? C.text : C.red} fontSize={13} fontFamily="monospace" fontWeight="700">{correct ? "8" : "empty"}</text>
+          {/* Write signal */}
+          <rect x={210} y={48} width={90} height={40} rx={7} fill={C.red + "18"} stroke={C.red} strokeWidth={1.8} />
+          <text x={255} y={66} textAnchor="middle" fill={C.red} fontSize={11} fontWeight="700">Write high</text>
+          <text x={255} y={80} textAnchor="middle" fill={C.muted} fontSize={8}>fires the store</text>
+          {/* memory cell */}
+          <rect x={380} y={45} width={110} height={46} rx={8} fill={correct ? C.green + "1E" : C.red + "1E"} stroke={correct ? C.green : C.red} strokeWidth={1.8} />
+          <text x={435} y={65} textAnchor="middle" fill={correct ? C.green : C.red} fontSize={12} fontWeight="700">M[C]</text>
+          <text x={435} y={82} textAnchor="middle" fill={correct ? C.green : C.red} fontSize={13} fontFamily="monospace" fontWeight="700">{correct ? "8 ✓" : "garbage ✗"}</text>
+          {/* flow MDR → memory (what actually gets written) */}
+          <line x1={140} y1={68} x2={210} y2={68} stroke={correct ? C.teal : C.red} strokeWidth={2.5} markerEnd="url(#u24o)" />
+          <line x1={300} y1={68} x2={380} y2={68} stroke={correct ? C.green : C.red} strokeWidth={2.5} markerEnd="url(#u24o2)" />
+          <circle r={5} fill={correct ? C.teal : C.red}>
+            <animate attributeName="cx" values="142;378" dur="1.8s" repeatCount="indefinite" />
+            <animate attributeName="cy" values="68;68" dur="1.8s" repeatCount="indefinite" />
+          </circle>
+          <text x={255} y={112} textAnchor="middle" fill={correct ? C.green : C.red} fontSize={10} fontWeight="700">
+            {correct ? "MDR (8) is written → M[C] = 8" : "empty MDR is written → M[C] is corrupted"}
+          </text>
+          <defs>
+            <marker id="u24o" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={correct ? C.teal : C.red} /></marker>
+            <marker id="u24o2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={correct ? C.green : C.red} /></marker>
+          </defs>
+        </svg>
       </div>
 
       <div style={{ background: correct ? C.green + "12" : C.red + "12", border: `1px solid ${correct ? C.green : C.red}55`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, lineHeight: 1.6 }}>
@@ -433,8 +519,7 @@ function Quiz({ onComplete }) {
 export default function Unit2_4({ student, onUnitComplete }) {
   const sections = [
     { id: "need", label: "Why Store?" },
-    { id: "rw", label: "Read vs Write" },
-    { id: "seq", label: "The Store Sequence" },
+    { id: "seq", label: "The Store Datapath" },
     { id: "order", label: "The Order Gotcha" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
@@ -451,22 +536,18 @@ export default function Unit2_4({ student, onUnitComplete }) {
       <TheNeed />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>↔️ Read vs Write — one gateway</h3>
-      <ReadVsWrite />
-    </div>,
-    <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>⏱️ The Store Sequence — beat by beat</h3>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>⏱️ The Store — driven by the control unit</h3>
       <StoreSequence />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>⚠️ The Order Gotcha</h3>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>⚠️ The Order Gotcha — load MDR before Write</h3>
       <OrderGotcha />
     </div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 2.4.</p>
       {/* The quiz's onComplete is the ONLY caller of onUnitComplete. */}
-      <Quiz onComplete={() => { markComplete(4); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(3); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 
