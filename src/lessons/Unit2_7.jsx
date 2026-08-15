@@ -32,7 +32,7 @@ function TheConductor() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Units 2.3–2.6 built the datapath — registers, ALU, buses, MAR/MDR. But those are just wires. In Unit 2.5 you saw every
+        Units 2.3–2.6 built the datapath — registers, ALU, buses, MAR/MDR. But those are just wires. In Unit 2.6 you saw every
         beat is a set of control signals (<code style={{ color: C.accent, fontFamily: "monospace" }}>PCout, MARin, Read…</code>).
         <strong style={{ color: C.text }}> Something must raise the right ones, in the right order, every clock.</strong> Turn the
         conductor on.

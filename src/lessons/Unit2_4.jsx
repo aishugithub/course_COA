@@ -465,9 +465,9 @@ function Quiz({ onComplete }) {
             You can now store a word: MAR ← address, MDR ← register, Write + wait for MFC — with both registers loaded before
             Write, or memory gets corrupted.
             <br /><br />
-            <strong style={{ color: C.accent }}>Next up: Unit 2.5 — Executing a Complete Instruction.</strong>{" "}
-            You have fetch and store as building blocks. Now assemble the full control sequence that runs one whole instruction
-            from start to finish.
+            <strong style={{ color: C.accent }}>Next up: Unit 2.5 — Bus Organization &amp; the Datapath.</strong>{" "}
+            You can move words to and from memory. Now build the road they travel on — one bus vs three, and the interstage
+            registers RA/RB/RZ/RY/RM — before we drive a whole instruction across it.
           </div>
         </div>
       </div>

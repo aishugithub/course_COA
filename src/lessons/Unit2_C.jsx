@@ -50,10 +50,10 @@ function TheMission() {
 
   const tools = [
     { tool: "RTL & control signals (Xout / Xin)", unit: "Unit 2.1" },
-    { tool: "The ALU (Add, Select) + Y, Z latches", unit: "Unit 2.2 / 2.5" },
+    { tool: "The ALU (Add, Select) + Y, Z latches", unit: "Unit 2.2 / 2.6" },
     { tool: "Fetch: MAR←PC, Read, WMFC, MDR→IR", unit: "Unit 2.3" },
     { tool: "A memory read for the (R3) operand", unit: "Unit 2.3" },
-    { tool: "Single-bus datapath (one value/beat)", unit: "Unit 2.6" },
+    { tool: "Single-bus datapath (one value/beat)", unit: "Unit 2.5" },
     { tool: "The control unit that sequences it", unit: "Unit 2.7" },
   ];
   const toggle = (i) => setChecked((c) => c.includes(i) ? c.filter((x) => x !== i) : [...c, i]);
@@ -246,7 +246,7 @@ function PlayIt() {
       {beat >= 7 && (
         <div style={{ marginTop: 10, background: C.green + "14", border: `1px solid ${C.green}55`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.green, lineHeight: 1.6 }}>
           🎉 Instruction complete in <strong>7 beats</strong> — R1 = 8. Your control sequence works. On a three-bus datapath
-          (Unit 2.6), the execute half would collapse into fewer beats.
+          (Unit 2.5), the execute half would collapse into fewer beats.
         </div>
       )}
 
@@ -284,7 +284,7 @@ function FullCode() {
       <div style={{ background: C.teal + "12", border: `1px solid ${C.teal}44`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.muted, lineHeight: 1.7, marginBottom: 4 }}>
         <div style={{ color: C.teal, fontWeight: 700, marginBottom: 6 }}>🚀 Challenge upgrades</div>
         <div>• Write the sequence for <span style={{ color: C.text, fontFamily: "monospace" }}>Store R1, (R3)</span> — the mirror: load MAR from R3, MDR from R1, then Write + WMFC (Unit 2.4).</div>
-        <div>• Re-draw beats 4–7 for a <strong style={{ color: C.text }}>three-bus</strong> datapath — how many beats vanish? (Unit 2.6)</div>
+        <div>• Re-draw beats 4–7 for a <strong style={{ color: C.text }}>three-bus</strong> datapath — how many beats vanish? (Unit 2.5)</div>
         <div>• Turn this listing into a <strong style={{ color: C.text }}>microroutine</strong>: one control word per beat, End on beat 7 (Unit 2.7).</div>
       </div>
 

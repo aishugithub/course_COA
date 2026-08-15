@@ -1,11 +1,14 @@
-// Unit2_5.jsx — Module 2 › Unit 2.5 — "Executing a Complete Instruction"
+// Unit2_5.jsx — Module 2 › Unit 2.5 — "Bus Organization & the Datapath"
 // Foothold formula: GitHub-dark palette, free-nav tab strip, one interactive
 // widget per section, 🔑 key-insight callouts, 4-question quiz.
-// Source: Unit-2 classroom deck, Chapter 3 (Execution of Complete Instructions,
-// Hamacher §5.1–5.3) — the full single-bus control sequence for Add (R3),R1.
-// Arc: the whole journey (fetch·decode·execute) → why the temp registers Y and Z
-// exist on a single bus → reading the control signals (PCout, MARin, WMFC…) →
-// the 7-step control sequence traced live → quiz.
+// Source: Unit-2 classroom deck, Chapters 3–4 (the datapath + Bus Organization,
+// Hamacher §5.2–5.4). This lesson comes BEFORE "Executing a Complete Instruction"
+// (Unit 2.6): first we build the road (buses + interstage registers), then we
+// drive a whole instruction across it.
+// Arc: single-bus bottleneck → three-bus datapath (Bus A + Bus B + Bus C flow in
+// ONE clock; why RA & RB) → cycles saved, but we chop it off (CISC vs RISC) →
+// the interstage/pipeline registers RZ, RY, RM + the write-back MUX → quiz.
+// Convention: FIRST operand is the destination (Add R4, R2, R3 → R4 ← [R2]+[R3]).
 import { useState } from "react";
 
 const C = {
@@ -25,282 +28,353 @@ function Key({ color = C.purple, children }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 1 — The whole journey: fetch · decode · execute
+//  Section 1 — The single-bus bottleneck (one value per clock)
 // ══════════════════════════════════════════════════════════════════
-function TheJourney() {
-  const [phase, setPhase] = useState(0); // 0..3
-
-  const phases = [
-    { name: "Fetch", color: C.green, body: "Bring the instruction word from memory into IR — the exact three beats you built in Unit 2.3. Every instruction starts here." },
-    { name: "Decode", color: C.teal, body: "The control unit reads the opcode in IR and works out WHAT to do — here, 'Add the memory operand at (R3) into R1' — and which registers to read." },
-    { name: "Execute", color: C.orange, body: "Actually do the work: read the memory operand (a fetch, from Unit 2.3), add it in the ALU, and write the result back to R1." },
-  ];
+function SingleBusBottleneck() {
+  const [lit, setLit] = useState(0);
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        You now have the pieces: RTL and control functions (Unit 2.1), the ALU (Unit 2.2), fetch (2.3) and store (2.4). One
-        machine instruction strings them into a single ordered run — three phases:
-        <strong style={{ color: C.green }}> Fetch</strong> → <strong style={{ color: C.teal }}>Decode</strong> →
-        <strong style={{ color: C.orange }}> Execute</strong>. Our instruction under trace:
-        <code style={{ color: C.purple, fontFamily: "monospace" }}> Add (R3), R1</code>.
+        We have moved bits (2.1), built an ALU (2.2), and reached memory (2.3–2.4). Now we build the <strong style={{ color: C.text }}>road
+        the operands travel on</strong> — the datapath. Start with the single bus. Its one rule:
+        <strong style={{ color: C.text }}> only one value can be on the bus per clock</strong>. Try to send two operands at once.
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        {phases.map((p, i) => (
-          <div key={p.name} style={{
-            flex: 1, textAlign: "center", padding: "12px 6px", borderRadius: 10, transition: "all 0.25s",
-            background: phase > i ? p.color + "1E" : C.card,
-            border: `2px solid ${phase > i ? p.color : C.border}`,
-          }}>
-            <div style={{ color: phase > i ? p.color : C.muted, fontWeight: 700, fontSize: 13 }}>{i + 1}. {p.name}</div>
-          </div>
-        ))}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
+        <svg viewBox="0 0 520 150" style={{ width: "100%", display: "block" }}>
+          <line x1={40} y1={75} x2={480} y2={75} stroke={lit > 1 ? C.red : C.accent} strokeWidth={6} />
+          <text x={260} y={60} textAnchor="middle" fill={lit > 1 ? C.red : C.accent} fontSize={11} fontWeight="700">
+            {lit > 1 ? "two values collide — impossible!" : "single shared bus"}
+          </text>
+          <rect x={60} y={95} width={90} height={34} rx={6} fill={lit >= 1 ? C.teal + "1E" : C.card} stroke={lit >= 1 ? C.teal : C.border} strokeWidth={1.8} />
+          <text x={105} y={117} textAnchor="middle" fill={lit >= 1 ? C.teal : C.muted} fontSize={12} fontWeight="700">R2 = 5</text>
+          {lit >= 1 && <line x1={105} y1={95} x2={105} y2={75} stroke={C.teal} strokeWidth={2} />}
+          <rect x={370} y={95} width={90} height={34} rx={6} fill={lit >= 2 ? C.purple + "1E" : C.card} stroke={lit >= 2 ? C.purple : C.border} strokeWidth={1.8} />
+          <text x={415} y={117} textAnchor="middle" fill={lit >= 2 ? C.purple : C.muted} fontSize={12} fontWeight="700">R3 = 3</text>
+          {lit >= 2 && <line x1={415} y1={95} x2={415} y2={75} stroke={C.purple} strokeWidth={2} />}
+        </svg>
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 56, lineHeight: 1.6, marginBottom: 10 }}>
-        {phase === 0
-          ? <span style={{ color: C.muted }}>Press Reveal to walk the three phases. Read <code style={{ fontFamily: "monospace", color: C.purple }}>Add (R3), R1</code> as: "add the value stored at the address in R3 to R1."</span>
-          : <span><strong style={{ color: phases[phase - 1].color }}>{phases[phase - 1].name}: </strong>{phases[phase - 1].body}</span>}
-      </div>
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={() => setPhase(v => Math.min(3, v + 1))} disabled={phase === 3} style={{
+      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+        <button onClick={() => setLit(v => Math.min(2, v + 1))} disabled={lit === 2} style={{
           flex: 2, padding: "10px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: 13,
-          background: phase === 3 ? C.card : C.accentGlow, color: phase === 3 ? C.muted : "#fff",
-          cursor: phase === 3 ? "default" : "pointer",
-        }}>Reveal phase ▶ ({phase} / 3)</button>
-        <button onClick={() => setPhase(0)} style={{
+          background: lit === 2 ? C.card : C.accentGlow, color: lit === 2 ? C.muted : "#fff",
+          cursor: lit === 2 ? "default" : "pointer",
+        }}>Put an operand on the bus ▶ ({lit} / 2)</button>
+        <button onClick={() => setLit(0)} style={{
           flex: 1, padding: "10px", borderRadius: 8, background: C.card, border: `1px solid ${C.border}`,
           color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer",
         }}>↺ Reset</button>
       </div>
 
+      <div style={{ background: lit > 1 ? C.red + "12" : C.card, border: `1px solid ${lit > 1 ? C.red : C.border}55`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 40, lineHeight: 1.6 }}>
+        {lit === 0 ? "An add needs BOTH R2 and R3 at the ALU. Start sending them onto the bus."
+          : lit === 1 ? "One operand rides the bus. The second must wait its turn — so the add is spread over several clocks."
+            : <span>✗ Two values at once collide — a single bus physically can't carry both. That queueing is the <strong style={{ color: C.red }}>bottleneck</strong>. The fix: more buses.</span>}
+      </div>
+
       <Key color={C.accent}>
-        Every instruction is <strong style={{ color: C.green }}>Fetch</strong> · <strong style={{ color: C.teal }}>Decode</strong>
-        · <strong style={{ color: C.orange }}>Execute</strong>. Fetch is always identical; decode and execute differ per opcode.
-        The control unit turns this plan into a precise beat-by-beat sequence of control signals — the rest of this unit.
+        <strong style={{ color: C.text }}>Single bus = one transfer per clock.</strong> Cheap and simple, but a register-to-register
+        add must queue its operands over several beats. What if the datapath had <strong style={{ color: C.text }}>three</strong>
+        buses, so both operands and the result could move at once?
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 2 — Why Y and Z? (the single-bus two-operand problem)
+//  Section 2 — The three-bus datapath (A + B + C flow in ONE clock)
+//  Introduces RA and RB, and WHY they exist.
 // ══════════════════════════════════════════════════════════════════
-function WhyYandZ() {
-  const [useY, setUseY] = useState(true);
+function ThreeBusDatapath() {
+  const [why, setWhy] = useState(false);
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The ALU needs <strong style={{ color: C.text }}>two</strong> inputs to add. But a single bus carries only
-        <strong style={{ color: C.text }}> one value per clock</strong>. So how do both operands reach the ALU? The answer is a
-        latch register <strong style={{ color: C.teal }}>Y</strong> on one ALU input, and <strong style={{ color: C.purple }}>Z</strong>
-        on the output. Toggle Y on and off.
+        Give the datapath <strong style={{ color: C.green }}>three buses</strong>. The register file reads both operands onto
+        <strong style={{ color: C.green }}> Bus A</strong> and <strong style={{ color: C.yellow }}>Bus B</strong> into the
+        registers <strong style={{ color: C.teal }}>RA</strong> and <strong style={{ color: C.teal }}>RB</strong>; the ALU
+        computes; the result returns on <strong style={{ color: C.purple }}>Bus C</strong> — and all three flow
+        <strong style={{ color: C.text }}> at the same time</strong>. Example: <code style={{ color: C.purple, fontFamily: "monospace" }}>Add R4, R2, R3</code>.
+      </p>
+
+      {/* the datapath — all three buses animate simultaneously */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
+        <svg viewBox="0 0 520 235" style={{ width: "100%", display: "block" }}>
+          {/* register file */}
+          <rect x={18} y={72} width={92} height={86} rx={10} fill={C.card} stroke={C.teal} strokeWidth={1.8} />
+          <text x={64} y={100} textAnchor="middle" fill={C.teal} fontSize={11} fontWeight="700">Register</text>
+          <text x={64} y={114} textAnchor="middle" fill={C.teal} fontSize={11} fontWeight="700">file</text>
+          <text x={64} y={132} textAnchor="middle" fill={C.muted} fontSize={8}>R2=5 · R3=3</text>
+          <text x={64} y={144} textAnchor="middle" fill={C.muted} fontSize={8}>→ R4</text>
+
+          {/* Bus A → RA → ALU */}
+          <line x1={110} y1={92} x2={300} y2={92} stroke={C.green} strokeWidth={3.5} />
+          <text x={150} y={84} fill={C.green} fontSize={9} fontWeight="700">Bus A</text>
+          <rect x={175} y={78} width={46} height={26} rx={5} fill={C.teal + "1E"} stroke={C.teal} strokeWidth={1.6} />
+          <text x={198} y={95} textAnchor="middle" fill={C.teal} fontSize={11} fontWeight="700">RA</text>
+
+          {/* Bus B → RB → ALU */}
+          <line x1={110} y1={150} x2={300} y2={150} stroke={C.yellow} strokeWidth={3.5} />
+          <text x={150} y={168} fill={C.yellow} fontSize={9} fontWeight="700">Bus B</text>
+          <rect x={175} y={137} width={46} height={26} rx={5} fill={C.teal + "1E"} stroke={C.teal} strokeWidth={1.6} />
+          <text x={198} y={154} textAnchor="middle" fill={C.teal} fontSize={11} fontWeight="700">RB</text>
+
+          {/* ALU */}
+          <polygon points="300,80 356,108 356,142 300,170" fill={C.accent + "1E"} stroke={C.accent} strokeWidth={1.8} />
+          <text x={324} y={128} textAnchor="middle" fill={C.accent} fontSize={11} fontWeight="700">ALU</text>
+
+          {/* Bus C — result back to register file */}
+          <path d="M 356 125 L 392 125 L 392 210 L 50 210 L 50 158" stroke={C.purple} strokeWidth={3.5} fill="none" markerEnd="url(#u25c)" />
+          <text x={230} y={204} textAnchor="middle" fill={C.purple} fontSize={9} fontWeight="700">Bus C — result back to the register file</text>
+
+          {/* three packets, SAME timing → simultaneous flow */}
+          <g>
+            <rect x={-13} y={-8} width={26} height={16} rx={3} fill={C.green} />
+            <text y={4} textAnchor="middle" fill="#0D1117" fontSize={8} fontWeight="800">5</text>
+            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 115 92 L 296 92" />
+          </g>
+          <g>
+            <rect x={-13} y={-8} width={26} height={16} rx={3} fill={C.yellow} />
+            <text y={4} textAnchor="middle" fill="#0D1117" fontSize={8} fontWeight="800">3</text>
+            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 115 150 L 296 150" />
+          </g>
+          <g>
+            <rect x={-13} y={-8} width={26} height={16} rx={3} fill={C.purple} />
+            <text y={4} textAnchor="middle" fill="#0D1117" fontSize={8} fontWeight="800">8</text>
+            <animateMotion dur="2.2s" repeatCount="indefinite" path="M 356 125 L 392 125 L 392 210 L 50 210 L 50 158" />
+          </g>
+
+          <text x={430} y={40} textAnchor="middle" fill={C.green} fontSize={10} fontWeight="700">all in ONE clock cycle</text>
+          <defs><marker id="u25c" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.purple} /></marker></defs>
+        </svg>
+      </div>
+
+      <div style={{ textAlign: "center", marginBottom: 12 }}>
+        <button onClick={() => setWhy(w => !w)} style={{
+          padding: "8px 18px", borderRadius: 8, border: `1px solid ${C.teal}`, background: C.teal + "18",
+          color: C.teal, fontWeight: 700, fontSize: 12.5, cursor: "pointer",
+        }}>{why ? "↺ Hide" : "But why RA and RB? ▶"}</button>
+      </div>
+
+      {why && (
+        <div style={{ background: C.teal + "12", border: `1px solid ${C.teal}55`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.text, lineHeight: 1.7, marginBottom: 4 }}>
+          Why not feed the ALU straight from R2 and R3? Because the register file is <strong style={{ color: C.text }}>read in one
+          step and the ALU works in the next</strong>. <strong style={{ color: C.teal }}>RA</strong> and
+          <strong style={{ color: C.teal }}> RB</strong> latch the two operands at the clock edge so they stay
+          <strong style={{ color: C.text }}> stable</strong> for the ALU — even while the register file moves on to the next
+          instruction (reading new operands, or being written by a previous result). They <em>decouple</em> "read the operands"
+          from "compute", which is exactly what lets us split the work into separate one-clock stages next.
+        </div>
+      )}
+
+      <Key color={C.green}>
+        Three buses: <strong style={{ color: C.green }}>Bus A</strong> + <strong style={{ color: C.yellow }}>Bus B</strong> carry
+        both operands (into <strong style={{ color: C.teal }}>RA</strong>, <strong style={{ color: C.teal }}>RB</strong>), the ALU
+        computes, and <strong style={{ color: C.purple }}>Bus C</strong> returns the result — read, compute, write-back all in
+        <strong style={{ color: C.text }}> one clock cycle</strong>. RA/RB latch the operands so the ALU sees stable inputs.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 3 — Cycles saved... but we chop it off (CISC vs RISC)
+// ══════════════════════════════════════════════════════════════════
+function ChopItOff() {
+  const [mode, setMode] = useState("whole"); // "whole" | "chopped"
+
+  const stages = ["Fetch", "Decode", "Compute", "Memory", "Write-back"];
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        The three-bus datapath can finish a register-to-register op in <strong style={{ color: C.text }}>one clock</strong>. So
+        why don't we just let every instruction run in one big clock? Toggle the two philosophies.
       </p>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        {[[true, "With register Y ✓", C.green], [false, "No Y — bus only ✗", C.red]].map(([v, label, col]) => (
-          <button key={String(v)} onClick={() => setUseY(v)} style={{
+        {[["whole", "CISC — one big step", C.orange], ["chopped", "RISC — chop into stages", C.green]].map(([k, label, col]) => (
+          <button key={k} onClick={() => setMode(k)} style={{
             flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-            background: useY === v ? col + "22" : C.card,
-            border: `2px solid ${useY === v ? col : C.border}`, color: useY === v ? col : C.muted,
+            background: mode === k ? col + "22" : C.card,
+            border: `2px solid ${mode === k ? col : C.border}`, color: mode === k ? col : C.muted,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {mode === "whole" ? (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+            <div style={{ padding: "12px 24px", borderRadius: 10, background: C.orange + "1E", border: `2px solid ${C.orange}`, textAlign: "center" }}>
+              <div style={{ color: C.orange, fontWeight: 800, fontSize: 14 }}>ONE variable-length step</div>
+              <div style={{ color: C.muted, fontSize: 11, marginTop: 3 }}>read → compute → (memory?) → write, however long it takes</div>
+            </div>
+          </div>
+          <div style={{ color: C.muted, fontSize: 12, textAlign: "center", lineHeight: 1.6 }}>
+            A simple add finishes fast; a load that touches memory takes far longer. Each instruction runs for a
+            <strong style={{ color: C.text }}> different, unpredictable number of clocks</strong> — and you can't overlap them.
+          </div>
+        </div>
+      ) : (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 10px", marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 5, justifyContent: "center", flexWrap: "wrap" }}>
+            {stages.map((st, i) => (
+              <div key={st} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ padding: "9px 8px", borderRadius: 8, background: C.green + "18", border: `1.5px solid ${C.green}`, textAlign: "center", minWidth: 58 }}>
+                  <div style={{ color: C.green, fontSize: 10.5, fontWeight: 700 }}>{st}</div>
+                  <div style={{ color: C.muted, fontSize: 8 }}>1 clock</div>
+                </div>
+                {i < stages.length - 1 && <span style={{ color: C.muted, fontSize: 12 }}>→</span>}
+              </div>
+            ))}
+          </div>
+          <div style={{ color: C.muted, fontSize: 12, textAlign: "center", lineHeight: 1.6, marginTop: 10 }}>
+            Chop the work into <strong style={{ color: C.text }}>fixed one-clock stages</strong>, separated by interstage
+            registers. Now every instruction takes the same predictable rhythm — and the stages can
+            <strong style={{ color: C.text }}> overlap</strong> (pipelining, Module 3).
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: (mode === "whole" ? C.orange : C.green) + "12", border: `1px solid ${(mode === "whole" ? C.orange : C.green)}55`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+        {mode === "whole"
+          ? <span><strong style={{ color: C.orange }}>CISC</strong> lets an instruction run as one variable-length flow across the datapath. Flexible, but timing is unpredictable and instructions can't overlap.</span>
+          : <span><strong style={{ color: C.green }}>RISC</strong> chops the datapath into fixed one-clock stages held apart by <strong style={{ color: C.text }}>interstage registers</strong> — so every instruction has a known length and the pipeline can overlap them.</span>}
+      </div>
+
+      <Key color={C.green}>
+        We <em>could</em> do it all in one clock — and CISC machines do, with variable timing. But RISC deliberately
+        <strong style={{ color: C.text }}> chops the datapath into fixed one-clock stages</strong>. Without that, you can't say
+        how many clocks an instruction will take, and you can't pipeline. The chop needs registers between the stages — meet
+        them next.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 4 — The interstage (pipeline) registers: RZ, RY, RM + MuxY
+// ══════════════════════════════════════════════════════════════════
+function StagedRegisters() {
+  const [op, setOp] = useState("add"); // "add" | "load" | "store"
+
+  // which parts light up for each op
+  const on = {
+    raRb: op === "add",
+    alu: op === "add" || op === "load", // load uses ALU to form the address (simplified: still lit)
+    rz: op === "add",
+    mdr: op === "load",
+    rm: op === "store",
+    muxRZ: op === "add",
+    muxMDR: op === "load",
+    ry: op === "add" || op === "load",
+    mem: op === "load" || op === "store",
+  };
+  const litCol = op === "add" ? C.accent : op === "load" ? C.orange : C.red;
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Chopping needs a register between each pair of stages. These <strong style={{ color: C.text }}>interstage (pipeline)
+        registers</strong> each hold a value so the <em>next</em> clock can use it: <strong style={{ color: C.teal }}>RA/RB</strong>
+        (operands), <strong style={{ color: C.purple }}>RZ</strong> (ALU result), <strong style={{ color: C.purple }}>RY</strong>
+        (value to write back), and <strong style={{ color: C.orange }}>RM</strong> (data out to memory, store only). Pick an
+        operation and watch the path light up.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        {[["add", "Add R4,R2,R3"], ["load", "Load R1,A"], ["store", "Store R4,C"]].map(([k, label]) => (
+          <button key={k} onClick={() => setOp(k)} style={{
+            flex: 1, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 11.5, fontFamily: "monospace",
+            background: op === k ? litCol + "22" : C.card,
+            border: `2px solid ${op === k ? litCol : C.border}`, color: op === k ? litCol : C.muted,
           }}>{label}</button>
         ))}
       </div>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
-        <svg viewBox="0 0 520 170" style={{ width: "100%", display: "block" }}>
-          {/* bus */}
-          <line x1={30} y1={40} x2={490} y2={40} stroke={C.accent} strokeWidth={4} />
-          <text x={260} y={26} textAnchor="middle" fill={C.accent} fontSize={10} fontWeight="700">single bus — one value at a time</text>
-          {/* Y latch */}
-          <rect x={70} y={70} width={80} height={36} rx={7} fill={useY ? C.teal + "1E" : C.card} stroke={useY ? C.teal : C.border} strokeWidth={1.8} opacity={useY ? 1 : 0.3} />
-          <text x={110} y={93} textAnchor="middle" fill={useY ? C.teal : C.muted} fontSize={12} fontWeight="700">Y</text>
-          <line x1={110} y1={70} x2={110} y2={40} stroke={useY ? C.teal : C.border} strokeWidth={1.5} opacity={useY ? 1 : 0.3} />
+        <svg viewBox="0 0 540 250" style={{ width: "100%", display: "block" }}>
+          {/* register file */}
+          <rect x={16} y={95} width={80} height={70} rx={9} fill={C.card} stroke={C.teal} strokeWidth={1.7} />
+          <text x={56} y={126} textAnchor="middle" fill={C.teal} fontSize={10} fontWeight="700">Register</text>
+          <text x={56} y={140} textAnchor="middle" fill={C.teal} fontSize={10} fontWeight="700">file</text>
+
+          {/* RA, RB */}
+          <rect x={120} y={78} width={42} height={24} rx={5} fill={on.raRb ? C.teal + "26" : C.card} stroke={on.raRb ? C.teal : C.border} strokeWidth={1.6} />
+          <text x={141} y={94} textAnchor="middle" fill={on.raRb ? C.teal : C.muted} fontSize={10} fontWeight="700">RA</text>
+          <rect x={120} y={120} width={42} height={24} rx={5} fill={on.raRb ? C.teal + "26" : C.card} stroke={on.raRb ? C.teal : C.border} strokeWidth={1.6} />
+          <text x={141} y={136} textAnchor="middle" fill={on.raRb ? C.teal : C.muted} fontSize={10} fontWeight="700">RB</text>
+          <line x1={96} y1={110} x2={120} y2={90} stroke={on.raRb ? C.teal : C.border} strokeWidth={1.6} />
+          <line x1={96} y1={135} x2={120} y2={132} stroke={on.raRb ? C.teal : C.border} strokeWidth={1.6} />
+
           {/* ALU */}
-          <polygon points="200,66 270,88 270,112 200,134" fill={C.accent + "1E"} stroke={C.accent} strokeWidth={1.8} />
-          <text x={230} y={104} textAnchor="middle" fill={C.accent} fontSize={12} fontWeight="700">ALU</text>
-          <line x1={150} y1={88} x2={200} y2={92} stroke={useY ? C.teal : C.red} strokeWidth={2} opacity={useY ? 1 : 0.5} />
-          <text x={175} y={78} textAnchor="middle" fill={useY ? C.teal : C.red} fontSize={9}>input 1 = Y</text>
-          <line x1={110} y1={40} x2={200} y2={110} stroke={C.accent} strokeWidth={1.5} strokeDasharray="3 3" opacity={0.5} />
-          <text x={160} y={128} fill={C.muted} fontSize={9}>input 2 = bus</text>
-          {/* Z latch */}
-          <rect x={310} y={78} width={80} height={36} rx={7} fill={C.purple + "1E"} stroke={C.purple} strokeWidth={1.8} />
-          <text x={350} y={101} textAnchor="middle" fill={C.purple} fontSize={12} fontWeight="700">Z</text>
-          <line x1={270} y1={100} x2={310} y2={96} stroke={C.purple} strokeWidth={2} />
-          <line x1={350} y1={78} x2={350} y2={40} stroke={C.purple} strokeWidth={1.5} />
-          <text x={410} y={100} fill={C.muted} fontSize={9}>result → back on bus</text>
+          <polygon points="185,80 235,104 235,140 185,164" fill={on.alu ? C.accent + "22" : C.card} stroke={on.alu ? C.accent : C.border} strokeWidth={1.7} />
+          <text x={205} y={126} textAnchor="middle" fill={on.alu ? C.accent : C.muted} fontSize={10} fontWeight="700">ALU</text>
+          <line x1={162} y1={90} x2={185} y2={100} stroke={on.raRb ? C.teal : C.border} strokeWidth={1.5} />
+          <line x1={162} y1={132} x2={185} y2={140} stroke={on.raRb ? C.teal : C.border} strokeWidth={1.5} />
+
+          {/* RZ (ALU result) */}
+          <rect x={258} y={110} width={44} height={26} rx={5} fill={on.rz ? C.purple + "26" : C.card} stroke={on.rz ? C.purple : C.border} strokeWidth={1.6} />
+          <text x={280} y={127} textAnchor="middle" fill={on.rz ? C.purple : C.muted} fontSize={10} fontWeight="700">RZ</text>
+          <line x1={235} y1={122} x2={258} y2={123} stroke={on.rz ? C.purple : C.border} strokeWidth={1.5} />
+
+          {/* MDR (memory data in, for a load) */}
+          <rect x={258} y={185} width={44} height={26} rx={5} fill={on.mdr ? C.orange + "26" : C.card} stroke={on.mdr ? C.orange : C.border} strokeWidth={1.6} />
+          <text x={280} y={202} textAnchor="middle" fill={on.mdr ? C.orange : C.muted} fontSize={10} fontWeight="700">MDR</text>
+
+          {/* MuxY: chooses RZ or MDR */}
+          <polygon points="330,104 356,120 356,150 330,166" fill={C.card} stroke={C.accent} strokeWidth={1.6} />
+          <text x={340} y={138} textAnchor="middle" fill={C.accent} fontSize={8.5} fontWeight="700">Mux</text>
+          <line x1={302} y1={123} x2={330} y2={118} stroke={on.muxRZ ? C.purple : C.border} strokeWidth={on.muxRZ ? 2.4 : 1.3} />
+          <line x1={302} y1={198} x2={330} y2={152} stroke={on.muxMDR ? C.orange : C.border} strokeWidth={on.muxMDR ? 2.4 : 1.3} />
+          <text x={366} y={100} fill={C.muted} fontSize={7.5}>picks RZ or MDR</text>
+
+          {/* RY (write-back) */}
+          <rect x={378} y={122} width={44} height={26} rx={5} fill={on.ry ? litCol + "26" : C.card} stroke={on.ry ? litCol : C.border} strokeWidth={1.6} />
+          <text x={400} y={139} textAnchor="middle" fill={on.ry ? litCol : C.muted} fontSize={10} fontWeight="700">RY</text>
+          <line x1={356} y1={135} x2={378} y2={135} stroke={on.ry ? litCol : C.border} strokeWidth={1.5} />
+          {/* RY → register file write port (curve back) */}
+          <path d="M 422 135 L 445 135 L 445 60 L 56 60 L 56 93" stroke={on.ry ? litCol : C.border} strokeWidth={1.6} fill="none" markerEnd="url(#u25ry)" />
+          <text x={250} y={54} textAnchor="middle" fill={on.ry ? litCol : C.muted} fontSize={8}>write-back: RY → register file</text>
+
+          {/* RM (store data out) + memory */}
+          <rect x={120} y={205} width={44} height={26} rx={5} fill={on.rm ? C.red + "26" : C.card} stroke={on.rm ? C.red : C.border} strokeWidth={1.6} />
+          <text x={142} y={222} textAnchor="middle" fill={on.rm ? C.red : C.muted} fontSize={10} fontWeight="700">RM</text>
+          <line x1={56} y1={165} x2={56} y2={218} stroke={on.rm ? C.red : C.border} strokeWidth={1.4} />
+          <line x1={56} y1={218} x2={120} y2={218} stroke={on.rm ? C.red : C.border} strokeWidth={1.4} />
+          <text x={90} y={200} fill={on.rm ? C.red : C.muted} fontSize={7.5}>store only</text>
+
+          {/* memory block */}
+          <rect x={460} y={175} width={70} height={60} rx={8} fill={C.surface} stroke={on.mem ? litCol : C.border} strokeWidth={1.6} />
+          <text x={495} y={200} textAnchor="middle" fill={on.mem ? litCol : C.muted} fontSize={9} fontWeight="700">MEMORY</text>
+          {/* RM → memory (store) */}
+          <line x1={164} y1={218} x2={460} y2={218} stroke={on.rm ? C.red : C.border} strokeWidth={on.rm ? 2.2 : 1.2} markerEnd={on.rm ? "url(#u25mem)" : undefined} />
+          {/* memory → MDR (load) */}
+          <line x1={460} y1={198} x2={302} y2={198} stroke={on.mdr ? C.orange : C.border} strokeWidth={on.mdr ? 2.2 : 1.2} markerEnd={on.mdr ? "url(#u25mdr)" : undefined} />
+
+          <defs>
+            <marker id="u25ry" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={on.ry ? litCol : C.border} /></marker>
+            <marker id="u25mem" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.red} /></marker>
+            <marker id="u25mdr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.orange} /></marker>
+          </defs>
         </svg>
       </div>
 
-      <div style={{ background: useY ? C.green + "12" : C.red + "12", border: `1px solid ${useY ? C.green : C.red}55`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, lineHeight: 1.6 }}>
-        {useY
-          ? <span>✓ Beat 1: gate operand A onto the bus and latch it into <strong style={{ color: C.teal }}>Y</strong>. Beat 2: gate operand B onto the bus; the ALU adds it to Y and latches the sum into <strong style={{ color: C.purple }}>Z</strong>. Beat 3: gate Z back to the destination. <strong style={{ color: C.green }}>Two operands, one bus — solved.</strong></span>
-          : <span>✗ Without Y, both operands would have to be on the single bus at the same instant — impossible. The ALU would only ever see one input. <strong style={{ color: C.red }}>The add can't happen.</strong></span>}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+        {op === "add" && <span><strong style={{ color: C.accent }}>Add:</strong> RA, RB → ALU → <strong style={{ color: C.purple }}>RZ</strong>. The <strong style={{ color: C.accent }}>MuxY</strong> picks RZ → <strong style={{ color: C.purple }}>RY</strong> → register file. RM and MDR are idle.</span>}
+        {op === "load" && <span><strong style={{ color: C.orange }}>Load:</strong> the word comes from memory into <strong style={{ color: C.orange }}>MDR</strong>; the <strong style={{ color: C.accent }}>MuxY</strong> picks MDR → <strong style={{ color: C.purple }}>RY</strong> → register file. The MUX is why one write-back path serves both arithmetic and loads.</span>}
+        {op === "store" && <span><strong style={{ color: C.red }}>Store:</strong> this is the only operation that uses <strong style={{ color: C.red }}>RM</strong> — the register's value goes into RM, then out to memory. No write-back, so MuxY and RY are idle.</span>}
       </div>
 
-      <Key color={C.teal}>
-        On a single bus, <strong style={{ color: C.teal }}>Y</strong> holds the first operand steady while the second travels the
-        bus into the ALU, and <strong style={{ color: C.purple }}>Z</strong> holds the ALU result until it can be gated back.
-        These are the interstage latches that make one-bus arithmetic possible.
-      </Key>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  Section 3 — Reading the control signals (anatomy click-to-reveal)
-// ══════════════════════════════════════════════════════════════════
-function ControlSignals() {
-  const [pick, setPick] = useState(null);
-
-  const sigs = [
-    { key: "out", label: "PCout", color: C.teal, title: "Rout — gate a register ONTO the bus",
-      body: "Xout opens register X's driver so its value rides the bus this beat. PCout puts the program counter on the bus; R1out puts R1 on it. Exactly one 'out' per beat (one value on the bus)." },
-    { key: "in", label: "MARin", color: C.orange, title: "Rin — latch the bus INTO a register",
-      body: "Xin opens register X's load line so it captures whatever is on the bus at the clock edge. MARin loads MAR from the bus; IRin loads IR; R1in loads R1. This is the control function P : X ← bus from Unit 2.1." },
-    { key: "rw", label: "Read", color: C.green, title: "Read / Write — memory direction",
-      body: "Read tells memory to fetch M[MAR] into MDR; Write tells it to store MDR into M[MAR]. Raised in the same beat the address is placed in MAR." },
-    { key: "wmfc", label: "WMFC", color: C.red, title: "WMFC — Wait for Memory Function Complete",
-      body: "Freeze the sequence until memory raises MFC. Because memory is slow, the beat that starts a Read/Write is followed by a WMFC before the data in MDR can be trusted (Unit 2.3)." },
-    { key: "z", label: "Zin / Zout", color: C.purple, title: "Zin / Zout — the ALU output latch",
-      body: "The ALU result is captured into Z by Zin, then gated back onto the bus by Zout on a later beat. Add·Zin means 'ALU does Add, latch the sum into Z.'" },
-    { key: "end", label: "End", color: C.yellow, title: "End — last microstep",
-      body: "End marks the final beat of the instruction and restarts the counter at the fetch sequence for the next instruction. It is the loop-back you'll see in the control unit, Unit 2.7." },
-  ];
-
-  return (
-    <div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The control sequence is written as a list of tiny signal names per beat — like
-        <code style={{ color: C.accent, fontFamily: "monospace" }}> PCout, MARin, Read</code>. They look cryptic but each is one
-        of a handful of verbs. Tap each to learn it before the full trace.
-      </p>
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        {sigs.map((s) => (
-          <button key={s.key} onClick={() => setPick(s.key)} style={{
-            padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "monospace",
-            background: pick === s.key ? s.color + "2A" : C.card,
-            border: `2px solid ${pick === s.key ? s.color : C.border}`, color: s.color,
-          }}>{s.label}</button>
-        ))}
-      </div>
-
-      {pick && (
-        <div style={{ background: sigs.find(s => s.key === pick).color + "12", border: `1px solid ${sigs.find(s => s.key === pick).color}55`, borderRadius: 10, padding: "12px 16px", marginBottom: 4 }}>
-          <div style={{ color: sigs.find(s => s.key === pick).color, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>
-            {sigs.find(s => s.key === pick).title}
-          </div>
-          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>{sigs.find(s => s.key === pick).body}</div>
-        </div>
-      )}
-
-      <Key color={C.accent}>
-        Every beat is just a set of these verbs fired together: some register drives the bus (<strong style={{ color: C.teal }}>Xout</strong>),
-        others latch it (<strong style={{ color: C.orange }}>Xin</strong>), the ALU picks a function, and memory/timing signals
-        (<strong style={{ color: C.green }}>Read</strong>/<strong style={{ color: C.red }}>WMFC</strong>) keep it honest.
-      </Key>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  Section 4 — The 7-step control sequence, traced live (flagship)
-// ══════════════════════════════════════════════════════════════════
-function ControlSequence() {
-  const [step, setStep] = useState(0);
-
-  // Hamacher single-bus control sequence for Add (R3), R1.
-  // Story: PC=100; M[100]=instruction; R3=200 (operand address); M[200]=5; R1=3 → R1=8.
-  const steps = [
-    { sig: "—", phase: "start", narr: "Before execution. PC = 100 points at the instruction. R3 = 200 is the address of the memory operand (value 5). R1 = 3.",
-      st: { PC: "100", MAR: "—", MDR: "—", IR: "—", R1: "3", R3: "200", Y: "—", Z: "—" }, mfc: false },
-    { sig: "PCout, MARin, Read, Select4, Add, Zin", phase: "Fetch", narr: "1 — PC → MAR and start Read; in parallel the ALU adds 4 to PC and parks 104 in Z.",
-      st: { PC: "100", MAR: "100", MDR: "—", IR: "—", R1: "3", R3: "200", Y: "—", Z: "104" }, mfc: false },
-    { sig: "Zout, PCin, Yin, WMFC", phase: "Fetch", narr: "2 — Z (104) → PC, so PC now points at the next instruction. Wait for MFC; the instruction word arrives in MDR.",
-      st: { PC: "104", MAR: "100", MDR: "Add(R3),R1", IR: "—", R1: "3", R3: "200", Y: "104", Z: "104" }, mfc: true },
-    { sig: "MDRout, IRin", phase: "Fetch", narr: "3 — MDR → IR. The instruction is now in IR; the control unit decodes 'Add (R3), R1'. Fetch complete.",
-      st: { PC: "104", MAR: "100", MDR: "Add(R3),R1", IR: "Add(R3),R1", R1: "3", R3: "200", Y: "104", Z: "104" }, mfc: false },
-    { sig: "R3out, MARin, Read", phase: "Execute", narr: "4 — the operand's address is in R3 (200). R3 → MAR, start Read to fetch the memory operand.",
-      st: { PC: "104", MAR: "200", MDR: "Add(R3),R1", IR: "Add(R3),R1", R1: "3", R3: "200", Y: "104", Z: "104" }, mfc: false },
-    { sig: "R1out, Yin, WMFC", phase: "Execute", narr: "5 — R1 (3) → Y, latching the first operand. Wait for MFC; meanwhile the memory operand 5 lands in MDR.",
-      st: { PC: "104", MAR: "200", MDR: "5", IR: "Add(R3),R1", R1: "3", R3: "200", Y: "3", Z: "104" }, mfc: true },
-    { sig: "MDRout, SelectY, Add, Zin", phase: "Execute", narr: "6 — MDR (5) → bus, ALU adds it to Y (3): 3 + 5 = 8, latched into Z.",
-      st: { PC: "104", MAR: "200", MDR: "5", IR: "Add(R3),R1", R1: "3", R3: "200", Y: "3", Z: "8" }, mfc: false },
-    { sig: "Zout, R1in, End", phase: "Execute", narr: "7 — Z (8) → R1. R1 now holds 8. End restarts the counter at Fetch for the next instruction.",
-      st: { PC: "104", MAR: "200", MDR: "5", IR: "Add(R3),R1", R1: "8", R3: "200", Y: "3", Z: "8" }, mfc: false },
-  ];
-  const s = steps[step];
-  const phaseColor = s.phase === "Fetch" ? C.green : s.phase === "Execute" ? C.orange : C.muted;
-
-  const order = ["PC", "IR", "R1", "R3", "MAR", "MDR", "Y", "Z"];
-  const colorFor = { PC: C.teal, IR: C.purple, R1: C.green, R3: C.teal, MAR: C.orange, MDR: C.yellow, Y: C.teal, Z: C.purple };
-
-  return (
-    <div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The whole instruction as a <strong style={{ color: C.accent }}>7-beat control sequence</strong> — Hamacher's classic
-        example. Beats 1–3 are Fetch (from Unit 2.3); 4–7 are Execute (an operand fetch + an ALU add + a write-back). Step
-        through and watch every register. <code style={{ color: C.purple, fontFamily: "monospace" }}>R1 = 3 + M[200] = 3 + 5 = 8.</code>
-      </p>
-
-      {/* live register grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 10 }}>
-        {order.map((k) => {
-          const v = s.st[k];
-          const on = v !== "—";
-          return (
-            <div key={k} style={{ background: C.card, border: `1.5px solid ${on ? colorFor[k] : C.border}`, borderRadius: 8, padding: "7px 4px", textAlign: "center", transition: "all 0.25s" }}>
-              <div style={{ color: C.muted, fontSize: 10 }}>{k}</div>
-              <div style={{ color: on ? colorFor[k] : C.muted, fontFamily: "monospace", fontSize: 11, fontWeight: 700, wordBreak: "break-all" }}>{v}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
-        <div style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: phaseColor + "22", border: `1.5px solid ${phaseColor}`, color: phaseColor }}>
-          {s.phase === "start" ? "ready" : s.phase}
-        </div>
-        <div style={{ flex: 1 }} />
-        <div style={{ padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.mfc ? C.teal + "22" : C.card, border: `1.5px solid ${s.mfc ? C.teal : C.border}`, color: s.mfc ? C.teal : C.muted }}>
-          MFC {s.mfc ? "● arrived" : "○"}
-        </div>
-      </div>
-
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 10 }}>
-        <div style={{ fontFamily: "monospace", fontSize: 12.5, color: step === 0 ? C.muted : C.accent, fontWeight: 700, marginBottom: 6 }}>
-          {step === 0 ? "(idle)" : `Step ${step}:  ${s.sig}`}
-        </div>
-        <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>{s.narr}</div>
-      </div>
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={() => setStep(v => Math.min(7, v + 1))} disabled={step === 7} style={{
-          flex: 2, padding: "10px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: 13,
-          background: step === 7 ? C.card : C.accentGlow, color: step === 7 ? C.muted : "#fff",
-          cursor: step === 7 ? "default" : "pointer",
-        }}>Next beat ▶ ({step} / 7)</button>
-        <button onClick={() => setStep(0)} style={{
-          flex: 1, padding: "10px", borderRadius: 8, background: C.card, border: `1px solid ${C.border}`,
-          color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer",
-        }}>↺ Reset</button>
-      </div>
-
-      {step === 7 && (
-        <div style={{ marginTop: 10, background: C.green + "14", border: `1px solid ${C.green}55`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.green, lineHeight: 1.6 }}>
-          ✓ One instruction, <strong>7 clock beats</strong>: 3 to fetch, 4 to execute. R1 went from 3 to 8. End loops back to
-          beat 1 for the next instruction.
-        </div>
-      )}
-
-      <Key color={C.orange}>
-        A complete instruction is a fixed script of control-signal sets, one per beat. Notice how it <strong style={{ color: C.text }}>reuses</strong>
-        everything: fetch (2.3), a second memory read for the operand, Y/Z to feed the ALU (2.2), and a write-back — all
-        sequenced by the control unit.
+      <Key color={C.purple}>
+        <strong style={{ color: C.teal }}>RA, RB</strong> (operands), <strong style={{ color: C.purple }}>RZ</strong> (ALU result),
+        <strong style={{ color: C.purple }}> RY</strong> (write-back) and <strong style={{ color: C.orange }}>RM</strong> (store
+        data) are <strong style={{ color: C.text }}>interstage registers</strong> — each holds its value for the next clock. The
+        <strong style={{ color: C.accent }}> MuxY</strong> in front of RY chooses between the ALU result (RZ) and the memory data
+        (MDR), so one write-back path serves both. <strong style={{ color: C.text }}>RM is used only by Store.</strong>
       </Key>
     </div>
   );
@@ -312,48 +386,48 @@ function ControlSequence() {
 function Quiz({ onComplete }) {
   const questions = [
     {
-      q: "What are the three phases every instruction passes through?",
+      q: "Why does a register-to-register add take several beats on a single-bus datapath?",
       options: [
-        "Read, Write, Erase",
-        "Fetch, Decode, Execute",
-        "Load, Add, Store",
-        "Input, Process, Output",
+        "The ALU is slow",
+        "Only one value can be on the bus per clock, so the two operands must queue",
+        "Registers can't be read twice",
+        "Memory is involved in every add",
       ],
       answer: 1,
-      explain: "Fetch brings the instruction into IR, Decode works out what it is, Execute carries it out. Fetch is identical for every instruction; decode and execute vary by opcode.",
+      explain: "A single bus carries one value per clock. The two operands can't ride it together, so the add is spread across multiple beats. Three buses fix this.",
     },
     {
-      q: "On a single-bus datapath, why is the register Y needed for an ALU add?",
+      q: "On the three-bus datapath, what happens in one clock cycle?",
       options: [
-        "To store the opcode",
-        "Because the ALU needs two inputs but the bus carries only one value per clock — Y holds the first operand",
-        "To hold the program counter",
-        "To speed up memory",
+        "Only one operand moves",
+        "Bus A and Bus B carry both operands in, the ALU computes, and Bus C returns the result — all at once",
+        "The result is written to memory",
+        "The instruction is fetched",
       ],
       answer: 1,
-      explain: "One bus = one value per beat, but addition needs two operands. Y latches the first operand so the second can travel the bus into the ALU on a later beat. Z then latches the ALU result.",
+      explain: "Both operands travel simultaneously on Bus A and Bus B into RA/RB, the ALU computes, and Bus C carries the result back to the register file — read, compute, write-back in a single clock.",
     },
     {
-      q: "In a control sequence, what does 'PCout, MARin' accomplish in one beat?",
+      q: "Why does the datapath include the operand registers RA and RB instead of feeding the ALU straight from R2 and R3?",
       options: [
-        "Adds PC and MAR together",
-        "Gates the PC onto the bus and latches it into MAR — i.e. MAR ← [PC]",
-        "Writes MAR to memory",
-        "Clears both registers",
+        "To store the result",
+        "To latch the operands so they stay stable for the ALU, decoupling 'read the register file' from 'compute' — which lets the work split into fixed one-clock stages",
+        "Because the register file has no read ports",
+        "To convert the operands to two's complement",
       ],
       answer: 1,
-      explain: "Xout drives register X onto the bus; Xin latches the bus into register X. Together PCout + MARin perform the transfer MAR ← [PC] in a single beat — a control function from Unit 2.1.",
+      explain: "RA and RB hold the operands at the clock edge so the ALU sees stable inputs even while the register file moves on. That decoupling is what makes fixed one-clock stages (and pipelining) possible.",
     },
     {
-      q: "During Execute of Add (R3), R1, why does the sequence do a second memory Read (beat 4)?",
+      q: "The MuxY in front of RY chooses between which two sources — and which register is used only for a Store?",
       options: [
-        "To re-fetch the same instruction",
-        "Because (R3) is a memory operand — R3 holds the address, so its value must be read from memory before the add",
-        "To store the result early",
-        "To update the program counter again",
+        "Between RA and RB; RM is used only for Store",
+        "Between the ALU result (RZ) and the memory data (MDR); RM is used only for Store",
+        "Between RY and RZ; MDR is used only for Store",
+        "Between Bus A and Bus B; RZ is used only for Store",
       ],
       answer: 1,
-      explain: "(R3) means 'the value at the address in R3.' Beat 4 puts that address in MAR and reads it; the operand arrives in MDR (beat 5), then the ALU adds it to R1 (via Y) and writes back to R1.",
+      explain: "MuxY selects the ALU result (RZ, for arithmetic) or the loaded memory data (MDR, for a load) into RY for write-back. RM is the store-only register that sends a register's value out to memory.",
     },
   ];
 
@@ -378,9 +452,9 @@ function Quiz({ onComplete }) {
         <div style={{ fontSize: 52 }}>{score >= 3 ? "🎉" : "👍"}</div>
         <div style={{ fontSize: 24, fontWeight: 700, color: C.text, marginTop: 10 }}>You scored {score} / {questions.length}</div>
         <div style={{ color: C.muted, marginTop: 8, marginBottom: 20 }}>
-          {score === 4 ? "Perfect! You can drive a full instruction beat by beat, Y, Z, WMFC and all." :
-            score >= 2 ? "Good work! Replay 'The Control Sequence' — walk all 7 beats once more." :
-              "Revisit 'Why Y and Z' and 'The Control Sequence' — the whole unit rests on those two."}
+          {score === 4 ? "Perfect! You know the road an instruction drives on — buses and interstage registers." :
+            score >= 2 ? "Good work! Replay 'The Three-Bus Datapath' and 'RZ, RY & RM' to lock it in." :
+              "Revisit 'The Three-Bus Datapath' and the interstage registers — the whole unit rests on those."}
         </div>
         <div style={{
           padding: "20px", borderRadius: 12,
@@ -389,11 +463,11 @@ function Quiz({ onComplete }) {
         }}>
           <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Unit 2.5 Complete!</div>
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
-            You can now run a whole instruction as a 7-beat control sequence — fetch, decode, then execute with Y and Z feeding
-            the ALU on a single bus.
+            You built the datapath: one bus vs three, why RA/RB latch the operands, why we chop the flow into fixed stages, and
+            the interstage registers RZ, RY, RM with the write-back MUX.
             <br /><br />
-            <strong style={{ color: C.accent }}>Next up: Unit 2.6 — Multiple-Bus Organization.</strong>{" "}
-            Seven beats for one add feels slow. What if we gave the datapath more than one bus so operands could travel at once?
+            <strong style={{ color: C.accent }}>Next up: Unit 2.6 — Executing a Complete Instruction.</strong>{" "}
+            Now that the road is built, let's drive one whole instruction across it, beat by beat.
           </div>
         </div>
       </div>
@@ -444,10 +518,10 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 export default function Unit2_5({ student, onUnitComplete }) {
   const sections = [
-    { id: "journey", label: "The Whole Journey" },
-    { id: "yz", label: "Why Y and Z" },
-    { id: "signals", label: "Control Signals" },
-    { id: "seq", label: "The Control Sequence" },
+    { id: "single", label: "Single-Bus Bottleneck" },
+    { id: "three", label: "Three-Bus Datapath" },
+    { id: "chop", label: "Chop It Off" },
+    { id: "regs", label: "RZ, RY & RM" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -459,20 +533,20 @@ export default function Unit2_5({ student, onUnitComplete }) {
 
   const content = [
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>🧭 The Whole Journey — fetch · decode · execute</h3>
-      <TheJourney />
+      <h3 style={{ color: C.text, marginBottom: 6 }}>🚦 The Single-Bus Bottleneck</h3>
+      <SingleBusBottleneck />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>🔁 Why Y and Z?</h3>
-      <WhyYandZ />
+      <h3 style={{ color: C.text, marginBottom: 6 }}>🛤️ The Three-Bus Datapath — all in one clock</h3>
+      <ThreeBusDatapath />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>🎛️ Reading the Control Signals</h3>
-      <ControlSignals />
+      <h3 style={{ color: C.text, marginBottom: 6 }}>✂️ Cycles Saved… but We Chop It Off</h3>
+      <ChopItOff />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>▶️ The Control Sequence — Add (R3), R1</h3>
-      <ControlSequence />
+      <h3 style={{ color: C.text, marginBottom: 6 }}>🧩 RZ, RY &amp; RM — the interstage registers</h3>
+      <StagedRegisters />
     </div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
@@ -485,10 +559,10 @@ export default function Unit2_5({ student, onUnitComplete }) {
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.text, paddingBottom: 40 }}>
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 24px", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: C.accentGlow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>▶️</div>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: C.accentGlow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🛤️</div>
         <div>
           <div style={{ fontSize: 12, color: C.muted, letterSpacing: 1 }}>MODULE 2 › UNIT 2.5</div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>Executing a Complete Instruction</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>Bus Organization &amp; the Datapath</div>
         </div>
         <div style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>{completed.length} / {sections.length} done</div>
       </div>
