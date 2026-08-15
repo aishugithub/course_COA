@@ -180,19 +180,32 @@ function RTLNotation() {
 //  P : R2 ← R1  — the toggle IS the lesson.
 // ══════════════════════════════════════════════════════════════════
 function ControlFunction() {
-  const [p, setP] = useState(0);       // control signal P: 0 or 1
-  const [pulsed, setPulsed] = useState(false); // has a clock edge fired?
+  const [p, setP] = useState(0);           // control signal P: 0 or 1
+  const [r2, setR2] = useState("0110");    // R2's STORED state — it always holds SOMETHING
+  const [flash, setFlash] = useState(false); // brief highlight when a latch happens
+  const [blocked, setBlocked] = useState(false); // brief "nothing happened" hint on P=0
 
   const R1 = "1011";
-  const moved = p === 1 && pulsed;
+  const latched = r2 === R1;
 
-  const pulse = () => { setPulsed(true); setTimeout(() => setPulsed(false), 700); };
+  // A clock edge only changes R2 when P = 1. Once latched, R2 KEEPS the value —
+  // even if P later goes back to 0. The wires are always live regardless of P.
+  const pulse = () => {
+    if (p === 1) {
+      setR2(R1);
+      setFlash(true); setTimeout(() => setFlash(false), 700);
+    } else {
+      setBlocked(true); setTimeout(() => setBlocked(false), 600);
+    }
+  };
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The notation says <em>what</em> moves — it never says <em>when</em>. A real transfer waits for a control signal that
-        says "now". Written <code style={{ color: C.yellow, fontFamily: "monospace" }}>P : R2 ← R1</code> — the move happens
+        The notation says <em>what</em> moves — it never says <em>when</em>. The wires from R1 are
+        <strong style={{ color: C.teal }}> always live</strong> (electricity is flowing the whole time). What the control
+        signal decides is whether <strong style={{ color: C.text }}>R2 changes state to accept it</strong>. Written
+        <code style={{ color: C.yellow, fontFamily: "monospace" }}> P : R2 ← R1</code> — R2 latches
         <strong style={{ color: C.text }}> only if P = 1</strong>. Set P, then fire the clock.
       </p>
 
@@ -208,48 +221,60 @@ function ControlFunction() {
         ))}
       </div>
 
-      {/* the two registers + n parallel lines */}
+      {/* the two registers + n parallel lines (always carrying R1, always live) */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
-        <svg viewBox="0 0 520 190" style={{ width: "100%", display: "block" }}>
+        <svg viewBox="0 0 520 200" style={{ width: "100%", display: "block" }}>
           {/* R1 source */}
           <rect x={20} y={70} width={110} height={50} rx={8} fill={C.card} stroke={C.teal} strokeWidth={2} />
           <text x={75} y={90} textAnchor="middle" fill={C.muted} fontSize={11}>R1 (source)</text>
           <text x={75} y={110} textAnchor="middle" fill={C.teal} fontSize={16} fontWeight="700" fontFamily="monospace">{R1}</text>
-          {/* n parallel wires — always carry R1's value */}
+          {/* n parallel wires — ALWAYS live, with flowing charge, independent of P */}
           {[0, 1, 2, 3].map((i) => (
-            <line key={i} x1={130} y1={80 + i * 10} x2={390} y2={80 + i * 10} stroke={C.teal} strokeWidth={1.5} opacity={0.55} />
+            <line key={i} x1={130} y1={80 + i * 10} x2={390} y2={80 + i * 10} stroke={C.teal} strokeWidth={2} opacity={0.9} />
           ))}
-          <text x={260} y={64} textAnchor="middle" fill={C.muted} fontSize={10}>n parallel lines — n = word size (e.g. 32)</text>
-          {/* the load gate driven by P */}
-          <rect x={250} y={130} width={90} height={38} rx={7} fill={moved ? C.green + "22" : (p === 1 ? C.green + "14" : C.red + "14")} stroke={p === 1 ? C.green : C.red} strokeWidth={2} />
-          <text x={295} y={154} textAnchor="middle" fill={p === 1 ? C.green : C.red} fontSize={12} fontWeight="700">load = P = {p}</text>
-          <line x1={295} y1={130} x2={295} y2={120} stroke={p === 1 ? C.green : C.red} strokeWidth={2} />
-          {/* R2 destination */}
-          <rect x={390} y={70} width={110} height={50} rx={8} fill={C.card} stroke={moved ? C.green : C.border} strokeWidth={moved ? 2.5 : 1.5} style={{ transition: "all 0.3s" }} />
+          {[0, 1, 2, 3].map((i) => (
+            <circle key={"d" + i} r={2.6} fill={C.teal}>
+              <animate attributeName="cx" values="132;388" dur="1.1s" begin={`${i * 0.12}s`} repeatCount="indefinite" />
+              <animate attributeName="cy" values={`${80 + i * 10};${80 + i * 10}`} dur="1.1s" repeatCount="indefinite" />
+            </circle>
+          ))}
+          <text x={255} y={62} textAnchor="middle" fill={C.teal} fontSize={10}>n parallel lines — always live, always carrying R1</text>
+          {/* the load gate driven by P — the ONLY thing P controls */}
+          <rect x={250} y={140} width={90} height={38} rx={7} fill={p === 1 ? C.green + "18" : C.red + "14"} stroke={p === 1 ? C.green : C.red} strokeWidth={2} />
+          <text x={295} y={164} textAnchor="middle" fill={p === 1 ? C.green : C.red} fontSize={12} fontWeight="700">load = P = {p}</text>
+          <line x1={295} y1={140} x2={295} y2={120} stroke={p === 1 ? C.green : C.red} strokeWidth={2} strokeDasharray={p === 1 ? "none" : "3 3"} />
+          {/* R2 destination — holds its own state at ALL times, glows briefly on latch */}
+          <rect x={390} y={70} width={110} height={50} rx={8} fill={flash ? C.green + "26" : C.card} stroke={flash ? C.green : (latched ? C.teal : C.border)} strokeWidth={flash ? 3 : 1.8} style={{ transition: "all 0.3s" }} />
           <text x={445} y={90} textAnchor="middle" fill={C.muted} fontSize={11}>R2 (dest)</text>
-          <text x={445} y={110} textAnchor="middle" fill={moved ? C.green : C.muted} fontSize={16} fontWeight="700" fontFamily="monospace">{moved ? R1 : "????"}</text>
+          <text x={445} y={110} textAnchor="middle" fill={latched ? C.teal : C.text} fontSize={16} fontWeight="700" fontFamily="monospace">{r2}</text>
+          {blocked && <text x={445} y={140} textAnchor="middle" fill={C.red} fontSize={10} fontWeight="700">✕ no change (P = 0)</text>}
         </svg>
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
         <button onClick={pulse} style={{
-          flex: 1, padding: "10px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: 13,
+          flex: 2, padding: "10px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: 13,
           background: C.accentGlow, color: "#fff", cursor: "pointer",
         }}>⚡ Fire clock edge</button>
+        <button onClick={() => { setR2("0110"); setP(0); }} style={{
+          flex: 1, padding: "10px", borderRadius: 8, background: C.card, border: `1px solid ${C.border}`,
+          color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer",
+        }}>↺ Reset R2</button>
       </div>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 40, lineHeight: 1.6 }}>
         {p === 0
-          ? <span>The wires <strong style={{ color: C.teal }}>still carry R1's value</strong> — but with P = 0 the load line is shut, so a clock edge moves <strong style={{ color: C.red }}>nothing</strong>. Try firing it: R2 stays <code style={{ fontFamily: "monospace" }}>????</code>.</span>
-          : moved
-            ? <span>✓ P = 1 opened the load line, so the clock edge latched R1 into R2. <strong style={{ color: C.green }}>Control turned a permanent connection into a timed transfer.</strong></span>
-            : <span>P = 1 — the load line is open. Now fire the clock edge to latch R1 into R2.</span>}
+          ? <span>The wires are <strong style={{ color: C.teal }}>live and carrying R1's value right now</strong> — but with P = 0 the load line is shut, so R2 <strong style={{ color: C.red }}>ignores the clock edge and keeps its current state</strong> (<code style={{ fontFamily: "monospace" }}>{r2}</code>). Fire it and nothing changes.</span>
+          : latched
+            ? <span>✓ The clock edge latched R1 into R2 — R2 changed state to <code style={{ fontFamily: "monospace", color: C.teal }}>{r2}</code> and now <strong style={{ color: C.green }}>maintains it</strong>. Set P = 0 and fire again: it stays put. <strong style={{ color: C.green }}>Control turned an always-live connection into a timed transfer.</strong></span>
+            : <span>P = 1 — the load line is open. Fire the clock edge and watch R2 change its state to accept R1.</span>}
       </div>
 
       <Key color={C.yellow}>
         <code style={{ color: C.yellow, fontFamily: "monospace" }}>P : R2 ← R1</code> is a <strong style={{ color: C.text }}>control function</strong>.
-        The connection is always physically there; the signal <strong style={{ color: C.yellow }}>P</strong> decides whether the
-        clock edge actually loads it. Every arrow in RTL is real hardware — wires plus a load signal.
+        The wired connection is <strong style={{ color: C.text }}>always physically there and live</strong>; the signal
+        <strong style={{ color: C.yellow }}> P</strong> decides only whether the clock edge makes R2 <em>latch and hold</em> the
+        new value. Once latched, a register keeps its state until the next load.
       </Key>
     </div>
   );
@@ -281,9 +306,11 @@ function CommonBus() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        We want <strong style={{ color: C.text }}>one shared path</strong> any register can send onto — not a private wire
-        between every pair. That's a <strong style={{ color: C.accent }}>common bus</strong>. Two ways to build it — switch
-        between them:
+        We just learned register transfers as <em>notation</em>. But how does the transfer actually happen in
+        <strong style={{ color: C.text }}> hardware</strong>? We want <strong style={{ color: C.text }}>one shared path</strong>
+        any register can drive — not a private wire between every pair. That's a <strong style={{ color: C.accent }}>common
+        bus</strong>. On a single bus there are two ways to build it — a <strong style={{ color: C.accent }}>multiplexer</strong>
+        (works, but costlier) and a <strong style={{ color: C.orange }}>tri-state buffer</strong> (cheaper). Switch between them:
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
@@ -354,110 +381,117 @@ function CommonBus() {
       </div>
 
       <Key color={C.accent}>
-        A common bus is built from <strong style={{ color: C.accent }}>multiplexers</strong> (select lines pick the source) or
-        <strong style={{ color: C.orange }}> tri-state buffers + a decoder</strong> (a third "Hi-Z" state lets many outputs
-        share one wire). Either way: <strong style={{ color: C.text }}>exactly one source at a time</strong>.
+        A single common bus is built from <strong style={{ color: C.accent }}>multiplexers</strong> (select lines pick the
+        source — flexible but more gates, so costlier) or <strong style={{ color: C.orange }}>tri-state buffers + a
+        decoder</strong> (a third "Hi-Z" state lets many outputs share one wire — cheaper). Either way:
+        <strong style={{ color: C.text }}> exactly one source at a time</strong>.
+        <br /><br />
+        <span style={{ color: C.purple }}>🧭 Coming later this unit:</span> one bus means one transfer per clock. In
+        <strong style={{ color: C.text }}> Unit 2.6 — Multiple-Bus Organization</strong> we add more buses so several transfers
+        happen at once.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 5 — Memory Transfers through MDR (Read / Write step trace)
+//  Section 5 — Meet MAR & MDR: the gateway to memory (INTRODUCTION only)
+//  First appearance in Module 2 — so both are spelled out in full. The
+//  step-by-step fetch/store timing is deliberately left for Units 2.3/2.4.
 // ══════════════════════════════════════════════════════════════════
 function MemoryTransfers() {
-  const [op, setOp] = useState("read");  // "read" | "write"
-  const [step, setStep] = useState(0);
-
-  // Two short traces, each ending with MDR as the compulsory gateway.
-  const traces = {
-    read: [
-      { hi: null, narr: "READ — fetch a word from memory. Nothing has moved yet." },
-      { hi: "mar", narr: "① Put the address into MAR — 'which word do I want?'" },
-      { hi: "sig", narr: "② Raise the Read signal — tell memory to fetch." },
-      { hi: "mdr", narr: "③ MDR ← M[MAR] — memory copies that word into MDR. Done." },
-    ],
-    write: [
-      { hi: null, narr: "WRITE — store R1 into memory. R1 can NOT reach memory directly." },
-      { hi: "mar", narr: "① Put the destination address into MAR." },
-      { hi: "mdr", narr: "② MDR ← R1 — the data first moves from R1 into MDR." },
-      { hi: "sig", narr: "③ M[MAR] ← MDR, raise Write — MDR is written to the addressed word. Done." },
-    ],
-  };
-  const tr = traces[op];
-  const s = tr[step];
-
-  const Box = ({ x, y, w, label, sub, active, color }) => (
-    <g>
-      <rect x={x} y={y} width={w} height={46} rx={8} fill={active ? color + "22" : C.card} stroke={active ? color : C.border} strokeWidth={active ? 2.5 : 1.5} style={{ transition: "all 0.3s" }} />
-      <text x={x + w / 2} y={y + 20} textAnchor="middle" fill={active ? color : C.muted} fontSize={12} fontWeight="700">{label}</text>
-      <text x={x + w / 2} y={y + 37} textAnchor="middle" fill={C.muted} fontSize={10} fontFamily="monospace">{sub}</text>
-    </g>
-  );
+  const [op, setOp] = useState("read");  // "read" | "write" — just to show MDR direction
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Registers can now reach each other over the bus. But programs and data live in <strong style={{ color: C.text }}>main
-        memory</strong> — so the CPU must reach across too. The address goes in <strong style={{ color: C.orange }}>MAR</strong>;
-        <strong style={{ color: C.teal }}> all data to and from memory passes through MDR</strong>. Step each one.
+        Over the bus, registers can reach each other. But programs and data live in <strong style={{ color: C.text }}>main
+        memory</strong>, which sits <em>outside</em> the processor. Every access to it goes through two special registers that
+        sit at the processor's edge — the <strong style={{ color: C.text }}>gateway</strong> to memory. Meet them:
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        {[["read", "Read — fetch a word"], ["write", "Write — store a word"]].map(([m, label]) => (
-          <button key={m} onClick={() => { setOp(m); setStep(0); }} style={{
-            flex: 1, padding: "9px", borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
+      <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 190, background: C.orange + "12", border: `1px solid ${C.orange}44`, borderRadius: 9, padding: "10px 12px" }}>
+          <div style={{ color: C.orange, fontWeight: 800, fontSize: 14 }}>MAR</div>
+          <div style={{ color: C.text, fontSize: 12.5, fontWeight: 600 }}>Memory Address Register</div>
+          <div style={{ color: C.muted, fontSize: 11.5, marginTop: 3, lineHeight: 1.5 }}>Holds the <strong style={{ color: C.text }}>address</strong> — <em>which</em> memory location we want.</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 190, background: C.teal + "12", border: `1px solid ${C.teal}44`, borderRadius: 9, padding: "10px 12px" }}>
+          <div style={{ color: C.teal, fontWeight: 800, fontSize: 14 }}>MDR</div>
+          <div style={{ color: C.text, fontSize: 12.5, fontWeight: 600 }}>Memory Data Register</div>
+          <div style={{ color: C.muted, fontSize: 11.5, marginTop: 3, lineHeight: 1.5 }}>Holds the <strong style={{ color: C.text }}>data</strong> — the word going to or coming from memory.</div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        {[["read", "Processor reads memory"], ["write", "Processor writes memory"]].map(([m, label]) => (
+          <button key={m} onClick={() => setOp(m)} style={{
+            flex: 1, padding: "9px", borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 12,
             background: op === m ? C.accentGlow : C.card,
             border: `2px solid ${op === m ? C.accent : C.border}`, color: op === m ? "#fff" : C.muted,
           }}>{label}</button>
         ))}
       </div>
 
+      {/* processor with MAR/MDR at its EDGE = the gateway to external memory */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
-        <svg viewBox="0 0 520 180" style={{ width: "100%", display: "block" }}>
-          {/* CPU side: R1, MAR, MDR */}
-          <text x={95} y={20} textAnchor="middle" fill={C.purple} fontSize={11} fontWeight="700">PROCESSOR</text>
-          <Box x={20} y={30} w={70} label="R1" sub={op === "write" ? "data" : "—"} active={op === "write" && step >= 2} color={C.teal} />
-          <Box x={20} y={95} w={70} label="MAR" sub="addr" active={s.hi === "mar" || step >= 1} color={C.orange} />
-          <Box x={110} y={95} w={70} label="MDR" sub="data" active={s.hi === "mdr"} color={C.teal} />
-          {/* Read/Write signal line */}
-          <rect x={210} y={60} width={90} height={40} rx={7} fill={s.hi === "sig" ? C.yellow + "22" : C.card} stroke={s.hi === "sig" ? C.yellow : C.border} strokeWidth={s.hi === "sig" ? 2.5 : 1.5} style={{ transition: "all 0.3s" }} />
-          <text x={255} y={84} textAnchor="middle" fill={s.hi === "sig" ? C.yellow : C.muted} fontSize={12} fontWeight="700">{op === "read" ? "READ" : "WRITE"}</text>
-          {/* memory side */}
-          <text x={410} y={20} textAnchor="middle" fill={C.accent} fontSize={11} fontWeight="700">MAIN MEMORY</text>
-          <rect x={330} y={30} width={160} height={120} rx={8} fill={C.surface} stroke={C.accent} strokeWidth={1.5} />
+        <svg viewBox="0 0 520 200" style={{ width: "100%", display: "block" }}>
+          {/* processor body */}
+          <rect x={20} y={30} width={230} height={150} rx={10} fill={C.surface} stroke={C.purple} strokeWidth={1.6} />
+          <text x={95} y={50} textAnchor="middle" fill={C.purple} fontSize={11} fontWeight="700">PROCESSOR</text>
+          <rect x={40} y={64} width={70} height={30} rx={6} fill={C.card} stroke={C.border} />
+          <text x={75} y={83} textAnchor="middle" fill={C.muted} fontSize={10}>registers</text>
+          <rect x={40} y={104} width={70} height={30} rx={6} fill={C.card} stroke={C.border} />
+          <text x={75} y={123} textAnchor="middle" fill={C.muted} fontSize={10}>ALU</text>
+          {/* the gateway strip at the right edge: MAR + MDR */}
+          <rect x={168} y={40} width={74} height={130} rx={8} fill={C.bg} stroke={C.yellow} strokeWidth={1.4} strokeDasharray="4 3" />
+          <text x={205} y={56} textAnchor="middle" fill={C.yellow} fontSize={9} fontWeight="700">gateway</text>
+          <rect x={178} y={66} width={54} height={34} rx={6} fill={C.orange + "22"} stroke={C.orange} strokeWidth={1.8} />
+          <text x={205} y={87} textAnchor="middle" fill={C.orange} fontSize={12} fontWeight="700">MAR</text>
+          <rect x={178} y={116} width={54} height={34} rx={6} fill={C.teal + "22"} stroke={C.teal} strokeWidth={1.8} />
+          <text x={205} y={137} textAnchor="middle" fill={C.teal} fontSize={12} fontWeight="700">MDR</text>
+
+          {/* main memory outside */}
+          <rect x={360} y={30} width={140} height={150} rx={10} fill={C.surface} stroke={C.accent} strokeWidth={1.6} />
+          <text x={430} y={50} textAnchor="middle" fill={C.accent} fontSize={11} fontWeight="700">MAIN MEMORY</text>
           {[0, 1, 2, 3].map((i) => (
-            <rect key={i} x={345} y={45 + i * 26} width={130} height={20} rx={4}
-              fill={((op === "read" && s.hi === "mdr") || (op === "write" && s.hi === "sig")) && i === 2 ? C.accent + "33" : C.card}
-              stroke={C.border} strokeWidth={1} />
+            <rect key={i} x={375} y={66 + i * 26} width={110} height={20} rx={4} fill={C.card} stroke={C.border} />
           ))}
-          <text x={410} y={60} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">M[MAR]</text>
-          {/* arrows */}
-          <line x1={180} y1={118} x2={330} y2={118} stroke={C.muted} strokeWidth={1.5} strokeDasharray="4 4" opacity={0.5} />
+
+          {/* address line: MAR → memory, always one-way */}
+          <line x1={232} y1={83} x2={360} y2={83} stroke={C.orange} strokeWidth={2.5} markerEnd="url(#u21addr)" />
+          <text x={296} y={75} textAnchor="middle" fill={C.orange} fontSize={9}>address (which cell)</text>
+          <circle r={3} fill={C.orange}><animate attributeName="cx" values="234;358" dur="1.4s" repeatCount="indefinite" /><animate attributeName="cy" values="83;83" dur="1.4s" repeatCount="indefinite" /></circle>
+
+          {/* data line: MDR ↔ memory, direction depends on read/write */}
+          <line x1={op === "write" ? 232 : 360} y1={133} x2={op === "write" ? 360 : 232} y2={133} stroke={C.teal} strokeWidth={2.5} markerEnd="url(#u21data)" />
+          <text x={296} y={155} textAnchor="middle" fill={C.teal} fontSize={9}>{op === "write" ? "data out → memory" : "data in ← memory"}</text>
+          <circle r={3} fill={C.teal}>
+            <animate attributeName="cx" values={op === "write" ? "234;358" : "358;234"} dur="1.4s" repeatCount="indefinite" />
+            <animate attributeName="cy" values="133;133" dur="1.4s" repeatCount="indefinite" />
+          </circle>
+
+          <defs>
+            <marker id="u21addr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.orange} /></marker>
+            <marker id="u21data" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.teal} /></marker>
+          </defs>
         </svg>
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 40, lineHeight: 1.6, marginBottom: 10 }}>
-        {s.narr}
-      </div>
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={() => setStep(v => Math.min(3, v + 1))} disabled={step === 3} style={{
-          flex: 2, padding: "10px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: 13,
-          background: step === 3 ? C.card : C.accentGlow, color: step === 3 ? C.muted : "#fff",
-          cursor: step === 3 ? "default" : "pointer",
-        }}>Step ▶ ({step} / 3)</button>
-        <button onClick={() => setStep(0)} style={{
-          flex: 1, padding: "10px", borderRadius: 8, background: C.card, border: `1px solid ${C.border}`,
-          color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer",
-        }}>↺ Reset</button>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 10 }}>
+        {op === "read"
+          ? <span>To <strong style={{ color: C.text }}>read</strong>, the processor puts the address in <strong style={{ color: C.orange }}>MAR</strong> and the word comes back into <strong style={{ color: C.teal }}>MDR</strong>. No register talks to memory directly — everything passes through this gateway.</span>
+          : <span>To <strong style={{ color: C.text }}>write</strong>, the address goes in <strong style={{ color: C.orange }}>MAR</strong> and the data goes out from <strong style={{ color: C.teal }}>MDR</strong>. Same gateway, data flowing the other way.</span>}
       </div>
 
       <Key color={C.teal}>
-        Memory transfers always route through two registers: address in <strong style={{ color: C.orange }}>MAR</strong>,
-        data in <strong style={{ color: C.teal }}>MDR</strong>. Read: <code style={{ fontFamily: "monospace" }}>MDR ← M[MAR]</code>.
-        Write: <code style={{ fontFamily: "monospace" }}>MDR ← R1, M[MAR] ← MDR</code>. R1 never touches memory directly —
-        this is the syllabus's "fetching a word, storing a word."
+        <strong style={{ color: C.orange }}>MAR (Memory Address Register)</strong> and <strong style={{ color: C.teal }}>MDR
+        (Memory Data Register)</strong> are part of the processor, sitting at its edge as the <strong style={{ color: C.text }}>only
+        gateway</strong> to main memory: address through MAR, data through MDR.
+        <br /><br />
+        <span style={{ color: C.purple }}>🧭 Coming later this unit:</span> exactly how a word is
+        <strong style={{ color: C.text }}> fetched (Unit 2.3)</strong> and <strong style={{ color: C.text }}>stored (Unit
+        2.4)</strong> — the step-by-step timing — is next. For now, just remember: every memory access goes through MAR and MDR.
       </Key>
     </div>
   );
@@ -606,7 +640,7 @@ export default function Unit2_1({ student, onUnitComplete }) {
     { id: "rtl", label: "RTL Notation" },
     { id: "control", label: "The Control Function" },
     { id: "bus", label: "The Common Bus" },
-    { id: "mem", label: "Memory Transfers" },
+    { id: "mem", label: "MAR & MDR Gateway" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -634,7 +668,7 @@ export default function Unit2_1({ student, onUnitComplete }) {
       <CommonBus />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>🧠 Memory Transfers — through MAR & MDR</h3>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>🧠 Meet MAR &amp; MDR — the gateway to memory</h3>
       <MemoryTransfers />
     </div>,
     <div>

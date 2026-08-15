@@ -78,120 +78,156 @@ function OneAdder() {
         </div>
       )}
 
+      <div style={{ background: C.yellow + "12", border: `1px solid ${C.yellow}44`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginTop: 10 }}>
+        ⚠️ <strong style={{ color: C.yellow }}>Reality check:</strong> a real ALU does <em>not</em> multiply by naive repeated
+        addition — that would take up to 15 adds for 4-bit numbers. Actual hardware uses <strong style={{ color: C.text }}>shift-and-add</strong>
+        with <strong style={{ color: C.text }}>shifters</strong> (at most one add per bit). You'll meet those shifters later in this unit.
+      </div>
+
       <Key color={C.accent}>
         <strong style={{ color: C.accent }}>×</strong> is repeated addition, <strong style={{ color: C.accent }}>÷</strong> is
-        repeated subtraction — so neither needs its own circuit. The whole ALU can be built around
-        <strong style={{ color: C.text }}> one adder</strong>, if only it can also subtract. That's next.
+        repeated subtraction — so <em>in principle</em> neither needs its own circuit. The whole ALU can be built around
+        <strong style={{ color: C.text }}> one adder</strong> (plus shifters for a fast multiply), if only it can also subtract.
+        That's next.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 2 — Subtract via 2's complement (adder–subtractor, mode M)
+//  Section 2 — Subtract by the method of complements (PLAIN MATH)
+//  No MUX, no XOR, no hardware — just work the arithmetic so students see
+//  A − B is really A + (2's complement of B). Deck Ch2 "subtract without a
+//  subtractor". Circuit comes in the NEXT section.
 // ══════════════════════════════════════════════════════════════════
 function AdderSubtractor() {
-  const [m, setM] = useState(0); // mode: 0 = add, 1 = subtract
+  const [step, setStep] = useState(0); // 0..4 reveal of the worked example
 
-  const A = "0101"; // 5
-  const B = "0011"; // 3
-  const Bbar = "1100";
-  const yIntoAdder = m === 0 ? B : Bbar;
-  const cin = m;
-  const result = m === 0 ? "1000 = 8" : "0010 = 2";
+  // 5 − 3, worked in binary. A = 0101 (5), B = 0011 (3).
+  const lines = [
+    { txt: "We want 5 − 3. But our only tool is an adder — it can only ADD. Turn the subtraction into an addition.", show: null },
+    { txt: "① Write B = 3 in binary: 0011. Flip every bit (one's complement): 0011 → 1100.", show: "flip" },
+    { txt: "② Add 1 to get the two's complement: 1100 + 1 = 1101. This 1101 represents −3.", show: "twos" },
+    { txt: "③ Now just ADD: A + (−3) = 0101 + 1101 = 1 0010 (a 5-bit result with a carry-out).", show: "add" },
+    { txt: "④ Throw away the carried-out 1 → 0010 = 2. Same answer as 5 − 3, using only addition. ✓", show: "drop" },
+  ];
+  const s = lines[step];
+
+  const Bits = ({ v, color, strike }) => (
+    <span style={{ fontFamily: "monospace", fontSize: 18, fontWeight: 800, letterSpacing: 3, color, textDecoration: strike ? "line-through" : "none" }}>{v}</span>
+  );
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
         Repeating only ever <em>adds</em>. To subtract we seem to need new hardware — unless we turn a subtraction into an
-        addition. The trick: <strong style={{ color: C.text }}>A − B = A + (2's complement of B)</strong>, and 2's complement
-        is easy — <strong style={{ color: C.orange }}>flip every bit, then add 1</strong>. Flip the mode line M:
+        addition. The trick, in <strong style={{ color: C.text }}>plain arithmetic</strong>:
+        <strong style={{ color: C.text }}> A − B = A + (2's complement of B)</strong>, and the 2's complement is just
+        <strong style={{ color: C.orange }}> flip every bit, then add 1</strong>. Let's work out <strong style={{ color: C.text }}>5 − 3</strong>.
       </p>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        {[0, 1].map((v) => (
-          <button key={v} onClick={() => setM(v)} style={{
-            flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: 13,
-            background: m === v ? (v === 0 ? C.green + "22" : C.orange + "22") : C.card,
-            border: `2px solid ${m === v ? (v === 0 ? C.green : C.orange) : C.border}`,
-            color: m === v ? (v === 0 ? C.green : C.orange) : C.muted,
-          }}>M = {v} · {v === 0 ? "ADD (A + B)" : "SUBTRACT (A − B)"}</button>
-        ))}
+      {/* the worked calculation */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px", marginBottom: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ color: C.muted, fontSize: 12, width: 130 }}>A = 5</span>
+            <Bits v="0101" color={C.teal} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, opacity: step >= 1 ? 1 : 0.25, transition: "opacity 0.3s" }}>
+            <span style={{ color: C.muted, fontSize: 12, width: 130 }}>B = 3</span>
+            <Bits v="0011" color={C.text} />
+            {step >= 1 && <span style={{ color: C.muted, fontSize: 12 }}>→ flip →</span>}
+            {step >= 1 && <Bits v="1100" color={C.orange} />}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, opacity: step >= 2 ? 1 : 0.25, transition: "opacity 0.3s" }}>
+            <span style={{ color: C.muted, fontSize: 12, width: 130 }}>+1 → 2's comp of 3</span>
+            <Bits v="1101" color={C.purple} />
+            {step >= 2 && <span style={{ color: C.muted, fontSize: 12 }}>= −3</span>}
+          </div>
+          <div style={{ height: 1, background: C.border, margin: "2px 0" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, opacity: step >= 3 ? 1 : 0.25, transition: "opacity 0.3s" }}>
+            <span style={{ color: C.muted, fontSize: 12, width: 130 }}>A + (−3)</span>
+            <span style={{ fontFamily: "monospace", fontSize: 18, fontWeight: 800, letterSpacing: 3, color: C.text }}>
+              0101 + 1101 ={" "}
+              {step >= 3 && <span style={{ color: step >= 4 ? C.muted : C.text }}>{step >= 4 ? <span style={{ color: C.red }}>1</span> : "1"}</span>}
+              {step >= 3 && <span style={{ color: C.green }}>0010</span>}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, opacity: step >= 4 ? 1 : 0.25, transition: "opacity 0.3s" }}>
+            <span style={{ color: C.muted, fontSize: 12, width: 130 }}>drop carry-out</span>
+            <span style={{ color: C.red, fontFamily: "monospace", fontSize: 13 }}>✕1</span>
+            <Bits v="0010" color={C.green} />
+            {step >= 4 && <span style={{ color: C.green, fontSize: 14, fontWeight: 700 }}>= 2 ✓</span>}
+          </div>
+        </div>
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
-        <svg viewBox="0 0 520 200" style={{ width: "100%", display: "block" }}>
-          {/* A input */}
-          <rect x={20} y={30} width={110} height={40} rx={7} fill={C.card} stroke={C.teal} strokeWidth={2} />
-          <text x={75} y={48} textAnchor="middle" fill={C.muted} fontSize={10}>A = 5</text>
-          <text x={75} y={63} textAnchor="middle" fill={C.teal} fontSize={14} fontWeight="700" fontFamily="monospace">{A}</text>
-          {/* B input through the XOR row (controlled NOT) */}
-          <rect x={20} y={130} width={110} height={40} rx={7} fill={C.card} stroke={C.orange} strokeWidth={2} />
-          <text x={75} y={148} textAnchor="middle" fill={C.muted} fontSize={10}>B = 3 {m === 1 ? "→ flipped" : ""}</text>
-          <text x={75} y={163} textAnchor="middle" fill={C.orange} fontSize={14} fontWeight="700" fontFamily="monospace">{yIntoAdder}</text>
-          {/* XOR gate row driven by M */}
-          <rect x={160} y={128} width={80} height={44} rx={7} fill={m === 1 ? C.orange + "22" : C.card} stroke={m === 1 ? C.orange : C.border} strokeWidth={m === 1 ? 2.5 : 1.5} style={{ transition: "all 0.3s" }} />
-          <text x={200} y={148} textAnchor="middle" fill={m === 1 ? C.orange : C.muted} fontSize={11} fontWeight="700">XOR row</text>
-          <text x={200} y={163} textAnchor="middle" fill={C.muted} fontSize={9}>M = {m}</text>
-          {/* mode line M going to XOR + carry-in */}
-          <line x1={200} y1={186} x2={200} y2={172} stroke={m === 1 ? C.orange : C.muted} strokeWidth={2} />
-          <text x={200} y={198} textAnchor="middle" fill={m === 1 ? C.orange : C.muted} fontSize={9}>mode M → XOR + Cin</text>
-          {/* adder */}
-          <rect x={300} y={60} width={110} height={90} rx={9} fill={C.card} stroke={C.accent} strokeWidth={2} />
-          <text x={355} y={100} textAnchor="middle" fill={C.accent} fontSize={13} fontWeight="700">n-bit ADDER</text>
-          <text x={355} y={120} textAnchor="middle" fill={C.muted} fontSize={10} fontFamily="monospace">Cin = {cin}</text>
-          {/* wires */}
-          <line x1={130} y1={50} x2={300} y2={85} stroke={C.teal} strokeWidth={1.5} opacity={0.6} />
-          <line x1={240} y1={150} x2={300} y2={125} stroke={C.orange} strokeWidth={1.5} opacity={0.6} />
-          {/* result */}
-          <rect x={430} y={80} width={80} height={50} rx={8} fill={m === 0 ? C.green + "1E" : C.orange + "1E"} stroke={m === 0 ? C.green : C.orange} strokeWidth={2} />
-          <text x={470} y={100} textAnchor="middle" fill={C.muted} fontSize={9}>result</text>
-          <text x={470} y={118} textAnchor="middle" fill={m === 0 ? C.green : C.orange} fontSize={13} fontWeight="800" fontFamily="monospace">{result.split(" = ")[1]}</text>
-          <line x1={410} y1={105} x2={430} y2={105} stroke={C.muted} strokeWidth={1.5} />
-        </svg>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 44, lineHeight: 1.6, marginBottom: 10 }}>
+        {s.txt}
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.text, lineHeight: 1.7, marginBottom: 4, fontFamily: "monospace" }}>
-        {m === 0
-          ? <span>M = 0 → B passes unchanged, Cin = 0. Adder: <strong style={{ color: C.green }}>0101 + 0011 = 1000 = 8</strong>.</span>
-          : <span>M = 1 → B is flipped to <span style={{ color: C.orange }}>1100</span>, Cin = 1 (the "+1"). Adder: <strong style={{ color: C.orange }}>0101 + 1100 + 1 = 0010 = 2</strong> = 5 − 3. ✓</span>}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={() => setStep(v => Math.min(4, v + 1))} disabled={step === 4} style={{
+          flex: 2, padding: "10px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: 13,
+          background: step === 4 ? C.card : C.accentGlow, color: step === 4 ? C.muted : "#fff",
+          cursor: step === 4 ? "default" : "pointer",
+        }}>Work the next step ▶ ({step} / 4)</button>
+        <button onClick={() => setStep(0)} style={{
+          flex: 1, padding: "10px", borderRadius: 8, background: C.card, border: `1px solid ${C.border}`,
+          color: C.muted, fontWeight: 600, fontSize: 13, cursor: "pointer",
+        }}>↺ Reset</button>
       </div>
 
       <Key color={C.orange}>
-        One mode line M does both jobs: it feeds every B-XOR (flip or pass) <em>and</em> the carry-in.
-        <strong style={{ color: C.green }}> M = 0 → A + B</strong>;
-        <strong style={{ color: C.orange }}> M = 1 → A + B̄ + 1 = A − B</strong>. Cin = 1 is exactly the "+1" that completes the
-        2's complement. One circuit, two jobs — no subtractor needed.
+        Subtraction is <strong style={{ color: C.text }}>addition in disguise</strong>: A − B = A + (2's complement of B) =
+        A + B̄ + 1. Flip B's bits, add 1, then add to A and drop the final carry. No subtractor needed — just an adder.
+        <strong style={{ color: C.text }}> Next: the actual circuit</strong> that flips B and sets that "+1".
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 3 — One adder + one MUX = many operations (playground)
+//  Section 3 — One adder + one 4-input MUX = many operations (ANIMATED)
+//  Click an op → the chosen MUX input, the route through the MUX, Y, the
+//  adder, Cin and the result all light green. A = 5, B = 3, in bin + dec.
+//  Mirrors the classroom-deck "one circuit, many operations" datapath.
 // ══════════════════════════════════════════════════════════════════
 function ArithmeticUnit() {
   const [op, setOp] = useState(null); // "add" | "sub" | "inc" | "dec"
 
-  // A = 5 (0101) fixed; the MUX picks what goes into Y, and Cin is set per op.
+  // Each op selects ONE of the four MUX inputs (idx 0..3) and a carry-in.
+  //   idx0 = B (0011) · idx1 = B̄ (1100) · idx2 = 0000 · idx3 = 1111
   const OPS = {
-    add: { label: "ADD  A+B", s: "00", y: "0011", yName: "B", cin: "0", res: "1000 = 8", color: C.green,
+    add: { label: "ADD  A+B", idx: 0, s: "00", y: "0011", cin: "0", res: "1000", dec: 8, color: C.green,
       rtn: "S1S0 = 00 passes Y = B = 0011, Cin = 0. Adder: 0101 + 0011 = 1000 = 8." },
-    sub: { label: "SUB  A−B", s: "01", y: "1100", yName: "B̄", cin: "1", res: "0010 = 2", color: C.orange,
-      rtn: "S1S0 = 01 passes Y = B̄ = 1100, Cin = 1 completes the 2's complement. 0101 + 1100 + 1 = 0010 = 2." },
-    inc: { label: "INC  A+1", s: "10", y: "0000", yName: "0…0", cin: "1", res: "0110 = 6", color: C.teal,
-      rtn: "S1S0 = 10 passes Y = 0000, Cin = 1. Adder: 0101 + 0 + 1 = 0110 = 6 = A + 1." },
-    dec: { label: "DEC  A−1", s: "11", y: "1111", yName: "1…1", cin: "0", res: "0100 = 4", color: C.purple,
-      rtn: "S1S0 = 11 passes Y = 1111 (= −1), Cin = 0. Adder: 0101 + (−1) = 0100 = 4 = A − 1." },
+    sub: { label: "SUB  A−B", idx: 1, s: "01", y: "1100", cin: "1", res: "0010", dec: 2, color: C.orange,
+      rtn: "S1S0 = 01 passes Y = B̄ = 1100 (B flipped), Cin = 1 is the +1 that completes the 2's complement. 0101 + 1100 + 1 = 0010 = 2." },
+    inc: { label: "INC  A+1", idx: 2, s: "10", y: "0000", cin: "1", res: "0110", dec: 6, color: C.teal,
+      rtn: "S1S0 = 10 passes Y = 0000, Cin = 1. Adder: 0101 + 0000 + 1 = 0110 = 6 = A + 1." },
+    dec: { label: "DEC  A−1", idx: 3, s: "11", y: "1111", cin: "0", res: "0100", dec: 4, color: C.purple,
+      rtn: "S1S0 = 11 passes Y = 1111 (= −1), Cin = 0. Adder: 0101 + 1111 = 0100 = 4 = A − 1." },
   };
   const o = op ? OPS[op] : null;
+  const lit = C.green;            // colour of the enabled (glowing) data path
+  const litW = 3.2, dimW = 1.6;
+
+  const inputs = [
+    { name: "B", val: "0011", sub: "(= 3)" },
+    { name: "B̄", val: "1100", sub: "(B flipped)" },
+    { name: "0", val: "0000", sub: "(for +1)" },
+    { name: "1", val: "1111", sub: "(= −1)" },
+  ];
+  const iy = [46, 92, 138, 184];  // y of each input row
+  const on = (cond) => (cond ? lit : C.border);
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Our adder already subtracts. Now put a <strong style={{ color: C.accent }}>MUX</strong> on its second input Y and let
-        the control unit choose the word — the same box does <strong style={{ color: C.text }}>add, subtract, increment,
-        decrement</strong>. Press an op and watch the select line and Cin change. (A = 5, B = 3.)
+        Now the circuit. Put a <strong style={{ color: C.accent }}>4-input MUX</strong> on the adder's second input:
+        it can feed <strong style={{ color: C.text }}>B</strong>, <strong style={{ color: C.text }}>B̄</strong>,
+        <strong style={{ color: C.text }}> 0000</strong> or <strong style={{ color: C.text }}>1111</strong>. Pair that with the
+        carry-in and the same adder does four operations. Press one — the whole active path lights up. (A = 5, B = 3.)
       </p>
 
       {/* control buttons */}
@@ -205,42 +241,88 @@ function ArithmeticUnit() {
         ))}
       </div>
 
-      {/* datapath readout */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 12 }}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", alignItems: "center" }}>
-          <div style={{ padding: "8px 12px", borderRadius: 8, background: C.teal + "1E", border: `2px solid ${C.teal}`, textAlign: "center" }}>
-            <div style={{ color: C.muted, fontSize: 10 }}>A</div>
-            <div style={{ color: C.teal, fontFamily: "monospace", fontSize: 15, fontWeight: 700 }}>0101</div>
-          </div>
-          <div style={{ fontSize: 20, color: C.muted }}>+</div>
-          <div style={{ padding: "8px 12px", borderRadius: 8, background: o ? o.color + "1E" : C.surface, border: `2px solid ${o ? o.color : C.border}`, textAlign: "center", minWidth: 90 }}>
-            <div style={{ color: C.muted, fontSize: 10 }}>MUX → Y {o ? `(${o.yName})` : ""}</div>
-            <div style={{ color: o ? o.color : C.muted, fontFamily: "monospace", fontSize: 15, fontWeight: 700 }}>{o ? o.y : "----"}</div>
-          </div>
-          <div style={{ fontSize: 20, color: C.muted }}>+</div>
-          <div style={{ padding: "8px 12px", borderRadius: 8, background: C.surface, border: `2px solid ${C.border}`, textAlign: "center" }}>
-            <div style={{ color: C.muted, fontSize: 10 }}>Cin</div>
-            <div style={{ color: C.yellow, fontFamily: "monospace", fontSize: 15, fontWeight: 700 }}>{o ? o.cin : "-"}</div>
-          </div>
-          <div style={{ fontSize: 20, color: C.muted }}>=</div>
-          <div style={{ padding: "8px 14px", borderRadius: 8, background: o ? o.color + "22" : C.surface, border: `2px solid ${o ? o.color : C.border}`, textAlign: "center" }}>
-            <div style={{ color: C.muted, fontSize: 10 }}>result</div>
-            <div style={{ color: o ? o.color : C.muted, fontFamily: "monospace", fontSize: 18, fontWeight: 800 }}>{o ? o.res : "----"}</div>
-          </div>
-        </div>
-        <div style={{ textAlign: "center", color: C.muted, fontSize: 11, marginTop: 10, fontFamily: "monospace" }}>
-          select line S1S0 = <strong style={{ color: C.accent }}>{o ? o.s : "--"}</strong> · carry-out is dropped
-        </div>
+      {/* the datapath */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "6px 2px", marginBottom: 12 }}>
+        <svg viewBox="0 0 520 250" style={{ width: "100%", display: "block" }}>
+          {/* four MUX inputs */}
+          {inputs.map((inp, i) => {
+            const sel = o && o.idx === i;
+            return (
+              <g key={i}>
+                <rect x={12} y={iy[i] - 16} width={92} height={32} rx={6} fill={sel ? lit + "22" : C.card} stroke={on(sel)} strokeWidth={sel ? 2.2 : 1.4} style={{ transition: "all 0.25s" }} />
+                <text x={58} y={iy[i] - 2} textAnchor="middle" fill={sel ? lit : C.muted} fontSize={11} fontWeight="700" fontFamily="monospace">{inp.name} = {inp.val}</text>
+                <text x={58} y={iy[i] + 11} textAnchor="middle" fill={C.muted} fontSize={8}>{inp.sub}</text>
+                {/* wire input → MUX */}
+                <line x1={104} y1={iy[i]} x2={182} y2={115} stroke={on(sel)} strokeWidth={sel ? litW : dimW} opacity={sel ? 1 : 0.5} style={{ transition: "all 0.25s" }} />
+                {sel && (
+                  <circle r={3} fill={lit}>
+                    <animate attributeName="cx" values="106;180" dur="0.9s" repeatCount="indefinite" />
+                    <animate attributeName="cy" values={`${iy[i]};115`} dur="0.9s" repeatCount="indefinite" />
+                  </circle>
+                )}
+              </g>
+            );
+          })}
+
+          {/* MUX (4 → 1) */}
+          <polygon points="182,60 214,95 214,135 182,170" fill={o ? lit + "18" : C.card} stroke={o ? lit : C.accent} strokeWidth={1.8} style={{ transition: "all 0.25s" }} />
+          <text x={198} y={118} textAnchor="middle" fill={o ? lit : C.accent} fontSize={10} fontWeight="700">MUX</text>
+          {/* select line */}
+          <line x1={198} y1={210} x2={198} y2={170} stroke={o ? C.accent : C.muted} strokeWidth={2} markerEnd="url(#u22sel)" />
+          <text x={198} y={224} textAnchor="middle" fill={C.accent} fontSize={9} fontWeight="700">S1S0 = {o ? o.s : "--"}</text>
+
+          {/* Y wire MUX → adder */}
+          <line x1={214} y1={115} x2={300} y2={128} stroke={o ? lit : C.border} strokeWidth={o ? litW : dimW} style={{ transition: "all 0.25s" }} />
+          <text x={255} y={108} textAnchor="middle" fill={o ? lit : C.muted} fontSize={9} fontWeight="700">Y = {o ? o.y : "----"}</text>
+
+          {/* A into adder top */}
+          <rect x={300} y={30} width={92} height={30} rx={6} fill={C.teal + "1E"} stroke={C.teal} strokeWidth={1.6} />
+          <text x={346} y={49} textAnchor="middle" fill={C.teal} fontSize={11} fontWeight="700" fontFamily="monospace">A = 0101</text>
+          <line x1={346} y1={60} x2={346} y2={95} stroke={o ? lit : C.border} strokeWidth={o ? litW : dimW} style={{ transition: "all 0.25s" }} />
+
+          {/* adder */}
+          <rect x={300} y={95} width={92} height={70} rx={9} fill={o ? lit + "14" : C.card} stroke={o ? lit : C.accent} strokeWidth={1.8} style={{ transition: "all 0.25s" }} />
+          <text x={346} y={126} textAnchor="middle" fill={o ? lit : C.accent} fontSize={12} fontWeight="700">n-bit</text>
+          <text x={346} y={143} textAnchor="middle" fill={o ? lit : C.accent} fontSize={12} fontWeight="700">ADDER</text>
+
+          {/* Cin into adder bottom */}
+          <line x1={346} y1={210} x2={346} y2={165} stroke={o ? C.yellow : C.muted} strokeWidth={2} markerEnd="url(#u22cin)" />
+          <text x={346} y={224} textAnchor="middle" fill={C.yellow} fontSize={9} fontWeight="700">Cin = {o ? o.cin : "-"}</text>
+
+          {/* adder → result */}
+          <line x1={392} y1={130} x2={432} y2={130} stroke={o ? lit : C.border} strokeWidth={o ? litW : dimW} style={{ transition: "all 0.25s" }} />
+          <rect x={432} y={104} width={78} height={52} rx={8} fill={o ? lit + "22" : C.surface} stroke={o ? lit : C.border} strokeWidth={1.8} style={{ transition: "all 0.25s" }} />
+          <text x={471} y={124} textAnchor="middle" fill={C.muted} fontSize={8}>result</text>
+          <text x={471} y={142} textAnchor="middle" fill={o ? lit : C.muted} fontSize={14} fontWeight="800" fontFamily="monospace">{o ? o.res : "----"}</text>
+          <text x={471} y={172} textAnchor="middle" fill={C.muted} fontSize={9}>carry-out dropped</text>
+
+          <defs>
+            <marker id="u22sel" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.accent} /></marker>
+            <marker id="u22cin" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.yellow} /></marker>
+          </defs>
+        </svg>
       </div>
 
+      {/* readout in binary AND decimal */}
+      {o && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap", justifyContent: "center", fontFamily: "monospace", fontSize: 13 }}>
+          <span style={{ color: C.teal }}>A = 0101 (5)</span>
+          <span style={{ color: C.muted }}>{op === "sub" || op === "dec" ? "+" : "+"}</span>
+          <span style={{ color: o.color }}>Y = {o.y}</span>
+          <span style={{ color: C.muted }}>+ Cin {o.cin}</span>
+          <span style={{ color: C.muted }}>=</span>
+          <span style={{ color: lit, fontWeight: 800 }}>{o.res} ({o.dec})</span>
+        </div>
+      )}
+
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.text, minHeight: 40, lineHeight: 1.6, fontFamily: "monospace" }}>
-        {o ? o.rtn : "Press ADD, SUB, INC or DEC to route the MUX and set the carry-in."}
+        {o ? o.rtn : "Press ADD, SUB, INC or DEC — the selected MUX input, the MUX, Y, the adder and the result all light up green."}
       </div>
 
       <Key color={C.accent}>
-        One adder + one MUX + a couple of select lines = a whole <strong style={{ color: C.text }}>arithmetic unit</strong>.
-        The control unit picks the word fed to Y (B, B̄, all-0s, all-1s) and the carry-in — and the same hardware adds,
-        subtracts, increments or decrements. This is why an ALU is small.
+        One adder + one <strong style={{ color: C.text }}>4-input MUX</strong> + two control lines = a whole
+        <strong style={{ color: C.text }}> arithmetic unit</strong>. The select line picks the word into Y (B, B̄, 0000, 1111)
+        and the carry-in finishes the job — so the same hardware adds, subtracts, increments or decrements. This is why an ALU is small.
       </Key>
     </div>
   );
@@ -330,90 +412,160 @@ function Masking() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 5 — Shifts (logical / arithmetic / circular; ×2 and ÷2)
+//  Section 5 — Shifts (logical L / logical R / arithmetic R / circular R)
+//  Whole 4-bit word shifts between two MARGINS: a bit falls out past one
+//  margin, a bit is inserted at the vacated cell (0, the sign, or the
+//  wrapped bit). Both 0s AND 1s are shown as filled cells.
 // ══════════════════════════════════════════════════════════════════
 function Shifter() {
-  const [kind, setKind] = useState("shl"); // shl | ashr | cir
+  const [kind, setKind] = useState("shl");
+  const [playKey, setPlayKey] = useState(1); // bump to replay the animation
 
-  // Start value chosen so ×2 / ÷2 and the sign story both read clearly.
-  const start = [0, 1, 1, 0]; // 0110 = 6
-
-  // Compute one shift of each kind on a 4-bit word.
-  const doShift = (bits, k) => {
-    if (k === "shl") return [...bits.slice(1), 0];                 // logical left: 0 fills right
-    if (k === "ashr") return [bits[0], ...bits.slice(0, 3)];        // arith right: sign copied in
-    if (k === "cir") return [bits[3], ...bits.slice(0, 3)];         // circular right: bit wraps
-    return bits;
+  // Each mode uses a start value chosen to teach it clearly. MSB = index 0.
+  const MODES = {
+    shl:  { label: "Logical Left", arrow: "←", start: [0, 1, 1, 0], color: C.green,
+      meaning: "logical shift left = ×2",
+      detail: "The whole word moves one place LEFT: the MSB falls out past the left margin, and a fresh 0 slides into the vacated RIGHT cell. 0110 (6) → 1100 (12)." },
+    shr:  { label: "Logical Right", arrow: "→", start: [0, 1, 1, 0], color: C.accent,
+      meaning: "logical shift right = ÷2 (unsigned)",
+      detail: "The word moves one place RIGHT: the LSB falls out past the right margin, and a 0 slides into the vacated LEFT cell. 0110 (6) → 0011 (3)." },
+    ashr: { label: "Arithmetic Right", arrow: "→", start: [1, 0, 1, 0], color: C.orange,
+      meaning: "arithmetic shift right = ÷2, sign kept",
+      detail: "Like logical right, but the vacated LEFT cell is filled with a COPY of the sign bit (here 1), so a negative number stays negative. 1010 (−6) → 1101 (−3)." },
+    ror:  { label: "Circular Right", arrow: "↻", start: [1, 0, 0, 1], color: C.purple,
+      meaning: "rotate / circular right — no bit lost",
+      detail: "The bit leaving the right margin WRAPS around into the vacated left cell — nothing is lost or invented. 1001 → 1100." },
   };
+  const m = MODES[kind];
+  const b = m.start;
 
-  const before = start;
-  const after = doShift(before, kind);
-  const valBefore = parseInt(before.join(""), 2);
-  const valAfterUnsigned = parseInt(after.join(""), 2);
+  // Compute after-word, the ejected bit + side, and the inserted bit + kind.
+  let after, ejectSide, ejectBit, insertIndex, insertBit, insertKind;
+  if (kind === "shl") {
+    after = [b[1], b[2], b[3], 0]; ejectSide = "left"; ejectBit = b[0]; insertIndex = 3; insertBit = 0; insertKind = "fresh 0";
+  } else if (kind === "shr") {
+    after = [0, b[0], b[1], b[2]]; ejectSide = "right"; ejectBit = b[3]; insertIndex = 0; insertBit = 0; insertKind = "fresh 0";
+  } else if (kind === "ashr") {
+    after = [b[0], b[0], b[1], b[2]]; ejectSide = "right"; ejectBit = b[3]; insertIndex = 0; insertBit = b[0]; insertKind = "sign bit";
+  } else {
+    after = [b[3], b[0], b[1], b[2]]; ejectSide = "right"; ejectBit = b[3]; insertIndex = 0; insertBit = b[3]; insertKind = "wrapped bit";
+  }
 
-  const notes = {
-    shl: { title: "Logical left (shl) — fresh 0 slides in", math: `0110 (6) << 1 = 1100 (12) — ×2`, color: C.green,
-      body: "Every bit moves up one place, worth twice as much; a fresh 0 enters at the right. Left shift ≈ ×2." },
-    ashr: { title: "Arithmetic right (ashr) — sign bit copied in", math: `0110 (6) >> 1 = 0011 (3) — ÷2`, color: C.accent,
-      body: "Every bit moves down one place, worth half. The old sign (MSB) is re-inserted, so dividing a NEGATIVE number by 2 still stays negative. A logical shift would flip the sign." },
-    cir: { title: "Circular right (cir) — the exiting bit wraps", math: `0110 → 0011 (the bit that falls off re-enters the other end)`, color: C.purple,
-      body: "No bit is lost or invented — the bit that exits one end re-enters the other. Used for rotations, not for ×2/÷2." },
-  };
-  const n = notes[kind];
+  const decBefore = parseInt(b.join(""), 2);
+  const decAfter = parseInt(after.join(""), 2);
 
-  const Cell = ({ b, faded }) => (
+  // A single bit cell — BOTH 0s and 1s get a visible filled cell.
+  const Cell = ({ bit, highlight, anim }) => (
     <div style={{
-      width: 42, height: 48, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+      width: 42, height: 46, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
       fontFamily: "monospace", fontSize: 22, fontWeight: 800,
-      background: b ? n.color + "22" : C.card, border: `2px solid ${b ? n.color : C.border}`,
-      color: b ? n.color : C.muted, opacity: faded ? 0.4 : 1, transition: "all 0.3s",
-    }}>{b}</div>
+      background: highlight ? m.color + "33" : (bit ? C.teal + "22" : C.surface),
+      border: `2px solid ${highlight ? m.color : (bit ? C.teal : C.muted)}`,
+      color: highlight ? m.color : (bit ? C.teal : C.text),
+      animation: anim || "none",
+    }}>{bit}</div>
+  );
+
+  const Margin = () => (
+    <div style={{ width: 4, height: 58, borderRadius: 2, background: C.yellow, opacity: 0.8 }} />
+  );
+
+  // ejected chip sits just OUTSIDE the relevant margin, faded, sliding away.
+  const EjectChip = ({ animName }) => (
+    <div style={{
+      width: 36, height: 40, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
+      fontFamily: "monospace", fontSize: 18, fontWeight: 800, color: kind === "ror" ? C.purple : C.red,
+      background: (kind === "ror" ? C.purple : C.red) + "1E", border: `2px dashed ${kind === "ror" ? C.purple : C.red}`,
+      animation: `${animName} 0.8s ease`,
+    }}>{ejectBit}</div>
+  );
+
+  const Row = ({ bits, isAfter }) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+      <div style={{ width: 40, textAlign: "right", fontSize: 10, color: C.muted, marginRight: 2 }}>
+        {isAfter && ejectSide === "left" ? <EjectChip animName="u22ejectL" /> : null}
+      </div>
+      <Margin />
+      {bits.map((bit, i) => (
+        <Cell key={i} bit={bit}
+          highlight={isAfter && i === insertIndex}
+          anim={isAfter && i === insertIndex ? "u22pop 0.7s ease" : undefined} />
+      ))}
+      <Margin />
+      <div style={{ width: 40, textAlign: "left", fontSize: 10, color: C.muted, marginLeft: 2 }}>
+        {isAfter && ejectSide === "right" ? <EjectChip animName="u22ejectR" /> : null}
+      </div>
+    </div>
   );
 
   return (
     <div>
+      <style>{`
+        @keyframes u22pop { 0%{transform:scale(.35);opacity:0} 60%{transform:scale(1.18)} 100%{transform:scale(1);opacity:1} }
+        @keyframes u22ejectL { 0%{opacity:1;transform:translateX(30px)} 100%{opacity:.25;transform:translateX(0)} }
+        @keyframes u22ejectR { 0%{opacity:1;transform:translateX(-30px)} 100%{opacity:.25;transform:translateX(0)} }
+      `}</style>
+
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        A shift is two actions: <strong style={{ color: C.text }}>① move every bit one place, ② fill the vacated end</strong>.
-        Every shift moves bits the same way — the three <em>types</em> differ only in step ②, and that one choice decides what
-        the shift <em>means</em>. Switch between them:
+        A shift is two actions: <strong style={{ color: C.text }}>① move every bit one place between the two margins,
+        ② fill the vacated cell</strong>. All four types move the word the same way — they differ only in
+        <em> which bit is inserted</em>, and that decides what the shift <em>means</em>. Pick one and replay it.
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        {[["shl", "Logical ← ×2"], ["ashr", "Arithmetic → ÷2"], ["cir", "Circular ↻"]].map(([k, label]) => (
-          <button key={k} onClick={() => setKind(k)} style={{
-            flex: 1, padding: "9px", borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 12,
-            background: kind === k ? n.color + "22" : C.card,
-            border: `2px solid ${kind === k ? notes[k].color : C.border}`,
-            color: kind === k ? notes[k].color : C.muted,
-          }}>{label}</button>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+        {Object.entries(MODES).map(([k, v]) => (
+          <button key={k} onClick={() => { setKind(k); setPlayKey((n) => n + 1); }} style={{
+            flex: 1, minWidth: 110, padding: "9px 6px", borderRadius: 9, cursor: "pointer", fontWeight: 700, fontSize: 11.5,
+            background: kind === k ? v.color + "22" : C.card,
+            border: `2px solid ${kind === k ? v.color : C.border}`,
+            color: kind === k ? v.color : C.muted,
+          }}>{v.label} {v.arrow}</button>
         ))}
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
-          <span style={{ color: C.muted, fontSize: 11, width: 54, textAlign: "right" }}>before</span>
-          {before.map((b, i) => <Cell key={i} b={b} />)}
-          <span style={{ color: C.muted, fontSize: 12, marginLeft: 6, fontFamily: "monospace" }}>= {valBefore}</span>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 10px", marginBottom: 12 }} key={playKey}>
+        {/* margin labels */}
+        <div style={{ display: "flex", justifyContent: "space-between", maxWidth: 320, margin: "0 auto 4px", padding: "0 44px" }}>
+          <span style={{ color: C.yellow, fontSize: 9 }}>◄ left margin</span>
+          <span style={{ color: C.yellow, fontSize: 9 }}>right margin ►</span>
         </div>
-        <div style={{ textAlign: "center", color: C.muted, fontSize: 18, margin: "2px 0" }}>↓ {kind === "shl" ? "shift left" : "shift right"}</div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          <span style={{ color: n.color, fontSize: 11, width: 54, textAlign: "right", fontWeight: 700 }}>after</span>
-          {after.map((b, i) => <Cell key={i} b={b} />)}
-          <span style={{ color: n.color, fontSize: 12, marginLeft: 6, fontFamily: "monospace", fontWeight: 700 }}>= {valAfterUnsigned}</span>
+
+        <div style={{ marginBottom: 4 }}>
+          <div style={{ textAlign: "center", color: C.muted, fontSize: 10, marginBottom: 4 }}>before &nbsp;=&nbsp; {decBefore}{kind === "ashr" ? " (−6 signed)" : ""}</div>
+          <Row bits={b} isAfter={false} />
+        </div>
+
+        <div style={{ textAlign: "center", color: m.color, fontSize: 20, margin: "6px 0", fontWeight: 700 }}>
+          {m.arrow} shift {kind === "shl" ? "left" : "right"}{kind === "ror" ? " (rotate)" : ""}
+        </div>
+
+        <div>
+          <Row bits={after} isAfter={true} />
+          <div style={{ textAlign: "center", color: m.color, fontSize: 10, marginTop: 4 }}>
+            after &nbsp;=&nbsp; {decAfter}{kind === "ashr" ? " (−3 signed)" : ""} &nbsp;·&nbsp;
+            inserted <strong>{insertBit}</strong> ({insertKind}), bit <strong>{ejectBit}</strong> left the {ejectSide} margin{kind === "ror" ? " and wrapped in" : ""}
+          </div>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 10 }}>
+          <button onClick={() => setPlayKey((n) => n + 1)} style={{
+            padding: "7px 18px", borderRadius: 8, border: `1px solid ${m.color}`, background: m.color + "18",
+            color: m.color, fontWeight: 700, fontSize: 12, cursor: "pointer",
+          }}>▶ Replay shift</button>
         </div>
       </div>
 
-      <div style={{ background: n.color + "12", border: `1px solid ${n.color}55`, borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
-        <div style={{ color: n.color, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{n.title}</div>
-        <div style={{ color: C.text, fontSize: 12.5, fontFamily: "monospace", marginBottom: 6 }}>{n.math}</div>
-        <div style={{ color: C.muted, fontSize: 12.5, lineHeight: 1.6 }}>{n.body}</div>
+      <div style={{ background: m.color + "12", border: `1px solid ${m.color}55`, borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
+        <div style={{ color: m.color, fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{m.label} — {m.meaning}</div>
+        <div style={{ color: C.muted, fontSize: 12.5, lineHeight: 1.6 }}>{m.detail}</div>
       </div>
 
       <Key color={C.yellow}>
         <strong style={{ color: C.green }}>Left ≈ ×2</strong>, <strong style={{ color: C.accent }}>right ≈ ÷2</strong> — a shift
-        is far cheaper than a full multiply. And it's the heart of <strong style={{ color: C.text }}>shift-and-add</strong>
-        multiplication: a number is a sum of powers of two, so multiplying = adding shifted copies of the multiplicand — at most
-        one add per bit. Arithmetic (logic) shift keeps the sign; logical loses it; circular wraps.
+        is far cheaper than a full multiply, and it's the heart of <strong style={{ color: C.text }}>shift-and-add</strong>
+        multiplication. The vacated cell decides the type: <strong style={{ color: C.accent }}>0</strong> = logical,
+        <strong style={{ color: C.orange }}> sign bit</strong> = arithmetic (keeps the sign),
+        <strong style={{ color: C.purple }}> wrapped bit</strong> = circular.
       </Key>
     </div>
   );
@@ -559,7 +711,7 @@ function Quiz({ onComplete }) {
 export default function Unit2_2({ student, onUnitComplete }) {
   const sections = [
     { id: "adder", label: "One Adder" },
-    { id: "subtract", label: "Adder–Subtractor" },
+    { id: "subtract", label: "2's-Comp Subtract" },
     { id: "arith", label: "Many Operations" },
     { id: "logic", label: "Logic & Masking" },
     { id: "shift", label: "Shifts" },
@@ -578,7 +730,7 @@ export default function Unit2_2({ student, onUnitComplete }) {
       <OneAdder />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>➖ The Adder–Subtractor — one circuit, two jobs</h3>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>➖ Subtract by 2's Complement — plain arithmetic</h3>
       <AdderSubtractor />
     </div>,
     <div>
