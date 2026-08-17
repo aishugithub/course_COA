@@ -79,8 +79,6 @@ const COURSE_CONFIG = {
           blurb: "The road is built — now drive one whole instruction across it, beat by beat, from fetch to write-back." },
         { unitId: "Unit2_7", title: "Microprogrammed Control",
           blurb: "The datapath is idle wires until someone raises the signals. Build that conductor two ways: frozen in gates, or stored as microcode." },
-        { unitId: "Unit2_C", title: "Capstone: Build the Control Sequence",
-          blurb: "Every tool you forged, in one mission: write the full control sequence for one instruction — then press Run and watch it work." },
       ],
     },
     {
