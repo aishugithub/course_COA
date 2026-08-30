@@ -78,6 +78,62 @@ function TheConductor() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  Section 2a — Hardwired anatomy: three parts, one combinational box
+//  (matches the classroom deck's "open the box" diagram — this was the
+//  piece missing before: WHERE the equation in the next widget comes from)
+// ══════════════════════════════════════════════════════════════════
+function HardwiredAnatomy() {
+  const parts = [
+    { key: "ir", label: "Instruction decoder", color: C.teal, blurb: "Reads the opcode out of the IR. Its output says which instruction — LOAD, ADD, STORE…" },
+    { key: "step", label: "Step counter", color: C.accent, blurb: "A small counter (Hamacher: modulo-5, T1–T5 · Mano: a 4-bit sequence counter) that says which beat of the instruction we're on right now." },
+    { key: "flags", label: "Flags Z N C V", color: C.yellow, blurb: "Condition-code bits, so a signal can also depend on the last ALU result (e.g. a conditional branch's control line)." },
+  ];
+  const [open, setOpen] = useState("ir");
+  const p = parts.find((x) => x.key === open);
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        "A fixed circuit" is vague until you open the box. Inside are exactly <strong style={{ color: C.text }}>three</strong> pieces
+        feeding one <strong style={{ color: C.accent }}>control signal generator</strong> — click each one.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        {parts.map((x) => (
+          <button key={x.key} onClick={() => setOpen(x.key)} style={{
+            flex: 1, minWidth: 130, padding: "10px 8px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700,
+            background: open === x.key ? x.color + "22" : C.card, border: `2px solid ${open === x.key ? x.color : C.border}`,
+            color: open === x.key ? x.color : C.muted,
+          }}>{x.label}</button>
+        ))}
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 12 }}>
+        <svg viewBox="0 0 520 90" style={{ width: "100%", display: "block", marginBottom: 10 }}>
+          {parts.map((x, i) => (
+            <g key={x.key}>
+              <rect x={10 + i * 170} y={10} width={150} height={40} rx={8}
+                fill={open === x.key ? x.color + "22" : "transparent"} stroke={open === x.key ? x.color : C.border} strokeWidth={1.8} />
+              <text x={85 + i * 170} y={34} textAnchor="middle" fontSize={10.5} fontWeight="700" fill={open === x.key ? x.color : C.muted}>{x.label}</text>
+              <line x1={85 + i * 170} y1={50} x2={260} y2={70} stroke={open === x.key ? x.color : C.border} strokeWidth={1.6} />
+            </g>
+          ))}
+          <rect x={185} y={65} width={150} height={22} rx={6} fill={C.accent + "18"} stroke={C.accent} strokeWidth={1.6} />
+          <text x={260} y={80} textAnchor="middle" fontSize={9.5} fontWeight="700" fill={C.accent}>Control signal generator</text>
+        </svg>
+        <div style={{ color: C.text, fontSize: 13, lineHeight: 1.6 }}>{p.blurb}</div>
+      </div>
+
+      <Key color={C.accent}>
+        <strong style={{ color: C.teal }}>Decoder</strong> says <em>which</em> instruction, the <strong style={{ color: C.accent }}>step
+        counter</strong> says <em>which beat</em>, and the <strong style={{ color: C.accent }}>generator</strong> ANDs/ORs those inputs
+        (plus flags) into every control signal. What the generator actually computes is the equation you'll build in the next widget.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  Section 2 — Hardwired: a signal is a Boolean equation
 // ══════════════════════════════════════════════════════════════════
 function Hardwired() {
@@ -143,6 +199,75 @@ function Hardwired() {
         Hardwired = <strong style={{ color: C.text }}>instruction decoder + step counter + a gate for every signal</strong>. Each
         signal is a Boolean OR of the beats that raise it (e.g. <code style={{ fontFamily: "monospace" }}>MARin = T1 + T4·(LOAD+STORE)</code>).
         Fast — one gate delay — but changing the design means rewiring the chip.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 3a — Address generator + how the µPC picks its NEXT address
+//  (the deck's missing piece: opcode -> start address, and the four
+//  sequencing cases hiding inside "increment or branch")
+// ══════════════════════════════════════════════════════════════════
+function AddressGenAndSequencing() {
+  const [opcode, setOpcode] = useState("LOAD");
+  const starts = { LOAD: 40, ADD: 90, STORE: 130 };
+
+  const seqCases = [
+    { key: "inline", label: "In-line", color: C.green, blurb: "Increment the control-address register (CAR) — the usual next step, most beats." },
+    { key: "branch", label: "Branch", color: C.yellow, blurb: "Unconditional, or conditional — test a flag (Z, N, C, V) and jump elsewhere in the routine." },
+    { key: "map", label: "Map", color: C.teal, blurb: "Right after fetch, the opcode maps to this instruction's own microroutine start address — the step you just drove above." },
+    { key: "end", label: "End", color: C.red, blurb: "The End bit forces a jump back to the shared fetch microroutine — done with this instruction." },
+  ];
+  const [seq, setSeq] = useState("map");
+  const s = seqCases.find((x) => x.key === seq);
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Before the µPC can walk a routine, something has to tell it <strong style={{ color: C.text }}>where to start</strong>. That's the
+        job of the <strong style={{ color: C.yellow }}>address generator</strong>: it reads the freshly-fetched opcode and produces the
+        control-store address of that opcode's microroutine. Pick an opcode.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        {Object.keys(starts).map((op) => (
+          <button key={op} onClick={() => setOpcode(op)} style={{
+            flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5, fontFamily: "monospace",
+            background: opcode === op ? C.teal + "22" : C.card, border: `2px solid ${opcode === op ? C.teal : C.border}`,
+            color: opcode === op ? C.teal : C.muted,
+          }}>{op}</button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 18px", marginBottom: 14 }}>
+        <div style={{ padding: "8px 12px", borderRadius: 8, background: C.yellow + "1E", border: `2px solid ${C.yellow}`, fontSize: 12, fontWeight: 700, color: C.yellow }}>IR = {opcode}</div>
+        <div style={{ color: C.muted, fontSize: 18 }}>→</div>
+        <div style={{ padding: "8px 12px", borderRadius: 8, background: C.card, border: `1px solid ${C.border}`, fontSize: 11, color: C.muted }}>address generator</div>
+        <div style={{ color: C.muted, fontSize: 18 }}>→</div>
+        <div style={{ padding: "8px 14px", borderRadius: 8, background: C.purple + "1E", border: `2px solid ${C.purple}`, fontSize: 14, fontWeight: 800, color: C.purple, fontFamily: "monospace" }}>µPC ← {starts[opcode]}</div>
+      </div>
+
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 10, lineHeight: 1.7 }}>
+        That's one of <strong style={{ color: C.text }}>four</strong> ways the sequencing word can set the next address every beat.
+        Tap each to see when it fires.
+      </p>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        {seqCases.map((x) => (
+          <button key={x.key} onClick={() => setSeq(x.key)} style={{
+            flex: 1, minWidth: 90, padding: "8px 6px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 11.5,
+            background: seq === x.key ? x.color + "22" : C.card, border: `2px solid ${seq === x.key ? x.color : C.border}`,
+            color: seq === x.key ? x.color : C.muted,
+          }}>{x.label}</button>
+        ))}
+      </div>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 40, lineHeight: 1.6 }}>{s.blurb}</div>
+
+      <Key color={C.yellow}>
+        Every microinstruction's sequencing bits pick exactly one of these four moves. That's the whole mechanism behind "the µPC
+        walks the routine" — it is never a mystery, always one of: <strong style={{ color: C.green }}>increment</strong>,
+        <strong style={{ color: C.yellow }}> branch</strong>, <strong style={{ color: C.teal }}>map</strong>, or
+        <strong style={{ color: C.red }}> End</strong>.
       </Key>
     </div>
   );
@@ -451,11 +576,15 @@ export default function Unit2_7({ student, onUnitComplete }) {
       <TheConductor />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>🔧 Hardwired — a signal is a Boolean equation</h3>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>🔧 Hardwired — three parts, one Boolean equation</h3>
+      <HardwiredAnatomy />
+      <div style={{ height: 22 }} />
       <Hardwired />
     </div>,
     <div>
-      <h3 style={{ color: C.text, marginBottom: 6 }}>💾 Microprogrammed — signals in a control store</h3>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>💾 Microprogrammed — address, sequencing &amp; the control store</h3>
+      <AddressGenAndSequencing />
+      <div style={{ height: 22 }} />
       <Microprogrammed />
     </div>,
     <div>
