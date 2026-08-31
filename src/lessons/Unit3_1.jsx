@@ -1,10 +1,12 @@
-// Unit3_1.jsx — Module 3 › Unit 3.1 — "The Role of Cache Memory"
-// Foothold formula: GitHub-dark palette, free-nav tab strip, one interactive
-// widget per section, 🔑 key-insight callouts, 4-question quiz.
-// Source: Hamacher Ch.6 (Pipelining) §6.3, Fig 6.7 — class notes §3.5.
-// SCOPE NOTE: cache appears here ONLY in its role as a source of pipeline
-// stalls. General cache hierarchy / mapping / replacement lives in Module 4 —
-// do not pull that material in here.
+// Unit3_1.jsx — Module 3 › Unit 3.1 — "The Pipelining Idea"
+// REBUILT per Aishu's review: this unit previously covered cache memory,
+// which is NOT a chapter in the class notes at all (cache only appears
+// briefly inside Unit 3.3's Data Hazards, Sec 3.5 "Memory delays"). The
+// notes' actual Chapter 1 — "The Pipelining Idea" — was never built as its
+// own lesson until now. This unit covers it in full: why pipelining exists
+// (Sec 1.1, assembly-line analogy), the five-step instruction (Sec 1.2),
+// the ideal overlapped case (Sec 1.3, Fig 6.1), and pipeline organization +
+// interstage buffers B1-B4 (Sec 1.4, Fig 6.2).
 import { useState } from "react";
 
 const C = {
@@ -24,234 +26,249 @@ function Key({ color = C.purple, children }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 1 — Why? Every stage assumes its neighbour is always ready
+//  Section 1 — Why? Two ways to make a program faster (Sec 1.1)
 // ══════════════════════════════════════════════════════════════════
-function WhyItMatters() {
-  const [misses, setMisses] = useState(0); // 0..4, how many of 5 fetches miss
-
-  const cells = Array.from({ length: 5 }, (_, i) => i < misses);
-  const cyclesNoMiss = 5;
-  const cyclesWithMiss = 5 + misses * 9; // each miss costs ~9 extra cycles
+function WhyPipelining() {
+  const [mode, setMode] = useState("assembly"); // "onecar" | "assembly"
+  const isAssembly = mode === "assembly";
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Every single cycle, the pipeline's <strong style={{ color: C.text }}>Fetch</strong> stage assumes the next instruction word
-        is sitting right there, one cycle away. That assumption is what "one instruction completes every cycle" is built on. Drag
-        the slider — how many of 5 fetches miss the cache and have to go all the way to main memory?
-      </p>
-
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ color: C.muted, fontSize: 12 }}>cache misses out of 5 fetches = <strong style={{ color: C.red }}>{misses}</strong></label>
-        <input type="range" min={0} max={4} value={misses} onChange={(e) => setMisses(Number(e.target.value))} style={{ width: "100%", accentColor: C.red }} />
-      </div>
-
-      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-        {cells.map((miss, i) => (
-          <div key={i} style={{
-            flex: 1, height: 46, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 12, fontWeight: 800, color: miss ? C.red : C.green,
-            background: miss ? C.red + "18" : C.green + "18", border: `2px solid ${miss ? C.red : C.green}`,
-          }}>{miss ? "MISS" : "hit"}</div>
-        ))}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <div style={{ background: C.card, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: 16, textAlign: "center" }}>
-          <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginBottom: 10 }}>✅ ALL HITS</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: C.text }}>{cyclesNoMiss}</div>
-          <div style={{ color: C.muted, fontSize: 11 }}>cycles for 5 fetches</div>
-        </div>
-        <div style={{ background: C.card, border: `1.5px solid ${C.red}44`, borderRadius: 10, padding: 16, textAlign: "center" }}>
-          <div style={{ color: C.red, fontWeight: 700, fontSize: 12, marginBottom: 10 }}>❌ WITH MISSES</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: C.text }}>{cyclesWithMiss}</div>
-          <div style={{ color: C.muted, fontSize: 11 }}>cycles for the same 5 fetches</div>
-        </div>
-      </div>
-
-      <Key color={C.red}>
-        A cache miss doesn't just slow the instruction that missed — it stalls <strong style={{ color: C.text }}>every stage behind
-        it</strong> too, because they have nothing to work on. One miss can cost as much as <strong style={{ color: C.red }}>10 or
-        more cycles</strong> — far worse than any data or branch hazard you've seen so far.
-      </Key>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  Section 2 — Anatomy: hit path vs miss path
-// ══════════════════════════════════════════════════════════════════
-function HitOrMiss() {
-  const [path, setPath] = useState("hit");
-  const isHit = path === "hit";
-
-  return (
-    <div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Every Fetch (and every Load/Store in the Memory stage) asks the cache for a word. Two things can happen. Toggle between
-        them.
+        A program can be made faster in <strong style={{ color: C.text }}>two</strong> broad ways: use faster circuitry, or
+        arrange the hardware so more than one operation happens at the same time. Pipelining takes the second route. The classic
+        analogy is a car factory — toggle between the two ways of building cars.
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button onClick={() => setPath("hit")} style={{
+        <button onClick={() => setMode("onecar")} style={{
           flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: isHit ? C.green + "22" : C.card, border: `2px solid ${isHit ? C.green : C.border}`, color: isHit ? C.green : C.muted,
-        }}>✅ Cache HIT</button>
-        <button onClick={() => setPath("miss")} style={{
+          background: !isAssembly ? C.red + "22" : C.card, border: `2px solid ${!isAssembly ? C.red : C.border}`, color: !isAssembly ? C.red : C.muted,
+        }}>❌ One car at a time</button>
+        <button onClick={() => setMode("assembly")} style={{
           flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: !isHit ? C.red + "22" : C.card, border: `2px solid ${!isHit ? C.red : C.border}`, color: !isHit ? C.red : C.muted,
-        }}>❌ Cache MISS</button>
+          background: isAssembly ? C.green + "22" : C.card, border: `2px solid ${isAssembly ? C.green : C.border}`, color: isAssembly ? C.green : C.muted,
+        }}>✅ Assembly line</button>
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "18px 16px", marginBottom: 12 }}>
-        <svg viewBox="0 0 520 90" style={{ width: "100%", display: "block" }}>
-          <rect x={10} y={20} width={120} height={50} rx={8} fill={C.card} stroke={C.accent} strokeWidth={1.8} />
-          <text x={70} y={50} textAnchor="middle" fontSize={11} fontWeight="700" fill={C.accent}>Fetch / Memory</text>
-          <rect x={200} y={20} width={110} height={50} rx={8} fill={isHit ? C.green + "18" : C.card} stroke={isHit ? C.green : C.border} strokeWidth={1.8} />
-          <text x={255} y={50} textAnchor="middle" fontSize={11} fontWeight="700" fill={isHit ? C.green : C.muted}>Cache</text>
-          <line x1={130} y1={45} x2={198} y2={45} stroke={C.border} strokeWidth={1.8} markerEnd="url(#a1)" />
-          {isHit
-            ? <>
-                <line x1={310} y1={45} x2={400} y2={45} stroke={C.green} strokeWidth={2.2} markerEnd="url(#a2)" />
-                <text x={355} y={30} textAnchor="middle" fontSize={9.5} fill={C.green} fontWeight="700">1 cycle</text>
-                <rect x={400} y={20} width={110} height={50} rx={8} fill={C.green + "18"} stroke={C.green} strokeWidth={1.8} />
-                <text x={455} y={50} textAnchor="middle" fontSize={11} fontWeight="700" fill={C.green}>Pipeline moves on</text>
-              </>
-            : <>
-                <line x1={310} y1={45} x2={400} y2={45} stroke={C.red} strokeWidth={2.2} strokeDasharray="4 3" markerEnd="url(#a3)" />
-                <text x={355} y={30} textAnchor="middle" fontSize={9.5} fill={C.red} fontWeight="700">10+ cycles</text>
-                <rect x={400} y={20} width={110} height={50} rx={8} fill={C.red + "18"} stroke={C.red} strokeWidth={1.8} />
-                <text x={455} y={44} textAnchor="middle" fontSize={11} fontWeight="700" fill={C.red}>Main</text>
-                <text x={455} y={58} textAnchor="middle" fontSize={11} fontWeight="700" fill={C.red}>memory</text>
-              </>}
-          <defs>
-            <marker id="a1" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.border} /></marker>
-            <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.green} /></marker>
-            <marker id="a3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill={C.red} /></marker>
-          </defs>
-        </svg>
-      </div>
-
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, lineHeight: 1.6 }}>
-        {isHit
-          ? <span>The word is already in the small, fast cache. It comes back in about <strong style={{ color: C.green }}>one cycle</strong> — the pipeline never even notices.</span>
-          : <span>The word isn't in the cache. The request has to go all the way to main memory, which is far slower — the whole pipeline sits idle waiting for it to come back.</span>}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
+        {!isAssembly ? (
+          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.8 }}>
+            One team builds an ENTIRE car — chassis, engine, paint, interior — before starting the next one. Each car still
+            takes the same few hours to build, and cars roll out one every <strong style={{ color: C.red }}>few hours</strong>.
+          </div>
+        ) : (
+          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.8 }}>
+            Every station does ONE step (chassis, then engine, then paint, then interior) and is <strong>always working on a
+            different car</strong>. Any one car still takes the same few hours start-to-finish — but once the line is full, a
+            finished car rolls off <strong style={{ color: C.green }}>every few minutes</strong>.
+          </div>
+        )}
       </div>
 
       <Key color={C.accent}>
-        This lesson never asks <em>why</em> a word is or isn't in the cache — that's a whole module of its own (mapping, hit/miss
-        rate, replacement policy — Module 4). Here, all that matters is: a miss is a stall, and it can hit at Fetch <em>or</em> at
-        Memory.
+        Nothing about building any ONE car got faster. What changed is <strong style={{ color: C.text }}>throughput</strong> —
+        how many cars finish per unit time. This is exactly what pipelining does for instructions: it
+        <strong style={{ color: C.text }}> overlaps</strong> the execution of successive instructions across dedicated hardware
+        stages.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 3 — Trace: a Load misses, everything behind it waits (Fig 6.7)
+//  Section 2 — Anatomy: one instruction = five steps (Sec 1.2)
 // ══════════════════════════════════════════════════════════════════
-function MissTrace() {
-  const steps = [
-    { cyc: 1, note: "Cycle 1 — Iⱼ (a Load) is fetched normally.", ij: "F", ij1: "" },
-    { cyc: 2, note: "Cycle 2 — Iⱼ decodes; Iⱼ₊₁ is fetched right behind it.", ij: "D", ij1: "F" },
-    { cyc: 3, note: "Cycle 3 — Iⱼ computes its address; Iⱼ₊₁ decodes.", ij: "C", ij1: "D" },
-    { cyc: 4, note: "Cycle 4 — Iⱼ enters Memory and… misses the cache. Iⱼ₊₁ has nowhere to go — it stalls.", ij: "M-miss", ij1: "stall" },
-    { cyc: 5, note: "Cycle 5 — still waiting on main memory. Iⱼ₊₁ is still stalled.", ij: "M-miss", ij1: "stall" },
-    { cyc: 6, note: "Cycle 6 — the word finally arrives. Iⱼ's Memory stage completes.", ij: "M-miss", ij1: "stall" },
-    { cyc: 7, note: "Cycle 7 — Iⱼ writes back; Iⱼ₊₁ can finally move into Compute.", ij: "W", ij1: "C" },
+function FiveSteps() {
+  const stages = [
+    { k: "F", name: "Fetch", desc: "Get the instruction word from memory.", color: C.accent },
+    { k: "D", name: "Decode", desc: "Figure out the operation and read the register operands.", color: C.teal },
+    { k: "C", name: "Compute", desc: "The ALU does the arithmetic/logic.", color: C.orange },
+    { k: "M", name: "Memory", desc: "Access data memory — only Load/Store instructions actually need this.", color: C.purple },
+    { k: "W", name: "Write", desc: "Write the result back into the register file.", color: C.green },
   ];
-  const [i, setI] = useState(0);
-  const s = steps[i];
+  const [active, setActive] = useState(null);
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Step through a Load that misses the cache (a 3-cycle miss, shown compressed — real misses often cost more). Watch every
-        instruction behind it freeze, exactly like a data hazard's bubbles, except the stall here comes from <strong style={{ color: C.text }}>memory</strong>, not a register dependency.
+        Recall from Unit 2: a single instruction executes in five steps, one per clock cycle, and — critically — each step uses
+        <strong style={{ color: C.text }}> different hardware</strong>. Click each stage.
       </p>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-          <div style={{ width: 90, fontSize: 12, color: C.muted, fontFamily: "monospace" }}>Iⱼ: Load</div>
-          <div style={{
-            flex: 1, padding: "8px", borderRadius: 6, textAlign: "center", fontWeight: 700, fontSize: 12,
-            background: s.ij.includes("miss") ? C.red + "22" : C.accent + "22",
-            color: s.ij.includes("miss") ? C.red : C.accent, border: `1.5px solid ${s.ij.includes("miss") ? C.red : C.accent}`,
-          }}>{s.ij}</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 90, fontSize: 12, color: C.muted, fontFamily: "monospace" }}>Iⱼ₊₁</div>
-          <div style={{
-            flex: 1, padding: "8px", borderRadius: 6, textAlign: "center", fontWeight: 700, fontSize: 12,
-            background: s.ij1 === "stall" ? "transparent" : C.teal + "22",
-            color: s.ij1 === "stall" ? C.red : C.teal,
-            border: `1.5px dashed ${s.ij1 === "stall" ? C.red : C.teal}`,
-          }}>{s.ij1 === "stall" ? "waiting…" : s.ij1 || "not fetched yet"}</div>
-        </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        {stages.map((s, i) => (
+          <button key={i} onClick={() => setActive(active === i ? null : i)} style={{
+            flex: 1, padding: "12px 4px", borderRadius: 8, cursor: "pointer", textAlign: "center",
+            background: active === i ? s.color + "22" : C.card, border: `2px solid ${active === i ? s.color : C.border}`,
+          }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: active === i ? s.color : C.muted }}>{s.k}</div>
+            <div style={{ fontSize: 9.5, color: C.muted, marginTop: 2 }}>{s.name}</div>
+          </button>
+        ))}
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, minHeight: 44, lineHeight: 1.6, marginBottom: 10 }}>
-        {s.note}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.text, minHeight: 40 }}>
+        {active !== null ? <span><strong style={{ color: stages[active].color }}>{stages[active].name}:</strong> {stages[active].desc}</span> : "Click a stage above to see what it does."}
       </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => setI((v) => Math.max(0, v - 1))} disabled={i === 0} style={{
-          flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.muted,
-          cursor: i === 0 ? "default" : "pointer", fontWeight: 700, fontSize: 13, opacity: i === 0 ? 0.5 : 1,
-        }}>↺ Back</button>
-        <button onClick={() => setI((v) => Math.min(steps.length - 1, v + 1))} disabled={i === steps.length - 1} style={{
-          flex: 2, padding: "10px", borderRadius: 8, border: "none", background: C.accentGlow, color: "#fff",
-          cursor: i === steps.length - 1 ? "default" : "pointer", fontWeight: 700, fontSize: 13, opacity: i === steps.length - 1 ? 0.5 : 1,
-        }}>Step ▶ ({i + 1} / {steps.length})</button>
-      </div>
-
-      <Key color={C.red}>
-        A cache miss on <strong>Fetch</strong> stalls every stage behind it, exactly like this — the whole pipeline is only ever as
-        fast as the slowest thing it's waiting on.
+      <Key color={C.teal}>
+        The moment instruction I<sub>j</sub> leaves Fetch and enters Decode, the <strong style={{ color: C.text }}>Fetch unit
+        is free</strong> — nothing is stopping it from fetching I<sub>j+1</sub> right away. Overlapping the steps of successive
+        instructions across dedicated hardware stages is exactly what <strong style={{ color: C.text }}>pipelining</strong>{" "}
+        means.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 4 — Numbers: how much does the miss term really cost?
+//  Section 3 — Trace: the ideal overlapped case (Sec 1.3, Fig 6.1)
 // ══════════════════════════════════════════════════════════════════
-function DoTheMath() {
-  const [memPct, setMemPct] = useState(30);   // % of instructions that touch memory
-  const [missPct, setMissPct] = useState(10); // miss rate
-  const [penalty, setPenalty] = useState(10); // cycles per miss
+function IdealCase() {
+  const stageNames = ["Fetch", "Decode", "Compute", "Memory", "Write"];
+  const stageAbbr = ["F", "D", "C", "M", "W"];
+  const stageColors = [C.accent, C.teal, C.orange, C.purple, C.green];
+  const [cyc, setCyc] = useState(1);
+  const numInstr = 3;
+  const totalCycles = 5 + numInstr - 1; // 7
 
-  const delta = ((memPct / 100) * (missPct / 100) * penalty).toFixed(2);
+  // instruction i (0-indexed) occupies stage s during cycle (i + s + 1)
+  const cellFor = (instr, cycle) => {
+    const s = cycle - instr - 1;
+    if (s < 0 || s > 4) return null;
+    return s;
+  };
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The average cycles-per-instruction, S, is 1 (ideal) plus a penalty term for every kind of stall. The cache term —
-        <span className="mono"> δ_miss</span> — is usually the <strong style={{ color: C.text }}>biggest</strong> of the three (stall,
-        branch, miss). Try the sliders.
+        Three instructions, fully overlapped — this is Figure 6.1. Step through the cycles and watch: any ONE instruction still
+        takes 5 cycles start-to-finish, but once the pipeline fills, a new instruction completes <strong style={{ color: C.text }}>every
+        single cycle</strong>.
       </p>
 
-      {[
-        { label: "% instructions that touch memory", val: memPct, set: setMemPct, min: 0, max: 100, color: C.teal },
-        { label: "cache miss rate (%)", val: missPct, set: setMissPct, min: 0, max: 50, color: C.red },
-        { label: "cycles lost per miss", val: penalty, set: setPenalty, min: 1, max: 30, color: C.orange },
-      ].map((s, idx) => (
-        <div key={idx} style={{ marginBottom: 14 }}>
-          <label style={{ color: C.muted, fontSize: 12 }}>{s.label} = <strong style={{ color: s.color }}>{s.val}{s.label.includes("%") ? "%" : ""}</strong></label>
-          <input type="range" min={s.min} max={s.max} value={s.val} onChange={(e) => s.set(Number(e.target.value))} style={{ width: "100%", accentColor: s.color }} />
+      <div style={{ overflowX: "auto", marginBottom: 12 }}>
+        <div style={{ display: "inline-block", minWidth: "100%" }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: 60 }} />
+              {Array.from({ length: totalCycles }, (_, c) => <col key={c} />)}
+            </colgroup>
+            <thead>
+              <tr>
+                <th style={{ padding: "6px 4px", fontSize: 11, color: C.muted, textAlign: "left" }}>Instr</th>
+                {Array.from({ length: totalCycles }, (_, c) => (
+                  <th key={c} style={{ padding: "6px 2px", fontSize: 11, color: c + 1 <= cyc ? C.text : C.border, textAlign: "center" }}>{c + 1}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: numInstr }, (_, instr) => (
+                <tr key={instr}>
+                  <td style={{ padding: "4px", fontSize: 12, color: C.text, fontFamily: "monospace", fontWeight: 700 }}>I<sub>{instr === 0 ? "j" : instr === 1 ? "j+1" : "j+2"}</sub></td>
+                  {Array.from({ length: totalCycles }, (_, c) => {
+                    const visible = c + 1 <= cyc;
+                    const s = visible ? cellFor(instr, c + 1) : null;
+                    return (
+                      <td key={c} style={{ padding: 2 }}>
+                        {s !== null ? (
+                          <div style={{
+                            height: 30, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 10.5, fontWeight: 800, color: "#0D1117", background: stageColors[s],
+                          }}>{stageAbbr[s]}</div>
+                        ) : <div style={{ height: 30 }} />}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ))}
-
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px", textAlign: "center" }}>
-        <div style={{ fontFamily: "monospace", fontSize: 14, color: C.muted, marginBottom: 6 }}>δ_miss = (mem% × miss% ) × penalty</div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: C.red }}>+{delta} cycles / instruction</div>
-        <div style={{ color: C.muted, fontSize: 12, marginTop: 6 }}>added on top of the ideal S = 1</div>
       </div>
 
-      <Key color={C.yellow}>
-        Even a modest 10% miss rate on 30% of instructions, at a 10-cycle penalty, adds <strong style={{ color: C.red }}>0.30</strong> to
-        S — often more than the data-hazard and branch-hazard terms combined. This is why real processors invest so heavily in
-        cache design (again — Module 4's job, not this lesson's).
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button onClick={() => setCyc((v) => Math.max(1, v - 1))} disabled={cyc === 1} style={{
+          flex: 1, padding: "10px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.muted,
+          cursor: cyc === 1 ? "default" : "pointer", fontWeight: 700, fontSize: 13, opacity: cyc === 1 ? 0.5 : 1,
+        }}>↺ Back</button>
+        <button onClick={() => setCyc((v) => Math.min(totalCycles, v + 1))} disabled={cyc === totalCycles} style={{
+          flex: 2, padding: "10px", borderRadius: 8, border: "none", background: C.accentGlow, color: "#fff",
+          cursor: cyc === totalCycles ? "default" : "pointer", fontWeight: 700, fontSize: 13, opacity: cyc === totalCycles ? 0.5 : 1,
+        }}>Step ▶ (cycle {cyc} / {totalCycles})</button>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 4 }}>
+        {stageNames.map((n, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.muted }}>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: stageColors[i] }} />{n}
+          </div>
+        ))}
+      </div>
+
+      <Key color={C.accent}>
+        Cycle 5 is the first cycle where <strong style={{ color: C.text }}>all five stages are busy at once</strong> — the
+        pipeline is "full." Read down any column from cycle 5 onward: every stage is working on a different instruction, every
+        single cycle.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 4 — Anatomy: pipeline organization & interstage buffers B1-B4
+//  (Sec 1.4, Fig 6.2) — never built as a lesson before this rewrite
+// ══════════════════════════════════════════════════════════════════
+function PipelineOrganization() {
+  const buffers = [
+    { id: "B1", after: "Fetch", carries: "The newly fetched instruction, ready to decode.", color: C.accent },
+    { id: "B2", after: "Decode", carries: "The two operands read from registers, the immediate value, and the control signals for later stages.", color: C.teal },
+    { id: "B3", after: "Compute", carries: "The ALU result (data to write, or an address/data for memory).", color: C.orange },
+    { id: "B4", after: "Memory", carries: "The value to be written back into the register file.", color: C.purple },
+  ];
+  const [sel, setSel] = useState(null);
+  const stageNames = ["Fetch", "Decode", "Compute", "Memory", "Write"];
+  const stageColors = [C.accent, C.teal, C.orange, C.purple, C.green];
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Each of the five stages is <strong style={{ color: C.text }}>separate hardware</strong>. Between consecutive stages sit
+        registers called <strong style={{ color: C.text }}>interstage buffers</strong> (B1–B4) — at the end of every clock cycle,
+        each buffer latches its stage's result so the next stage can use it the following cycle. Click a buffer.
+      </p>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 14px", marginBottom: 12 }}>
+        {stageNames.map((name, i) => (
+          <div key={i}>
+            <div style={{
+              padding: "9px 12px", borderRadius: 6, textAlign: "center", fontSize: 12.5, fontWeight: 700,
+              background: stageColors[i] + "18", border: `1.5px solid ${stageColors[i]}`, color: stageColors[i],
+            }}>{name}</div>
+            {i < 4 && (
+              <button onClick={() => setSel(sel === i ? null : i)} style={{
+                width: "100%", margin: "4px 0", padding: "6px", borderRadius: 5, cursor: "pointer", fontSize: 11, fontWeight: 700,
+                background: sel === i ? buffers[i].color + "22" : "transparent",
+                border: `1.5px dashed ${sel === i ? buffers[i].color : C.border}`,
+                color: sel === i ? buffers[i].color : C.muted,
+              }}>{buffers[i].id} — click to see what it carries</button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {sel !== null && (
+        <div style={{ background: buffers[sel].color + "18", border: `1px solid ${buffers[sel].color}44`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 12 }}>
+          <strong style={{ color: buffers[sel].color }}>{buffers[sel].id}</strong> (right after {buffers[sel].after}): {buffers[sel].carries}
+        </div>
+      )}
+
+      <Key color={C.purple}>
+        Control signals travel <strong style={{ color: C.text }}>with</strong> the instruction down the pipe, riding in each
+        buffer alongside the data — this is called <strong style={{ color: C.text }}>pipelined control</strong>. It's why later
+        stages always know what to do with the data they receive, even though the instruction itself was decoded several cycles
+        earlier.
       </Key>
     </div>
   );
@@ -263,43 +280,48 @@ function DoTheMath() {
 function Quiz({ onComplete }) {
   const questions = [
     {
-      q: "Why does a cache miss stall the pipeline?",
+      q: "In the assembly-line analogy, what actually gets faster when you switch from 'one car at a time' to an assembly line?",
       options: [
-        "It doesn't — caches never affect pipeline timing",
-        "Main memory is far slower than the cache, so the stage that missed — and every stage behind it — has nothing to do until the word arrives",
-        "The ALU has to recompute the address",
-        "It only affects the Decode stage",
+        "Each individual car is built faster",
+        "Nothing about building any ONE car gets faster — throughput (cars finished per unit time) increases because every station is always working on a different car",
+        "The factory becomes smaller",
+        "Cars need fewer parts",
       ],
       answer: 1,
-      explain: "A hit returns a word in about a cycle from the fast cache. A miss must go to slow main memory — 10+ cycles — during which the stage that missed, and everything behind it in the pipeline, is stalled.",
+      explain: "Any one car still takes the same total time start-to-finish. What changes is throughput — a new finished car rolls out much more often, because every station is always busy on a different car.",
     },
     {
-      q: "In the five-stage pipeline, which stages can suffer a cache miss?",
+      q: "Why can Fetch start working on Ij+1 the very cycle after Ij leaves Fetch, without waiting for Ij to finish entirely?",
       options: [
-        "Only Fetch",
-        "Only Memory",
-        "Both Fetch (fetching instructions) and Memory (loads/stores)",
-        "Only Decode",
+        "It can't — Fetch must wait for Ij to complete",
+        "Each of the five stages is separate, dedicated hardware — the moment Ij moves into Decode, the Fetch unit's hardware is free and idle, so it can fetch Ij+1 immediately",
+        "Only every other instruction gets fetched early",
+        "Fetch and Decode share the same circuit",
+      ],
+      answer: 1,
+      explain: "Because Fetch and Decode are physically separate hardware, Fetch isn't 'busy' with Ij once Ij moves on — it's free to start on the next instruction right away. This is the entire mechanism behind pipelining.",
+    },
+    {
+      q: "In the ideal overlapped case (Figure 6.1), from which cycle onward is the pipeline considered 'full'?",
+      options: [
+        "Cycle 1",
+        "Cycle 3",
+        "Cycle 5 — the first cycle where all five stages are simultaneously busy, each on a different instruction",
+        "It's never actually full",
       ],
       answer: 2,
-      explain: "Fetch reads every instruction word from the cache every cycle; Memory reads/writes operands for Load/Store instructions. A miss in either stage stalls the pipeline.",
+      explain: "It takes 5 cycles for the very first instruction to reach every stage. Only from cycle 5 onward are all five stages occupied at once — before that, the pipeline is still 'filling up.'",
     },
     {
-      q: "In this unit, what is explicitly OUT of scope?",
+      q: "What does interstage buffer B2 (between Decode and Compute) actually carry?",
       options: [
-        "That a cache miss causes a stall",
-        "Cache mapping, hit/miss-rate mechanics, and replacement policy — that belongs to a later module on memory organization",
-        "That the Memory stage can also miss",
-        "That the stall behaves like a hazard bubble",
+        "Just the fetched instruction word",
+        "The two operands read from registers, the immediate value, and the control signals the later stages will need",
+        "The final ALU result",
+        "Nothing — B2 doesn't exist",
       ],
       answer: 1,
-      explain: "This unit only covers cache's role in causing pipeline stalls. How the cache decides what to keep, how it's organized, and its hit-rate mechanics are a separate module.",
-    },
-    {
-      q: "A program has 40% memory-touching instructions, a 5% miss rate, and a 20-cycle miss penalty. What is δ_miss?",
-      options: ["0.40 cycles", "0.04 cycles", "2.0 cycles", "8.0 cycles"],
-      answer: 0,
-      explain: "δ_miss = 0.40 × 0.05 × 20 = 0.40 cycles added to S per instruction, on average.",
+      explain: "B2 sits right after Decode, so it carries what Decode just produced: the register operands, any immediate value, and the control signals — all of which ride together down the pipe as pipelined control.",
     },
   ];
 
@@ -324,9 +346,9 @@ function Quiz({ onComplete }) {
         <div style={{ fontSize: 52 }}>{score >= 3 ? "🎉" : "👍"}</div>
         <div style={{ fontSize: 24, fontWeight: 700, color: C.text, marginTop: 10 }}>You scored {score} / {questions.length}</div>
         <div style={{ color: C.muted, marginTop: 8, marginBottom: 20 }}>
-          {score === 4 ? "Perfect! You know exactly when and why a cache miss stalls a pipeline." :
-            score >= 2 ? "Good work! Replay 'Hit or Miss' and 'Do the Math' to lock in the mechanism." :
-              "Revisit 'Why It Matters' and the trace — a miss is just a very long stall."}
+          {score === 4 ? "Perfect! The whole pipelining idea — overlap, stages, buffers — is locked in." :
+            score >= 2 ? "Good work! Replay 'The Ideal Case' and 'Pipeline Organization' to lock in the last pieces." :
+              "Revisit 'Why Pipelining?' — throughput vs individual speed is the idea everything else builds on."}
         </div>
         <div style={{
           padding: "20px", borderRadius: 12,
@@ -335,10 +357,11 @@ function Quiz({ onComplete }) {
         }}>
           <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Unit 3.1 Complete!</div>
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
-            You can now explain why a cache miss stalls the pipeline, where it can happen, and roughly how much it costs.
+            You can now explain why pipelining helps, walk through the five stages, and describe how instructions flow through
+            the pipeline via interstage buffers.
             <br /><br />
-            <strong style={{ color: C.accent }}>Next up: Unit 3.2 — The Pipeline Idea &amp; Performance.</strong> Time to formalize
-            exactly how many cycles pipelining saves — and put real numbers on the speedup.
+            <strong style={{ color: C.accent }}>Next up: Unit 3.2 — Pipeline Performance.</strong> Time to put real numbers on
+            exactly how much this overlap buys you.
           </div>
         </div>
       </div>
@@ -389,10 +412,10 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 export default function Unit3_1({ student, onUnitComplete }) {
   const sections = [
-    { id: "why", label: "Why It Matters" },
-    { id: "hitmiss", label: "Hit or Miss" },
-    { id: "trace", label: "Trace a Miss" },
-    { id: "math", label: "Do the Math" },
+    { id: "why", label: "Why Pipelining?" },
+    { id: "steps", label: "Five Steps" },
+    { id: "ideal", label: "The Ideal Case" },
+    { id: "organization", label: "Organization & Buffers" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -403,10 +426,10 @@ export default function Unit3_1({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>⏳ Why It Matters — the pipeline's silent assumption</h3><WhyItMatters /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🎯 Hit or Miss — two very different outcomes</h3><HitOrMiss /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🔍 Trace a Miss — everyone behind it waits</h3><MissTrace /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🧮 Do the Math — the δ_miss term</h3><DoTheMath /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🏎️ Why Pipelining? — the assembly-line idea</h3><WhyPipelining /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🪜 One Instruction = Five Steps</h3><FiveSteps /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>📊 The Ideal Case — Figure 6.1</h3><IdealCase /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🗄️ Pipeline Organization & Interstage Buffers — Figure 6.2</h3><PipelineOrganization /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 3.1.</p>
@@ -420,7 +443,7 @@ export default function Unit3_1({ student, onUnitComplete }) {
         <div style={{ width: 32, height: 32, borderRadius: 8, background: C.accentGlow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🏭</div>
         <div>
           <div style={{ fontSize: 12, color: C.muted, letterSpacing: 1 }}>MODULE 3 › UNIT 3.1</div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>The Role of Cache Memory</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>The Pipelining Idea</div>
         </div>
         <div style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>{completed.length} / {sections.length} done</div>
       </div>

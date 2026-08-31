@@ -1,12 +1,11 @@
-// Unit3_2.jsx — Module 3 › Unit 3.2 — "The Pipeline Idea & Performance"
-// Foothold formula: GitHub-dark palette, free-nav tab strip, one interactive
-// widget per section, 🔑 key-insight callouts, 4-question quiz.
-// Source: Hamacher Ch.6 §6.1-6.2 (Fig 6.1 overlap), §6.8 (performance) —
-// class notes §1 (Basic Pipelining) + §2 (Pipeline Performance), incl. the
-// exact worked example (k=5, n=20 -> 24 cycles vs 100, speedup ~4.17x) that
-// the notes' deep-link for "Module 3 -> 3.2" points to. This lesson is that
-// deeper treatment: more worked examples than the notes need to show,
-// because this course is public and self-paced, not just exam prep.
+// Unit3_2.jsx — Module 3 › Unit 3.2 — "Pipeline Performance"
+// REBUILT per Aishu's review: previously this unit ALSO carried the Fig 6.1
+// overlap diagram, duplicating Unit 3.1 (which now owns that content). This
+// version is pure Chapter 2 of the notes: counting the cycles (Sec 2.1),
+// the performance equation T=N.S/R (Sec 2.2), and how many stages (Sec 2.3).
+// The cycle-grid diagram here is built more defensively than the previous
+// version (fixed-width colgroup + inline-block scroll wrapper) to fix the
+// "diagram pushed into the far right corner" rendering bug Aishu reported.
 import { useState } from "react";
 
 const C = {
@@ -26,10 +25,10 @@ function Key({ color = C.purple, children }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 1 — Why? Doing 5 things one-at-a-time vs overlapped (Fig 6.1)
+//  Section 1 — Why? A serial pipeline STILL isn't free
 // ══════════════════════════════════════════════════════════════════
 function WhyItMatters() {
-  const [n, setN] = useState(4); // number of instructions
+  const [n, setN] = useState(4);
   const k = 5;
   const serial = k * n;
   const pipelined = k + (n - 1);
@@ -37,114 +36,38 @@ function WhyItMatters() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Every instruction needs the same 5 stages: <strong style={{ color: C.text }}>Fetch → Decode → Compute → Memory → Write</strong>.
-        If you finish all 5 stages of one instruction before starting the next — like a car needing 5 separate machines and refusing to
-        start the second car until the first is fully built — how long does <strong>n</strong> instructions take?
+        Unit 3.1 showed you WHAT pipelining does — overlap instructions. This unit puts real numbers on exactly
+        <strong style={{ color: C.text }}> how much</strong> that overlap buys you. For n instructions on a 5-stage pipeline:
       </p>
 
       <div style={{ marginBottom: 16 }}>
-        <label style={{ color: C.muted, fontSize: 12 }}>n = number of instructions = <strong style={{ color: C.accent }}>{n}</strong></label>
+        <label style={{ color: C.muted, fontSize: 12 }}>n (instructions) = <strong style={{ color: C.accent }}>{n}</strong></label>
         <input type="range" min={1} max={10} value={n} onChange={(e) => setN(Number(e.target.value))} style={{ width: "100%", accentColor: C.accent }} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div style={{ background: C.card, border: `1.5px solid ${C.red}44`, borderRadius: 10, padding: 16, textAlign: "center" }}>
-          <div style={{ color: C.red, fontWeight: 700, fontSize: 12, marginBottom: 10 }}>❌ NO OVERLAP (serial)</div>
+          <div style={{ color: C.red, fontWeight: 700, fontSize: 12, marginBottom: 10 }}>❌ NO OVERLAP</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: C.text }}>{serial}</div>
           <div style={{ color: C.muted, fontSize: 11 }}>cycles = k × n = 5 × {n}</div>
         </div>
         <div style={{ background: C.card, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: 16, textAlign: "center" }}>
-          <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginBottom: 10 }}>✅ OVERLAPPED (pipelined)</div>
+          <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginBottom: 10 }}>✅ PIPELINED</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: C.text }}>{pipelined}</div>
           <div style={{ color: C.muted, fontSize: 11 }}>cycles = k + (n − 1) = 5 + {n - 1}</div>
         </div>
       </div>
 
       <Key color={C.green}>
-        The saving comes from <strong style={{ color: C.text }}>overlap</strong>, not from doing any single instruction faster — Fetch
-        works on instruction 2 the same cycle Decode works on instruction 1. Nobody's individual 5-stage journey got shorter; the
-        <em> pipeline</em> just stopped sitting idle between them.
+        Even in the best case, the pipelined version still takes 5 cycles to get the FIRST instruction all the way through —
+        that ramp-up never disappears. It just matters less and less as n grows.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 2 — Anatomy: the overlap diagram itself (Fig 6.1 style)
-// ══════════════════════════════════════════════════════════════════
-function OverlapDiagram() {
-  const stages = ["F", "D", "C", "M", "W"];
-  const stageNames = ["Fetch", "Decode", "Compute", "Memory", "Write"];
-  const stageColors = [C.accent, C.teal, C.orange, C.purple, C.green];
-  const numInstr = 4;
-  const numCycles = 5 + numInstr - 1; // 8
-
-  // instruction i (0-indexed) occupies stage s during cycle (i + s + 1)
-  const cellFor = (instr, cycle) => {
-    const s = cycle - instr - 1; // 0-indexed stage number, cycle is 1-indexed
-    if (s < 0 || s > 4) return null;
-    return s;
-  };
-
-  return (
-    <div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        This is the classic pipeline diagram (Hamacher Fig 6.1): rows are instructions, columns are clock cycles. Each instruction
-        starts one cycle behind the previous one and rides the same 5 stages through. Read down any column — every stage is busy on a
-        <em> different</em> instruction, every single cycle, once the pipe is full.
-      </p>
-
-      <div style={{ overflowX: "auto", marginBottom: 12 }}>
-        <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 480 }}>
-          <thead>
-            <tr>
-              <th style={{ padding: "6px 8px", fontSize: 11, color: C.muted, textAlign: "left" }}>Instr</th>
-              {Array.from({ length: numCycles }, (_, c) => (
-                <th key={c} style={{ padding: "6px 4px", fontSize: 11, color: C.muted, textAlign: "center", width: 40 }}>{c + 1}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: numInstr }, (_, instr) => (
-              <tr key={instr}>
-                <td style={{ padding: "4px 8px", fontSize: 12, color: C.text, fontFamily: "monospace", fontWeight: 700 }}>I{instr + 1}</td>
-                {Array.from({ length: numCycles }, (_, c) => {
-                  const s = cellFor(instr, c + 1);
-                  return (
-                    <td key={c} style={{ padding: 3 }}>
-                      {s !== null ? (
-                        <div style={{
-                          height: 30, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 11, fontWeight: 800, color: "#0D1117", background: stageColors[s],
-                        }}>{stages[s]}</div>
-                      ) : <div style={{ height: 30 }} />}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 4 }}>
-        {stageNames.map((n, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.muted }}>
-            <div style={{ width: 12, height: 12, borderRadius: 3, background: stageColors[i] }} />{n}
-          </div>
-        ))}
-      </div>
-
-      <Key color={C.accent}>
-        Column 5 is the first cycle where <strong style={{ color: C.text }}>all five stages are busy</strong> — the pipeline is
-        "full." Before that (cycles 1–4) it's still filling up; that ramp-up is exactly the "+k" part of "k + (n − 1)."
-      </Key>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  Section 3 — Playground: the k + (n-1) formula and speedup as n grows
+//  Section 2 — Playground: k + (n-1) formula and speedup as n grows (Sec 2.1)
 // ══════════════════════════════════════════════════════════════════
 function CountTheCycles() {
   const [k, setK] = useState(5);
@@ -157,9 +80,9 @@ function CountTheCycles() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Generalize what you just saw. For a <strong style={{ color: C.text }}>k</strong>-stage pipeline running <strong style={{ color: C.text }}>n</strong> independent
-        instructions: the first instruction takes k cycles to fully drain through; after that, one instruction finishes every single
-        cycle. Try the exact numbers from the class notes' worked example — k = 5, n = 20.
+        For a <strong style={{ color: C.text }}>k</strong>-stage pipeline running <strong style={{ color: C.text }}>n</strong> independent
+        instructions: total time = k + (n − 1) cycles, compared with k × n cycles with no overlap. Try the exact numbers from the
+        notes' worked example — k = 5, n = 20.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
@@ -198,7 +121,7 @@ function CountTheCycles() {
 
       <Key color={C.yellow}>
         Speedup <strong style={{ color: C.text }}>approaches k</strong> as n grows large, but never equals it for finite n — the
-        k − 1 cycles spent filling and draining the pipe are a fixed one-time cost that matters less and less as n grows, but never
+        k − 1 cycles spent filling (and draining) the pipe are a fixed one-time cost that matters less as n grows, but never
         vanishes completely.
       </Key>
     </div>
@@ -206,22 +129,22 @@ function CountTheCycles() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 4 — The performance equation T = N·S/R, and stage-count trade-off
+//  Section 3 — The performance equation T = N·S/R, and throughput (Sec 2.2)
 // ══════════════════════════════════════════════════════════════════
 function PerformanceEquation() {
-  const [N, setN] = useState(1000);   // instructions
-  const [S, setS] = useState(1.4);    // avg cycles per instruction
-  const [R, setR] = useState(2);      // GHz
+  const [N, setN] = useState(1000);
+  const [S, setS] = useState(1.4);
+  const [R, setR] = useState(2);
 
-  const T = (N * S / (R * 1e9) * 1e6).toFixed(1); // microseconds
-  const throughput = (R * 1e9 / S / 1e6).toFixed(1); // million instr/sec
+  const T = (N * S / (R * 1e9) * 1e6).toFixed(1);
+  const throughput = (R * 1e9 / S / 1e6).toFixed(1);
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The idea above ("cycles saved by overlap") gets formalized into one equation used for <em>any</em> processor, pipelined or
-        not: <strong style={{ color: C.text }}>T = (N × S) / R</strong>, where N is the number of instructions executed, S is the
-        average cycles each one takes, and R is the clock rate. Move the sliders.
+        The idea above ("cycles saved by overlap") gets formalized into one equation used for <em>any</em> processor, pipelined
+        or not: <strong style={{ color: C.text }}>T = (N × S) / R</strong>, where N is instructions executed, S is average
+        cycles per instruction, and R is the clock rate.
       </p>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px", textAlign: "center", marginBottom: 16, fontFamily: "monospace", fontSize: 15, color: C.text }}>
@@ -252,15 +175,64 @@ function PerformanceEquation() {
       </div>
 
       <div style={{ marginTop: 16, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
-        Set S = 5 (no pipeline, every instruction takes all 5 stages back-to-back) vs S = 1 (the ideal pipeline, one instruction
-        finishing every cycle) with the same N and R — that's the up-to-5× throughput gain the notes state. Real pipelines land
-        somewhere between 1 and 5, because of the hazards you'll meet in the next few units.
+        Set S = 5 (no pipeline — every instruction takes all 5 stages back-to-back) vs S = 1 (ideal pipeline, one instruction
+        finishing every cycle) with the same N and R — that's the up-to-5× throughput gain the notes describe. Real pipelines
+        land somewhere between 1 and 5, because of the hazards you'll meet starting next unit.
       </div>
 
       <Key color={C.accent}>
-        More pipeline stages (bigger k) means less work per stage, which means a shorter clock period — a <strong style={{ color: C.text }}>higher
-        R</strong>. But more stages in flight also means more chances for one instruction to depend on another still in the pipe —
-        pushing S back up. Real designs (10–20 stages, several GHz) sit at the trade-off's sweet spot, not at the extreme.
+        Non-pipelined: S = 5. Ideal pipelined (no stalls): S = 1 — an up-to <strong style={{ color: C.text }}>5× throughput
+        gain</strong>. Notice the ideal pipeline's throughput equals R exactly (P<sub>p</sub> = R) once S = 1.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 4 — Trace: how many stages should you build? (Sec 2.3)
+// ══════════════════════════════════════════════════════════════════
+function HowManyStages() {
+  const [k, setK] = useState(5);
+
+  const clockGhz = (0.5 + k * 0.35).toFixed(2);
+  const stallRisk = k <= 4 ? "low" : k <= 8 ? "moderate" : k <= 14 ? "high" : "very high";
+  const stallColor = k <= 4 ? C.green : k <= 8 ? C.yellow : k <= 14 ? C.orange : C.red;
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        More stages means less work per stage, which means a shorter clock period — a higher clock rate. But it isn't free: more
+        instructions in flight at once means more chances for one to depend on another still in the pipe. Drag k and watch both
+        sides move.
+      </p>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ color: C.muted, fontSize: 12 }}>k (pipeline stages) = <strong style={{ color: C.accent }}>{k}</strong></label>
+        <input type="range" min={2} max={20} value={k} onChange={(e) => setK(Number(e.target.value))} style={{ width: "100%", accentColor: C.accent }} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 12 }}>
+        <div style={{ background: C.card, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: 16, textAlign: "center" }}>
+          <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginBottom: 8 }}>✅ CLOCK RATE ↑</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>~{clockGhz} GHz</div>
+          <div style={{ color: C.muted, fontSize: 10.5, marginTop: 4 }}>less work per stage → shorter period</div>
+        </div>
+        <div style={{ background: C.card, border: `1.5px solid ${stallColor}44`, borderRadius: 10, padding: 16, textAlign: "center" }}>
+          <div style={{ color: stallColor, fontWeight: 700, fontSize: 12, marginBottom: 8 }}>⚠️ HAZARD RISK</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.text, textTransform: "capitalize" }}>{stallRisk}</div>
+          <div style={{ color: C.muted, fontSize: 10.5, marginTop: 4 }}>more in flight → more dependencies, bigger branch penalty</div>
+        </div>
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
+        The clock is ultimately limited by the <strong>slowest basic operation</strong> (usually the ALU) — you can't shrink a
+        stage's work below that floor. Gains diminish beyond a point; real designs use roughly 10–20 stages at several GHz,
+        balancing both sides of this trade-off rather than maximizing either one.
+      </div>
+
+      <Key color={C.purple}>
+        Ideal speedup approaches the number of stages, but every stall pulls the real gain below the ideal — which is exactly
+        what the next unit, Data Hazards, is about.
       </Key>
     </div>
   );
@@ -286,7 +258,7 @@ function Quiz({ onComplete }) {
         "It does exactly equal k for large n",
       ],
       answer: 1,
-      explain: "The k − 1 extra cycles to fill (and, symmetrically, drain) the pipe are a fixed overhead. As n grows this overhead is spread over more instructions and matters less — but it's never exactly zero, so speedup approaches k without reaching it.",
+      explain: "The k − 1 extra cycles to fill (and drain) the pipe are a fixed overhead. As n grows this overhead is spread over more instructions and matters less — but it's never exactly zero, so speedup approaches k without reaching it.",
     },
     {
       q: "In T = (N × S) / R, what does S represent for an IDEAL pipeline with no stalls?",
@@ -330,7 +302,7 @@ function Quiz({ onComplete }) {
         <div style={{ color: C.muted, marginTop: 8, marginBottom: 20 }}>
           {score === 4 ? "Perfect! You can derive the cycle counts and read the performance equation cold." :
             score >= 2 ? "Good work! Replay 'Count the Cycles' and 'The Performance Equation' to lock in the formulas." :
-              "Revisit 'Why It Matters' and the overlap diagram — the whole idea is just: don't wait, overlap."}
+              "Revisit 'Why It Matters' — the pipeline's fixed fill/drain cost is the idea everything else builds on."}
         </div>
         <div style={{
           padding: "20px", borderRadius: 12,
@@ -339,8 +311,8 @@ function Quiz({ onComplete }) {
         }}>
           <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Unit 3.2 Complete!</div>
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
-            You can now compute pipeline cycle counts, explain why speedup approaches but never reaches k, and use T = N·S/R to
-            reason about real performance.
+            You can now compute pipeline cycle counts, explain why speedup approaches but never reaches k, use T = N·S/R, and
+            reason about the stage-count trade-off.
             <br /><br />
             <strong style={{ color: C.accent }}>Next up: Unit 3.3 — Data Hazards.</strong> The ideal S = 1 you just met only holds
             when instructions are independent — next you'll see exactly what happens when they aren't.
@@ -395,9 +367,9 @@ function Quiz({ onComplete }) {
 export default function Unit3_2({ student, onUnitComplete }) {
   const sections = [
     { id: "why", label: "Why It Matters" },
-    { id: "overlap", label: "The Overlap Diagram" },
     { id: "count", label: "Count the Cycles" },
     { id: "equation", label: "The Performance Equation" },
+    { id: "stages", label: "How Many Stages?" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -408,10 +380,10 @@ export default function Unit3_2({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>⏳ Why It Matters — 5 stages, done one-at-a-time vs overlapped</h3><WhyItMatters /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>📊 The Overlap Diagram — Figure 6.1</h3><OverlapDiagram /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>⏳ Why It Matters — putting numbers on the overlap</h3><WhyItMatters /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>🧮 Count the Cycles — k + (n − 1)</h3><CountTheCycles /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>📐 The Performance Equation — T = N·S/R</h3><PerformanceEquation /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>⚖️ How Many Stages? — the trade-off</h3><HowManyStages /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 3.2.</p>
@@ -425,7 +397,7 @@ export default function Unit3_2({ student, onUnitComplete }) {
         <div style={{ width: 32, height: 32, borderRadius: 8, background: C.accentGlow, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🏭</div>
         <div>
           <div style={{ fontSize: 12, color: C.muted, letterSpacing: 1 }}>MODULE 3 › UNIT 3.2</div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>The Pipeline Idea &amp; Performance</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>Pipeline Performance</div>
         </div>
         <div style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>{completed.length} / {sections.length} done</div>
       </div>

@@ -87,8 +87,8 @@ const COURSE_CONFIG = {
       icon:        "🏭",
       blurb:       "Why wait for one instruction to finish before starting the next? Turn the CPU into an assembly line.",
       units: [
-        { unitId: "Unit3_1", title: "The Role of Cache Memory" },
-        { unitId: "Unit3_2", title: "The Pipeline Idea & Performance" },
+        { unitId: "Unit3_1", title: "The Pipelining Idea" },
+        { unitId: "Unit3_2", title: "Pipeline Performance" },
         { unitId: "Unit3_3", title: "Data Hazards" },
         { unitId: "Unit3_4", title: "Instruction Hazards" },
         { unitId: "Unit3_5", title: "Instruction Sets, Datapath & Control" },
