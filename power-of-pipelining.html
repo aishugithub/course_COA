@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Power of Pipelining</title>
+<!-- =============================================================================
+     THE POWER OF PIPELINING  —  textbook-style space-time demonstrator
+     -----------------------------------------------------------------------------
+     WHAT THIS PAGE DOES (whole app in a paragraph):
+       A simple 6-instruction program in TEXTBOOK register-transfer notation
+       (Add R3,R1,R2 …, NOT RISC-V x-registers) is run on TWO machines that share
+       ONE clock: a non-pipelined machine (each instruction finishes all 5 stages
+       before the next starts -> 30 cycles) and a 5-stage pipelined machine
+       (stages overlap -> 10 cycles). Both charts sit on the SAME horizontal cycle
+       axis and AUTO-SCROLL to follow the clock.
+     THE VISUAL IDEA (what the professor asked for):
+       Each INSTRUCTION has ONE colour. You follow that colour across its row and
+       watch the SAME instruction pass through the five stages IF -> ID -> EX ->
+       MEM -> WB (the exact stage names used in the AVPS simulator). In the
+       pipelined chart, one vertical column can hold 5 different colours at once —
+       that is five instructions in five different stages: the pipeline "full".
+     HOW THE PIECES FIT:
+       - CSS :root tokens = light palette; media-query + [data-theme] blocks
+         redefine tokens for dark. Instruction colours are DATA colours, constant
+         across themes; only surfaces/neutrals swap.
+       - JS builds both charts from a schedule function, a clock `t` advances,
+         cells whose cycle <= t light up in their instruction's colour with the
+         stage label, and both charts auto-scroll so cycle `t` stays in view.
+     ========================================================================== -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  /* ---- DESIGN TOKENS : LIGHT (bare :root = un-stamped default) ------------- */
+  :root{
+    --ground:#e9edf4; --surface:#ffffff; --surface-2:#f3f6fb;
+    --ink:#141a24; --muted:#5a6576; --line:#d5dbe6;
+    --accent:#e8850c; --accent-soft:#fbe7c9;         /* amber — speedup verdict */
+    --cell-empty:#dfe5ee;                            /* an unused cycle slot     */
+    --steady:#fff3d6;                                /* pipeline-full band tint  */
+    --radius:14px;
+    --cell:34px;                                     /* width of one cycle column*/
+    --labw:150px;                                    /* instruction-label column */
+    --gap:3px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0d1118; --surface:#161d28; --surface-2:#1d2632;
+      --ink:#e8edf5; --muted:#95a2b5; --line:#293341;
+      --accent:#ffb43d; --accent-soft:#3a2a10;
+      --cell-empty:#232d3a; --steady:#2c2410;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0d1118; --surface:#161d28; --surface-2:#1d2632;
+    --ink:#e8edf5; --muted:#95a2b5; --line:#293341;
+    --accent:#ffb43d; --accent-soft:#3a2a10;
+    --cell-empty:#232d3a; --steady:#2c2410;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--ground); color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px; margin:0 auto; padding:28px 20px 56px}
+
+  /* ---------- HEADER ---------- */
+  .eyebrow{font:600 12px/1 "IBM Plex Mono",monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin:0 0 10px}
+  h1{font-family:"Archivo",sans-serif; font-weight:800; font-size:clamp(30px,5vw,46px); letter-spacing:-.02em; line-height:1.02; margin:0 0 8px; text-wrap:balance}
+  .lede{max-width:66ch; margin:0; color:var(--muted); font-size:15.5px}
+  .lede b{color:var(--ink); font-weight:600}
+
+  /* ---------- CONTROL BAR ---------- */
+  .controls{display:flex; flex-wrap:wrap; align-items:center; gap:12px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px; margin:20px 0 18px; position:sticky; top:0; z-index:20}
+  button.ctl{font:600 13.5px "IBM Plex Sans",sans-serif; color:var(--ink);
+    background:var(--surface-2); border:1px solid var(--line); border-radius:9px;
+    padding:9px 15px; cursor:pointer; transition:transform .06s ease, background .15s}
+  button.ctl:hover{background:var(--ground)}
+  button.ctl:active{transform:translateY(1px)}
+  button.ctl.primary{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+  button.ctl:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+  .spring{flex:1 1 auto}
+  .speed{display:flex; align-items:center; gap:8px; font:500 12.5px "IBM Plex Mono",monospace; color:var(--muted)}
+  .speed input{accent-color:var(--accent)}
+  .clock{font:700 15px "IBM Plex Mono",monospace; background:var(--accent-soft); border-radius:9px;
+    padding:8px 12px; white-space:nowrap; font-variant-numeric:tabular-nums}
+  .clock b{color:var(--accent)}
+
+  /* ---------- SIDE-BY-SIDE COMPARE LAYOUT ---------- */
+  /* Two machines shown left/right. Each chart scrolls horizontally on its own,
+     but both are auto-scrolled to the SAME cycle so their columns stay aligned. */
+  .compare{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; margin-bottom:18px}
+  @media(max-width:860px){.compare{grid-template-columns:1fr}}
+
+  /* ---------- MACHINE PANEL ---------- */
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 16px 10px; min-width:0}
+  .panel-head{display:flex; flex-direction:column; gap:6px; margin-bottom:12px}
+  .panel-title{font-family:"Archivo",sans-serif; font-weight:700; font-size:18px; margin:0}
+  .panel-sub{color:var(--muted); font-size:12.5px; margin:0; min-height:2.4em}
+  .stats{display:flex; flex-wrap:wrap; gap:12px 16px; align-items:baseline; margin-top:4px; font-variant-numeric:tabular-nums}
+  .stat{display:flex; flex-direction:column; align-items:flex-start; line-height:1.1}
+  .stat .v{font:600 16px "IBM Plex Mono",monospace}
+  .stat .k{font:500 10.5px "IBM Plex Mono",monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .done-pill{font:600 11px "IBM Plex Mono",monospace; color:#fff; background:#2f9e44;
+    border-radius:999px; padding:3px 9px; opacity:0; transition:opacity .3s}
+  .done-pill.show{opacity:1}
+
+  /* ---------- CHART (textbook space-time diagram) ---------- */
+  .scroll{overflow-x:auto; scroll-behavior:smooth; padding-bottom:6px}
+  .grid{display:grid; gap:var(--gap); width:max-content}
+  .row{display:grid; grid-template-columns:var(--labw) repeat(var(--ncyc), var(--cell)); gap:var(--gap); align-items:center}
+  .rlabel{position:sticky; left:0; z-index:5; background:var(--surface);
+    font:600 12.5px "IBM Plex Mono",monospace; color:var(--ink); padding-right:10px; white-space:nowrap; text-align:right}
+  .rlabel .dot{display:inline-block; width:11px; height:11px; border-radius:3px; margin-left:7px; vertical-align:baseline}
+  .rlabel small{display:block; color:var(--muted); font-weight:400; font-size:10.5px}
+  .ruler .rlabel{color:var(--muted); font-weight:500}
+  .tick{font:500 10.5px "IBM Plex Mono",monospace; color:var(--muted); text-align:center; font-variant-numeric:tabular-nums}
+  .cell{height:var(--cell); border-radius:6px; background:var(--cell-empty);
+    display:flex; align-items:center; justify-content:center;
+    font:700 11px "IBM Plex Mono",monospace; color:#fff;
+    transition:background .12s ease, transform .12s ease; opacity:.9}
+  .cell.slot{background:transparent}                 /* a cycle this instr skips */
+  .cell.steadyband:not(.lit){background:var(--steady)}
+  .cell.lit{opacity:1; box-shadow:0 1px 2px rgba(0,0,0,.18)}
+  .cell.active{transform:scale(1.12); box-shadow:0 0 0 2px var(--surface),0 0 0 4px currentColor; z-index:2}
+
+  /* ---------- LEGENDS ---------- */
+  .legends{display:grid; grid-template-columns:1.15fr 0.95fr 0.95fr; gap:16px; margin-top:4px}
+  @media(max-width:900px){.legends{grid-template-columns:1fr}}
+  .legend{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px}
+  .legend h3{font:600 11px "IBM Plex Mono",monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:0 0 10px}
+  .instr-list{list-style:none; margin:0; padding:0; display:grid; gap:7px}
+  .instr-list li{display:grid; grid-template-columns:15px 1fr; gap:9px; align-items:baseline}
+  .instr-list .sw{width:13px; height:13px; border-radius:4px; transform:translateY(2px)}
+  .instr-list code{font:600 12px "IBM Plex Mono",monospace; color:var(--ink); display:block}
+  .instr-list em{font-style:normal; color:var(--muted); font-size:11.5px; display:block; margin-top:1px}
+  .stagekey{display:grid; gap:6px; margin:0; padding:0; list-style:none}
+  .stagekey li{display:grid; grid-template-columns:34px 1fr; gap:10px; align-items:baseline; font-size:12.5px}
+  .stagekey b{font:700 11px "IBM Plex Mono",monospace; color:var(--ink)}
+  .stagekey span{color:var(--muted)}
+
+  /* ---------- VERDICT ---------- */
+  .verdict{margin-top:20px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px; text-align:center}
+  .verdict .big{font-family:"Archivo",sans-serif; font-weight:800; letter-spacing:-.02em; font-size:clamp(24px,4.2vw,38px); margin:0; line-height:1.06; text-wrap:balance}
+  .verdict .big b{color:var(--accent)}
+  .verdict p.sub{max-width:70ch; margin:12px auto 0; color:var(--muted); font-size:14px}
+  .cite{margin-top:14px; font:400 11.5px "IBM Plex Mono",monospace; color:var(--muted)}
+
+  @media (prefers-reduced-motion: reduce){
+    .scroll{scroll-behavior:auto} .cell{transition:none} .cell.active{transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Computer Organization &amp; Architecture · Example 0</p>
+    <h1>The Power of Pipelining</h1>
+    <p class="lede">A simple six-instruction program in textbook notation, run on two machines that share one clock.
+      Each instruction has <b>one colour</b> — follow that colour across its row and watch the same instruction move through
+      the five stages <b>IF → ID → EX → MEM → WB</b>. The non-pipelined machine needs 30 cycles; the pipelined machine needs 10.</p>
+  </header>
+
+  <div class="controls">
+    <button class="ctl primary" id="play">► Play</button>
+    <button class="ctl" id="step">Step ›</button>
+    <button class="ctl" id="reset">Reset</button>
+    <div class="speed"><label for="spd">speed</label><input type="range" id="spd" min="1" max="10" value="5"></div>
+    <div class="spring"></div>
+    <div class="clock">CLOCK&nbsp; <b id="clk">00</b>&nbsp;/&nbsp;30</div>
+  </div>
+
+  <div class="compare">
+  <!-- PANEL 1 : NON-PIPELINED (left) -->
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">Without pipelining — sequential</h2>
+        <p class="panel-sub">Each instruction runs all five stages before the next one is fetched. One instruction every 5 cycles.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="v" id="seq-done">0/6</span><span class="k">done</span></div>
+        <div class="stat"><span class="v" id="seq-ipc">0.00</span><span class="k">instr / cycle</span></div>
+        <div class="stat"><span class="v" id="seq-cyc">—</span><span class="k">cycles used</span></div>
+        <div class="stat"><span class="done-pill" id="seq-pill">FINISHED @ 30</span></div>
+      </div>
+    </div>
+    <div class="scroll" id="scroll-seq"><div class="grid" id="grid-seq"></div></div>
+  </section>
+
+  <!-- PANEL 2 : PIPELINED -->
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2 class="panel-title">With pipelining — 5-stage overlap</h2>
+        <p class="panel-sub">Stages overlap: once full, one instruction completes every cycle. Shaded band = all five stages busy at once.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="v" id="pipe-done">0/6</span><span class="k">done</span></div>
+        <div class="stat"><span class="v" id="pipe-ipc">0.00</span><span class="k">instr / cycle</span></div>
+        <div class="stat"><span class="v" id="pipe-cyc">—</span><span class="k">cycles used</span></div>
+        <div class="stat"><span class="done-pill" id="pipe-pill">FINISHED @ 10</span></div>
+      </div>
+    </div>
+    <div class="scroll" id="scroll-pipe"><div class="grid" id="grid-pipe"></div></div>
+  </section>
+  </div><!-- /.compare -->
+
+  <!-- LEGENDS -->
+  <div class="legends">
+    <div class="legend">
+      <h3>The program — 6 independent instructions</h3>
+      <ul class="instr-list" id="instr-list"></ul>
+    </div>
+    <div class="legend">
+      <h3>The five pipeline stages</h3>
+      <ul class="stagekey">
+        <li><b>IF</b><span>Instruction Fetch — read the instruction from memory</span></li>
+        <li><b>ID</b><span>Instruction Decode — read the source registers</span></li>
+        <li><b>EX</b><span>Execute — the ALU does the arithmetic/logic</span></li>
+        <li><b>MEM</b><span>Memory Access — (unused by these register ops)</span></li>
+        <li><b>WB</b><span>Write Back — store the result in the destination register</span></li>
+      </ul>
+    </div>
+    <div class="legend">
+      <h3>Why there are no stalls</h3>
+      <p style="margin:0 0 12px; color:var(--muted); font-size:12.5px">No instruction reads a register an earlier one writes — every destination and source is different. No loads, no branches. So nothing ever waits: the pipeline fills once (4 cycles) and then never stops.</p>
+      <h3>Same latency, higher throughput</h3>
+      <p style="margin:0; color:var(--muted); font-size:12.5px">Each instruction still takes 5 cycles end-to-end — pipelining does not make one instruction faster. It overlaps them, so <b>more finish per cycle</b>: 3× here, approaching 5× (the number of stages) as the program grows.</p>
+    </div>
+  </div>
+
+  <!-- LIVE VERDICT -->
+  <div class="verdict">
+    <p class="big" id="verdict-line">Press <b>Play</b> to race the two machines.</p>
+    <p class="sub" id="verdict-sub">Same work, same latency (5 cycles per instruction) — pipelining changes only <b>how many instructions finish per cycle</b>.</p>
+    <p class="cite">Grounded in Hamacher, Vranesic &amp; Zaky, <em>Computer Organization and Embedded Systems</em>, 5th ed., §6.1 “Basic Concepts” · and Patterson &amp; Hennessy, <em>COD (RISC-V ed.)</em> §4.5 “An Overview of Pipelining”.</p>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   DATA MODEL — textbook register-transfer notation (NOT RISC-V x-registers).
+   Six independent ALU instructions: each writes a distinct destination register
+   and reads distinct sources, so NONE depends on another => zero hazards. That
+   independence is exactly what lets the pipeline run flat-out.
+   Each instruction carries its OWN colour so students can follow one colour
+   through the five stages.
+   ========================================================================== */
+const STAGES = ["IF","ID","EX","MEM","WB"];          // same stage names as AVPS
+const K = STAGES.length;                             // k = 5 stages
+
+const INSTR = [
+  {asm:"Add R3, R1, R2",   note:"R3 ← R1 + R2", color:"#1c6dd0"}, // blue
+  {asm:"Sub R6, R4, R5",   note:"R6 ← R4 − R5", color:"#0ca678"}, // teal
+  {asm:"And R9, R7, R8",   note:"R9 ← R7 · R8", color:"#7048e6"}, // violet
+  {asm:"Or  R12, R10, R11",note:"R12 ← R10 + R11",color:"#e8590c"},// orange
+  {asm:"Add R15, R13, R14",note:"R15 ← R13 + R14",color:"#c2255c"},// rose
+  {asm:"Sub R18, R16, R17",note:"R18 ← R16 − R17",color:"#2f9e44"} // green
+];
+const N = INSTR.length;                              // N = 6 instructions
+const MAX_CYC   = N * K;                             // 30 — shared axis length
+const TOTAL_PIPE = N + (K - 1);                      // 10
+const TOTAL_SEQ  = N * K;                            // 30
+
+/* schedule(i, pipelined): map {cycle -> stageIndex} for instruction i.
+     PIPELINED : cycle = i + s + 1        (one cycle behind the previous instr)
+     SEQUENTIAL: cycle = K*i + s + 1      (waits for the previous full 5-stage run) */
+function schedule(i, pipelined){
+  const base = pipelined ? i : K * i;
+  const m = {};
+  for (let s = 0; s < K; s++) m[base + s + 1] = s;
+  return m;
+}
+
+/* ============================================================================
+   BUILD ONE CHART (a ruler row + one row per instruction).
+   Returns cells[i][cycle] -> DOM node so the clock can recolour quickly.
+   ========================================================================== */
+function buildGrid(container, pipelined, ncyc){
+  // ncyc = how many cycle columns THIS chart needs (sequential 30, pipelined 10).
+  // Sizing each chart to its own length is why the pipelined chart never has to
+  // scroll — it is only as wide as the work it actually does.
+  container.style.setProperty("--ncyc", ncyc);
+  const cells  = Array.from({length:N}, () => ({}));
+  const scheds = INSTR.map((_,i)=>schedule(i,pipelined));
+
+  // Ruler: label header + cycle numbers (show 1 and every 5th to de-clutter).
+  const ruler = document.createElement("div");
+  ruler.className = "row ruler";
+  const rhead = document.createElement("div");
+  rhead.className = "rlabel"; rhead.textContent = "instruction ╲ cycle →";
+  ruler.appendChild(rhead);
+  for (let c = 1; c <= ncyc; c++){
+    const t = document.createElement("div");
+    t.className = "tick";
+    t.textContent = (c === 1 || c % 5 === 0) ? c : "";
+    ruler.appendChild(t);
+  }
+  container.appendChild(ruler);
+
+  // One row per instruction; its label carries the instruction's colour dot.
+  for (let i = 0; i < N; i++){
+    const row = document.createElement("div");
+    row.className = "row";
+    const lab = document.createElement("div");
+    lab.className = "rlabel";
+    lab.innerHTML = "I"+(i+1)+' <span class="dot" style="background:'+INSTR[i].color+'"></span>'
+                  + "<small>"+INSTR[i].asm+"</small>";
+    row.appendChild(lab);
+
+    for (let c = 1; c <= ncyc; c++){
+      const cell = document.createElement("div");
+      const stage = scheds[i][c];
+      cell.className = (stage === undefined) ? "cell slot" : "cell";
+      // Steady-state band: pipelined cycles K..N (here 5..6) where all 5 stages run.
+      if (pipelined && c >= K && c <= N) cell.classList.add("steadyband");
+      row.appendChild(cell);
+      cells[i][c] = cell;
+    }
+    container.appendChild(row);
+  }
+  return cells;
+}
+
+const seqCells  = buildGrid(document.getElementById("grid-seq"),  false, TOTAL_SEQ);  // 30 cols
+const pipeCells = buildGrid(document.getElementById("grid-pipe"), true,  TOTAL_PIPE); // 10 cols
+
+/* completions so far at cycle t: instruction i completes (WB) at base + K. */
+function completed(t, pipelined){
+  let d = 0;
+  for (let i = 0; i < N; i++) if (t >= (pipelined ? i : K*i) + K) d++;
+  return d;
+}
+
+/* Paint one chart up to cycle t. A "lit" cell shows the instruction's colour +
+   the stage label; the cell at cycle === t pulses (active). */
+function paint(cells, t, pipelined){
+  const scheds = INSTR.map((_,i)=>schedule(i,pipelined));
+  for (let i = 0; i < N; i++){
+    for (const cStr in cells[i]){
+      const c = +cStr, cell = cells[i][c], stage = scheds[i][c];
+      if (stage === undefined) continue;
+      cell.classList.remove("active");
+      if (c <= t){
+        cell.classList.add("lit");
+        cell.style.background = INSTR[i].color;       // colour = the INSTRUCTION
+        cell.textContent = STAGES[stage];             // text  = the STAGE it's in
+        if (c === t) cell.classList.add("active");
+      } else {
+        cell.classList.remove("lit");
+        cell.style.background = "";
+        cell.textContent = "";
+      }
+    }
+  }
+}
+
+const fmtIPC = (d,t) => t > 0 ? (d/t).toFixed(2) : "0.00";
+
+/* Update the numeric readouts + the live verdict line. */
+function stats(t){
+  const sd = completed(t,false), pd = completed(t,true);
+  document.getElementById("seq-done").textContent  = sd+"/"+N;
+  document.getElementById("pipe-done").textContent = pd+"/"+N;
+  document.getElementById("seq-ipc").textContent   = fmtIPC(sd,t);
+  document.getElementById("pipe-ipc").textContent  = fmtIPC(pd,t);
+  document.getElementById("seq-cyc").textContent   = (sd===N)? TOTAL_SEQ  : (t||"—");
+  document.getElementById("pipe-cyc").textContent  = (pd===N)? TOTAL_PIPE : (t||"—");
+  document.getElementById("seq-pill").classList.toggle("show",  sd===N);
+  document.getElementById("pipe-pill").classList.toggle("show", pd===N);
+  document.getElementById("clk").textContent = String(t).padStart(2,"0");
+
+  const vLine = document.getElementById("verdict-line");
+  const vSub  = document.getElementById("verdict-sub");
+  if (pd === N && sd < N){
+    vLine.innerHTML = "Pipeline done in <b>10</b> cycles — sequential has finished only "+sd+" of 6.";
+    vSub.textContent = "The pipelined machine is now idle; the sequential machine grinds on to cycle 30.";
+  } else if (pd === N && sd === N){
+    vLine.innerHTML = "30 cycles vs 10 — a <b>3× speed-up</b> on identical work.";
+    vSub.innerHTML  = "Both machines took 5 cycles per instruction (same latency). Pipelining raised throughput from "
+                    + "0.20 to 1.0 instruction/cycle in steady state — <b>3× here, approaching 5× (the number of stages) "
+                    + "as the program gets longer.</b>";
+  } else if (t === 0){
+    vLine.innerHTML = "Press <b>Play</b> to race the two machines.";
+    vSub.innerHTML  = "Same work, same latency (5 cycles per instruction) — pipelining changes only <b>how many finish per cycle</b>.";
+  } else {
+    vLine.innerHTML = "Cycle <b>"+t+"</b> — pipelined "+pd+"/6 done, sequential "+sd+"/6 done.";
+    vSub.textContent = "Each column where five colours stack is five instructions in five different stages — the pipeline running flat-out.";
+  }
+}
+
+/* Auto-scroll each chart so the current cycle stays in view — but NEVER past that
+   chart's own content. The pipelined chart is only 10 cycles wide, so it fits and
+   effectively never scrolls; only the 30-cycle sequential chart moves. */
+function autoscroll(t){
+  const cellPx = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cell")) +
+                 parseInt(getComputedStyle(document.documentElement).getPropertyValue("--gap"));
+  const labW   = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--labw"));
+  const panels = [
+    { sc: document.getElementById("scroll-seq"),  total: TOTAL_SEQ  },
+    { sc: document.getElementById("scroll-pipe"), total: TOTAL_PIPE }
+  ];
+  panels.forEach(({sc,total})=>{
+    const tc = Math.min(t, total);                    // stop tracking once this chart is done
+    const colX      = labW + (tc - 1) * cellPx;       // left edge of current column
+    const colRight  = colX + cellPx;                  // right edge of current column
+    const maxScroll = Math.max(0, sc.scrollWidth - sc.clientWidth);
+    let target = sc.scrollLeft;                        // DEFAULT: don't move at all
+    // Only scroll if the current column is NOT already fully visible:
+    if (colRight > sc.scrollLeft + sc.clientWidth){    // fell off the right edge
+      target = colRight - sc.clientWidth + cellPx;     // reveal it, with one column of lead
+    } else if (colX - labW < sc.scrollLeft){           // hidden behind the sticky label (e.g. after reset)
+      target = colX - labW;
+    }
+    target = Math.round(target / cellPx) * cellPx;     // snap to whole columns
+    sc.scrollLeft = Math.max(0, Math.min(target, maxScroll)); // clamp within content
+  });
+}
+
+function render(t){ paint(seqCells,t,false); paint(pipeCells,t,true); stats(t); autoscroll(t); }
+
+/* ============================================================================
+   CLOCK / CONTROLS
+   ========================================================================== */
+let t = 0, timer = null, playing = false;
+const speedEl = document.getElementById("spd");
+const msPerCycle = () => 900 - speedEl.value * 76;    // slider 1..10 -> 824..140 ms
+
+function tick(){ if (t >= MAX_CYC){ pause(); return; } t++; render(t); }
+function play(){
+  if (t >= MAX_CYC){ t = 0; render(0); }
+  playing = true; document.getElementById("play").innerHTML = "❚❚ Pause";
+  clearInterval(timer); timer = setInterval(tick, msPerCycle());
+}
+function pause(){ playing = false; document.getElementById("play").innerHTML = "► Play"; clearInterval(timer); timer = null; }
+
+document.getElementById("play").onclick  = () => playing ? pause() : play();
+document.getElementById("step").onclick  = () => { pause(); if (t < MAX_CYC){ t++; render(t); } };
+document.getElementById("reset").onclick = () => { pause(); t = 0; render(0);
+  document.getElementById("scroll-seq").scrollLeft = 0; document.getElementById("scroll-pipe").scrollLeft = 0; };
+speedEl.oninput = () => { if (playing) play(); };
+
+/* Build the program legend (RTL notation) from the data model: a colour swatch,
+   the textbook instruction, and its register-transfer meaning stacked beneath. */
+document.getElementById("instr-list").innerHTML = INSTR.map((x,i)=>
+  '<li><span class="sw" style="background:'+x.color+'"></span>'
+  + '<div><code>I'+(i+1)+'&nbsp;&nbsp;'+x.asm.replace(/ /g,"&nbsp;")+'</code>'
+  + '<em>'+x.note+'</em></div></li>').join("");
+
+render(0);   // initial empty state
+</script>
+</body>
+</html>
