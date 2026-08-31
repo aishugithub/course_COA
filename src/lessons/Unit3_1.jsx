@@ -32,6 +32,12 @@ function Key({ color = C.purple, children }) {
 // ══════════════════════════════════════════════════════════════════
 const STATIONS = ["Chassis", "Engine", "Paint", "Interior"];
 const CAR_COLORS = [C.accent, C.teal, C.orange, C.purple];
+// Each car gets its OWN emoji + a visible plate label (not just a colour tint)
+// so it's obvious these are four DIFFERENT cars moving through the line, not
+// four copies of the same icon — this is what makes "which car is where"
+// readable at a glance instead of requiring the viewer to track colour alone.
+const CAR_ICONS = ["🚗", "🚙", "🚕", "🚓"];
+const CAR_PLATES = ["Car 1", "Car 2", "Car 3", "Car 4"];
 const NUM_CARS = 4;
 const NUM_STATIONS = 4;
 const SERIAL_MAX = NUM_STATIONS * NUM_CARS - 1;       // last occupied cycle, 0-indexed
@@ -94,13 +100,20 @@ function AssemblyLane({ title, color, cycle, stationFn, maxCycle, icon }) {
           else if (station !== null) leftPct = station * 25 + 6.5; // riding through a station
           else leftPct = 108; // finished, slid off the right edge
           return (
-            <div key={carIdx} title={`Car ${carIdx + 1}`} style={{
-              position: "absolute", top: 7, left: `${leftPct}%`, width: "13%", height: 30,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "left 0.6s ease",
+            <div key={carIdx} title={CAR_PLATES[carIdx]} style={{
+              position: "absolute", top: 3, left: `${leftPct}%`, width: "13%", height: 38,
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              transition: "left 0.6s ease", gap: 1,
               background: CAR_COLORS[carIdx] + "26", border: `1.5px solid ${CAR_COLORS[carIdx]}`,
-              borderRadius: 7, color: CAR_COLORS[carIdx], fontWeight: 800, fontSize: 15,
-            }}>🚗</div>
+              borderRadius: 7, color: CAR_COLORS[carIdx], fontWeight: 800, fontSize: 16,
+            }}>
+              {/* distinct emoji per car — a sedan, an SUV, a taxi, a police car — so no two
+                  cars in the lane look alike, on top of each already having its own colour */}
+              <span>{CAR_ICONS[carIdx]}</span>
+              {/* tiny "plate" label under the icon, always visible (not just on hover),
+                  so a viewer can say "car 3 is in Paint" without guessing from colour */}
+              <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: 0.2 }}>{carIdx + 1}</span>
+            </div>
           );
         })}
       </div>
@@ -198,6 +211,31 @@ function FiveSteps() {
         instructions across dedicated hardware stages is exactly what <strong style={{ color: C.text }}>pipelining</strong>{" "}
         means.
       </Key>
+
+      {/* ── Embedded demo: "The Power of Pipelining" ──────────────────────
+          This is Aishu's own standalone AVPS-family page (copied into this
+          app's public/ folder so it loads instantly, offline, and never
+          breaks if the separate avps-deploy site is ever redeployed or
+          renamed). It races a 6-instruction program on two machines sharing
+          ONE clock — sequential (30 cycles) vs. pipelined (10 cycles) — using
+          the exact same IF/ID/EX/MEM/WB stage names as AVPS. It's placed
+          here, right after the five steps are introduced, because it's the
+          moment those five stages start moving for real. */}
+      <div style={{ marginTop: 26 }}>
+        <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8, letterSpacing: 0.6, textTransform: "uppercase", fontWeight: 700 }}>
+          ▶ See it in action — same 6 instructions, one shared clock, two machines
+        </div>
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", background: "#fff" }}>
+          {/* import.meta.env.BASE_URL resolves to this app's deployed base path
+              (e.g. "/course_COA/") in both dev and the GitHub Pages build, so
+              the iframe finds the file wherever the app is actually hosted. */}
+          <iframe
+            title="The Power of Pipelining — sequential vs pipelined race"
+            src={`${import.meta.env.BASE_URL}power-of-pipelining.html`}
+            style={{ width: "100%", height: 640, border: "none", display: "block" }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -210,8 +248,14 @@ function IdealCase() {
   const stageAbbr = ["F", "D", "C", "M", "W"];
   const stageColors = [C.accent, C.teal, C.orange, C.purple, C.green];
   const [cyc, setCyc] = useState(1);
-  const numInstr = 3;
-  const totalCycles = 5 + numInstr - 1; // 7
+  // 5 instructions, not 3 — with only 3 instructions the pipeline never has
+  // enough instructions "in flight" to fill all 5 stages at once (Aishu's
+  // catch: cycle 5 with 3 instructions would show I1=Write, I2=Memory,
+  // I3=Compute, and Decode/Fetch sitting empty). 5 instructions is the
+  // minimum that actually fills every stage simultaneously, matching Fig 6.1.
+  const numInstr = 5;
+  const totalCycles = 5 + numInstr - 1; // 9
+  const instrLabel = ["j", "j+1", "j+2", "j+3", "j+4"];
 
   // instruction i (0-indexed) occupies stage s during cycle (i + s + 1)
   const cellFor = (instr, cycle) => {
@@ -223,7 +267,8 @@ function IdealCase() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Three instructions, fully overlapped — this is Figure 6.1. Step through the cycles and watch: any ONE instruction still
+        Five instructions, fully overlapped — this is Figure 6.1. Five is the minimum needed to ever see all five stages busy at
+        the same time. Step through the cycles and watch: any ONE instruction still
         takes 5 cycles start-to-finish, but once the pipeline fills, a new instruction completes <strong style={{ color: C.text }}>every
         single cycle</strong>.
       </p>
@@ -246,7 +291,7 @@ function IdealCase() {
             <tbody>
               {Array.from({ length: numInstr }, (_, instr) => (
                 <tr key={instr}>
-                  <td style={{ padding: "4px", fontSize: 12, color: C.text, fontFamily: "monospace", fontWeight: 700 }}>I<sub>{instr === 0 ? "j" : instr === 1 ? "j+1" : "j+2"}</sub></td>
+                  <td style={{ padding: "4px", fontSize: 12, color: C.text, fontFamily: "monospace", fontWeight: 700, whiteSpace: "nowrap" }}>I<sub>{instrLabel[instr]}</sub></td>
                   {Array.from({ length: totalCycles }, (_, c) => {
                     const visible = c + 1 <= cyc;
                     const s = visible ? cellFor(instr, c + 1) : null;
@@ -300,49 +345,118 @@ function IdealCase() {
 //  Section 4 — Anatomy: pipeline organization & interstage buffers B1-B4
 //  (Sec 1.4, Fig 6.2) — never built as a lesson before this rewrite
 // ══════════════════════════════════════════════════════════════════
+// The vertical pipeline (Fetch→Decode→Compute→Memory→Write) with buffers
+// B1-B4 threaded between stages, as ONE alternating list of 9 rows:
+// stage, buffer, stage, buffer, ... stage. Modelling it as one array (rather
+// than two separate arrays) is what lets a single "which row is the token on
+// right now" index drive the whole animation below.
+const ORG_ROWS = [
+  { kind: "stage", name: "Fetch", color: C.accent },
+  { kind: "buffer", id: "B1", color: C.accent, carries: "The newly fetched instruction word, ready to decode.", signal: "instruction word" },
+  { kind: "stage", name: "Decode", color: C.teal },
+  { kind: "buffer", id: "B2", color: C.teal, carries: "The two operands read from the register file, the immediate value, and the control signals every later stage will need.", signal: "operands + immediate + control" },
+  { kind: "stage", name: "Compute", color: C.orange },
+  { kind: "buffer", id: "B3", color: C.orange, carries: "The ALU result — either data to write back, or an address/data for a Memory access.", signal: "ALU result" },
+  { kind: "stage", name: "Memory", color: C.purple },
+  { kind: "buffer", id: "B4", color: C.purple, carries: "The value that Write will place into the register file.", signal: "value to write back" },
+  { kind: "stage", name: "Write", color: C.green },
+];
+const ORG_LOOP_AT = ORG_ROWS.length + 2; // linger a beat on Write, then loop
+
 function PipelineOrganization() {
-  const buffers = [
-    { id: "B1", after: "Fetch", carries: "The newly fetched instruction, ready to decode.", color: C.accent },
-    { id: "B2", after: "Decode", carries: "The two operands read from registers, the immediate value, and the control signals for later stages.", color: C.teal },
-    { id: "B3", after: "Compute", carries: "The ALU result (data to write, or an address/data for memory).", color: C.orange },
-    { id: "B4", after: "Memory", carries: "The value to be written back into the register file.", color: C.purple },
-  ];
-  const [sel, setSel] = useState(null);
-  const stageNames = ["Fetch", "Decode", "Compute", "Memory", "Write"];
-  const stageColors = [C.accent, C.teal, C.orange, C.purple, C.green];
+  // `pos` is the index into ORG_ROWS the animated instruction-packet currently
+  // occupies. Odd indices are buffers — every time pos LANDS on a buffer, that
+  // is the moment "the buffer latches" and we pulse it, exactly mirroring how
+  // a real interstage register captures data at the end of a clock edge.
+  const [pos, setPos] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!playing) return undefined;
+    timerRef.current = setInterval(() => {
+      setPos((p) => (p >= ORG_LOOP_AT ? 0 : p + 1));
+    }, 850);
+    return () => clearInterval(timerRef.current);
+  }, [playing]);
+
+  const clamped = Math.min(pos, ORG_ROWS.length - 1);
+  const current = ORG_ROWS[clamped];
+  const onBuffer = current.kind === "buffer";
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
         Each of the five stages is <strong style={{ color: C.text }}>separate hardware</strong>. Between consecutive stages sit
         registers called <strong style={{ color: C.text }}>interstage buffers</strong> (B1–B4) — at the end of every clock cycle,
-        each buffer latches its stage's result so the next stage can use it the following cycle. Click a buffer.
+        each buffer latches its stage's result so the next stage can use it the following cycle. Watch the data
+        packet <strong style={{ color: C.text }}>and</strong> its control signals travel down together.
       </p>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 14px", marginBottom: 12 }}>
-        {stageNames.map((name, i) => (
-          <div key={i}>
-            <div style={{
-              padding: "9px 12px", borderRadius: 6, textAlign: "center", fontSize: 12.5, fontWeight: 700,
-              background: stageColors[i] + "18", border: `1.5px solid ${stageColors[i]}`, color: stageColors[i],
-            }}>{name}</div>
-            {i < 4 && (
-              <button onClick={() => setSel(sel === i ? null : i)} style={{
-                width: "100%", margin: "4px 0", padding: "6px", borderRadius: 5, cursor: "pointer", fontSize: 11, fontWeight: 700,
-                background: sel === i ? buffers[i].color + "22" : "transparent",
-                border: `1.5px dashed ${sel === i ? buffers[i].color : C.border}`,
-                color: sel === i ? buffers[i].color : C.muted,
-              }}>{buffers[i].id} — click to see what it carries</button>
-            )}
-          </div>
-        ))}
+      {/* ── Animated vertical flow: a token sliding down through stages and
+          pausing/pulsing on each buffer, driven purely by CSS transitions on
+          `top`/opacity keyed off `pos` — same lightweight technique as the
+          assembly-line animation above, just running top-to-bottom here to
+          match how Fig 6.2 itself is drawn. */}
+      <div style={{ position: "relative", background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 14px 14px 54px" }}>
+        {ORG_ROWS.map((row, i) => {
+          if (row.kind === "stage") {
+            const isCurrent = clamped === i;
+            return (
+              <div key={i} style={{
+                padding: "10px 12px", borderRadius: 6, textAlign: "center", fontSize: 12.5, fontWeight: 700,
+                background: isCurrent ? row.color + "30" : row.color + "18",
+                border: `1.5px solid ${row.color}`, color: row.color,
+                boxShadow: isCurrent ? `0 0 0 3px ${row.color}33` : "none",
+                transition: "all 0.35s ease", marginBottom: 4,
+              }}>{row.name}</div>
+            );
+          }
+          const isCurrent = clamped === i;
+          return (
+            <div key={i} style={{
+              margin: "2px 0 4px", padding: "5px 8px", borderRadius: 5, fontSize: 10.5, fontWeight: 700,
+              textAlign: "center", color: isCurrent ? "#0D1117" : row.color,
+              background: isCurrent ? row.color : "transparent",
+              border: `1.5px dashed ${row.color}`,
+              transform: isCurrent ? "scaleY(1.35)" : "scaleY(1)",
+              transition: "all 0.3s ease",
+            }}>{row.id} {isCurrent ? "⚡ latching now" : ""}</div>
+          );
+        })}
+
+        {/* the moving token itself — a small marker riding down the left rail,
+            aligned to whichever row index `pos` currently points at */}
+        <div style={{
+          position: "absolute", left: 10, top: 14, width: 34, height: 34,
+          transform: `translateY(${clamped * 40.4}px)`,
+          transition: "transform 0.6s ease",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          borderRadius: "50%", background: current.color, color: "#0D1117",
+          fontSize: 16, fontWeight: 800, boxShadow: `0 0 10px ${current.color}88`,
+        }}>📦</div>
       </div>
 
-      {sel !== null && (
-        <div style={{ background: buffers[sel].color + "18", border: `1px solid ${buffers[sel].color}44`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 12 }}>
-          <strong style={{ color: buffers[sel].color }}>{buffers[sel].id}</strong> (right after {buffers[sel].after}): {buffers[sel].carries}
-        </div>
-      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "12px 0" }}>
+        <button onClick={() => setPlaying((p) => !p)} style={{
+          padding: "8px 16px", borderRadius: 8, border: "none", background: C.accentGlow, color: "#fff",
+          fontWeight: 700, cursor: "pointer", fontSize: 12.5,
+        }}>{playing ? "⏸ Pause" : "▶ Play"}</button>
+        <button onClick={() => setPos(0)} style={{
+          padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.muted,
+          fontWeight: 700, cursor: "pointer", fontSize: 12.5,
+        }}>↺ Restart</button>
+      </div>
+
+      {/* live caption: what is the token carrying / doing RIGHT NOW */}
+      <div style={{
+        background: current.color + "18", border: `1px solid ${current.color}44`, borderRadius: 8,
+        padding: "12px 16px", fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 12, minHeight: 44,
+      }}>
+        {onBuffer
+          ? <><strong style={{ color: current.color }}>{current.id}</strong> just latched — carrying <em>{current.signal}</em>. {current.carries}</>
+          : <>Instruction is inside <strong style={{ color: current.color }}>{current.name}</strong> this cycle — control signals for this stage are riding along with the data, having arrived in the buffer just before it.</>}
+      </div>
 
       <Key color={C.purple}>
         Control signals travel <strong style={{ color: C.text }}>with</strong> the instruction down the pipe, riding in each
