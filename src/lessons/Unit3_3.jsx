@@ -1,16 +1,24 @@
 // Unit3_3.jsx — Module 3 › Unit 3.3 — "Data Hazards"
-// Foothold formula: GitHub-dark palette, free-nav tab strip, one interactive
-// widget per section, 🔑 key-insight callouts, 4-question quiz.
-// Source: Hamacher §6.3-6.5, Figs 6.3-6.5, 6.6, 6.8, Example 6.1 (Fig 6.15) —
-// class notes ch.3 (§3.1-3.6), including the two .explain call-outs Aishu
-// specifically asked to be resolved and echoed: (1) RAW names the WRITE-then-
-// READ dependency order, the hazard is the pipeline letting the read jump
-// ahead of it; (2) Fig 6.3's "3-cycle stall" = the held Decode cycle (3) +
-// the 2 bubble cycles drawn (4,5) — 2 bubbles is the extra delay, 3 cycles
-// is the total time stalled. AVPS's own ex1_hamacherRAW example agrees
-// exactly (stallBefore: 3); it only ever shows up to 2 bubble cards on
-// screen at once because of how its animation ripples forward one stage
-// per cycle — not a data disagreement.
+// REBUILT per Aishu's second review pass:
+// 1. "Why It Matters" no longer shows a nonsensical bracketed "Subtract"
+//    label. It's now a concrete production/availability timeline diagram:
+//    the result is PRODUCED at end of Compute (cycle 3), but not SAFELY
+//    AVAILABLE until 2 cycles later (after Write, cycle 5/6) -- exactly
+//    what Aishu asked to see shown clearly.
+// 2. RAW Naming no longer uses click-to-reveal-below (which pushed the
+//    page down when clicked). Both cards are always visible side-by-side.
+// 3. The old caveat explaining "AVPS only shows 2 bubbles due to its
+//    animation" is REMOVED -- that was masking a real off-by-one bug in
+//    AVPS's ex1_hamacherRAW (stallBefore was 3, should have been 2, which
+//    made Compute land on cycle 7 instead of 6). The bug is now fixed in
+//    avps-deploy/public/index.html, so AVPS and the notes agree exactly:
+//    2 bubbles shown, 3-cycle total stall, Compute on cycle 6. No caveat
+//    needed anymore.
+// 4. New "Memory Delays" section folds in the cache-miss content that used
+//    to live in a standalone (wrongly-scoped) Unit3_1 -- the notes only
+//    ever treat cache misses here, inside Data Hazards Sec 3.5, never as
+//    their own chapter.
+// Source: Hamacher Sec 6.3-6.5, Figs 6.3-6.5, 6.6, 6.7, 6.8, Example 6.1.
 import { useState } from "react";
 
 const C = {
@@ -30,7 +38,6 @@ function Key({ color = C.purple, children }) {
 }
 
 function StageRow({ label, stages, current }) {
-  // stages: array of {cyc, txt, kind} kind in F/D/C/M/W/bubble/idle
   const kindColor = { F: C.accent, D: C.teal, C: C.orange, M: C.purple, W: C.green, bubble: C.red, idle: C.border };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -54,98 +61,97 @@ function StageRow({ label, stages, current }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 1 — Why? Independent vs dependent instructions
+//  Section 1 — Why? Production vs. safe availability (the real gap)
 // ══════════════════════════════════════════════════════════════════
 function WhyItMatters() {
-  const [dependent, setDependent] = useState(true);
+  const cycles = [1, 2, 3, 4, 5];
+  const addStages = ["F", "D", "C", "M", "W"];
+  const addColor = { F: C.accent, D: C.teal, C: C.orange, M: C.purple, W: C.green };
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Unit 3.2's speedup assumed every instruction is independent. Real code isn't always so polite. Compare:
-        <span style={{ fontFamily: "monospace", color: C.text }}> Add R2,R3,#100</span> then
-        <span style={{ fontFamily: "monospace", color: C.text }}> Subtract R9,R2,#30</span> — toggle the dependency off and on.
+        Unit 3.2's speedup assumed every instruction is independent. Real code often isn't. Take
+        <span style={{ fontFamily: "monospace", color: C.text }}> Add R2,R3,#100</span> followed immediately by
+        <span style={{ fontFamily: "monospace", color: C.text }}> Subtract R9,R2,#30</span> — the Subtract needs the value the
+        Add computes. The key question: exactly <strong style={{ color: C.text }}>when</strong> is that value actually usable?
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button onClick={() => setDependent(false)} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: !dependent ? C.green + "22" : C.card, border: `2px solid ${!dependent ? C.green : C.border}`, color: !dependent ? C.green : C.muted,
-        }}>✅ Independent (Subtract uses R2, R5)</button>
-        <button onClick={() => setDependent(true)} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: dependent ? C.red + "22" : C.card, border: `2px solid ${dependent ? C.red : C.border}`, color: dependent ? C.red : C.muted,
-        }}>❌ Dependent (Subtract uses R2, R9)</button>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px 14px", marginBottom: 12 }}>
+        <div style={{ fontFamily: "monospace", fontSize: 12.5, color: C.text, marginBottom: 12 }}>Add R2, R3, #100</div>
+        <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+          {cycles.map((c, i) => (
+            <div key={c} style={{ flex: 1, textAlign: "center" }}>
+              <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>cycle {c}</div>
+              <div style={{
+                height: 34, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 11, fontWeight: 800, background: addColor[addStages[i]] + "22", color: addColor[addStages[i]],
+                border: `1.5px solid ${addColor[addStages[i]]}`,
+              }}>{addStages[i]}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1, textAlign: "center", fontSize: 10.5, color: C.orange, fontWeight: 700 }}>⬆ result PRODUCED here (end of Compute)</div>
+          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1, textAlign: "center", fontSize: 10.5, color: C.green, fontWeight: 700 }}>⬆ safely AVAILABLE from here (after Write)</div>
+        </div>
+
+        <div style={{ marginTop: 10, textAlign: "center", background: C.red + "18", border: `1px solid ${C.red}44`, borderRadius: 8, padding: "8px 12px" }}>
+          <span style={{ fontSize: 12, color: C.red, fontWeight: 700 }}>Gap: 2 full cycles</span>
+          <span style={{ fontSize: 11.5, color: C.muted }}> between "the ALU has computed it" (cycle 3) and "it's safely sitting in the register file" (cycle 5, readable from cycle 6)</span>
+        </div>
       </div>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
-        <pre style={{ fontFamily: "monospace", fontSize: 13, color: C.text, margin: 0, lineHeight: 1.8 }}>
-{`Add       R2, R3, #100      ; produces R2`}
-{"\n"}{dependent
-  ? <span style={{ color: C.red }}>{`Subtract  R9, R2, #30       ; consumes R2 !`}</span>
-  : <span style={{ color: C.green }}>{`Subtract  R9, R5, #30       ; doesn't need R2`}</span>}
-        </pre>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, lineHeight: 1.7 }}>
+        Subtract, fetched right behind Add, reaches its own normal Decode at <strong style={{ color: C.text }}>cycle 3</strong> —
+        the SAME cycle the value is only just being produced, two full cycles before it's safely available. If Subtract tries to
+        read R2 then, it gets the <strong style={{ color: C.red }}>old, wrong</strong> value.
       </div>
 
-      <div style={{ marginTop: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text }}>
-        {dependent
-          ? <span>R2 is <strong style={{ color: C.red }}>produced</strong> by the Add and <strong style={{ color: C.red }}>consumed</strong> by the Subtract — a <em>data dependency</em>. The pipeline must make sure the Subtract reads the correct, final value of R2.</span>
-          : <span>Nothing the Subtract reads was written by the Add — they can flow through the pipeline fully overlapped, exactly like Unit 3.2's ideal case.</span>}
-      </div>
-
-      <Key color={dependent ? C.red : C.green}>
-        Any condition that forces the pipeline to wait is a <strong style={{ color: C.text }}>hazard</strong>. A dependency like this
-        one is a <strong style={{ color: C.text }}>data hazard</strong> — specifically, because a later instruction depends on an
-        earlier instruction's result, it's called a <strong style={{ color: C.text }}>RAW (Read-After-Write) hazard</strong>.
+      <Key color={C.red}>
+        Any condition that forces the pipeline to wait is a <strong style={{ color: C.text }}>hazard</strong>. This one — a later
+        instruction depending on an earlier instruction's result — is a <strong style={{ color: C.text }}>data hazard</strong>,
+        specifically a <strong style={{ color: C.text }}>RAW (Read-After-Write) hazard</strong>.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 2 — Anatomy: why "RAW" when the bug is reading too early?
+//  Section 2 — Anatomy: RAW naming, side-by-side (no click-jump)
 // ══════════════════════════════════════════════════════════════════
 function RawNaming() {
-  const [reveal, setReveal] = useState(null); // "name" | "hazard" | null
-
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        This confuses almost everyone the first time: the Add writes R2 in cycle 5 (Write), but the Subtract's Decode reads R2 in
-        cycle 3 — a <em>read-before-write</em> in time. So why is it called <strong style={{ color: C.text }}>RAW — Read AFTER Write</strong>?
-        Click each card.
+        This confuses almost everyone the first time: the Add writes R2 in cycle 5 (Write), but the Subtract's Decode wants to
+        read R2 back in cycle 3 — a <em>read-before-write</em> in time. So why is it called
+        <strong style={{ color: C.text }}> RAW — Read AFTER Write</strong>? The two cards below answer this together — read
+        them side by side, not one-at-a-time.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-        <button onClick={() => setReveal(reveal === "name" ? null : "name")} style={{
-          textAlign: "left", padding: 14, borderRadius: 10, cursor: "pointer",
-          background: reveal === "name" ? C.accent + "18" : C.card, border: `1.5px solid ${reveal === "name" ? C.accent : C.border}`,
-        }}>
-          <div style={{ color: C.accent, fontWeight: 700, fontSize: 13 }}>What "RAW" names</div>
-          <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>tap to reveal</div>
-        </button>
-        <button onClick={() => setReveal(reveal === "hazard" ? null : "hazard")} style={{
-          textAlign: "left", padding: 14, borderRadius: 10, cursor: "pointer",
-          background: reveal === "hazard" ? C.red + "18" : C.card, border: `1.5px solid ${reveal === "hazard" ? C.red : C.border}`,
-        }}>
-          <div style={{ color: C.red, fontWeight: 700, fontSize: 13 }}>What the hazard actually is</div>
-          <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>tap to reveal</div>
-        </button>
+        <div style={{ padding: 16, borderRadius: 10, background: C.accent + "12", border: `1.5px solid ${C.accent}44` }}>
+          <div style={{ color: C.accent, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>① What "RAW" names</div>
+          <div style={{ color: C.text, fontSize: 12.5, lineHeight: 1.7 }}>
+            RAW names the <strong>dependency</strong>, not the malfunction. In correct <em>program order</em>, the Write must
+            happen, then the Read happens <em>after</em> it — that's simply what "R2 is produced by the Add and consumed by
+            the Subtract" means. The name describes the order that <em>should</em> hold: Write, then Read.
+          </div>
+        </div>
+        <div style={{ padding: 16, borderRadius: 10, background: C.red + "12", border: `1.5px solid ${C.red}44` }}>
+          <div style={{ color: C.red, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>② What the hazard actually is</div>
+          <div style={{ color: C.text, fontSize: 12.5, lineHeight: 1.7 }}>
+            The hazard is that <strong>pipelining breaks this order</strong> — the Subtract's Decode tries to read R2
+            <em> before</em> the Add's Write has actually happened. It's a premature read, violating the Write-then-Read order
+            the name is built on.
+          </div>
+        </div>
       </div>
-
-      {reveal === "name" && (
-        <div style={{ background: C.card, border: `1px solid ${C.accent}44`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 12 }}>
-          RAW names the <strong>dependency</strong>, not the malfunction. In correct <em>program order</em>, the Write must happen,
-          then the Read happens <em>after</em> it — that's simply what "R2 is produced by the Add and consumed by the Subtract"
-          means. The name describes the order that <em>should</em> hold: Write, then Read.
-        </div>
-      )}
-      {reveal === "hazard" && (
-        <div style={{ background: C.card, border: `1px solid ${C.red}44`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.text, lineHeight: 1.7, marginBottom: 12 }}>
-          The hazard is that <strong>pipelining breaks this order</strong> — the Subtract's Decode tries to read R2 <em>before</em>
-          the Add's Write has actually happened. It's a premature read, violating the Write-then-Read order the name is built on.
-        </div>
-      )}
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.muted, lineHeight: 1.6, fontFamily: "monospace" }}>
         program order:  Write R2  →  Read R2   (this is what "RAW" is named after)
@@ -154,8 +160,8 @@ function RawNaming() {
 
       <Key color={C.purple}>
         The same logic gives <strong style={{ color: C.text }}>WAR (Write-After-Read)</strong> and
-        <strong style={{ color: C.text }}> WAW (Write-After-Write)</strong> hazards elsewhere in the course — each is named for the
-        program-order pair it protects, not for which event the pipeline lets slip out of order.
+        <strong style={{ color: C.text }}> WAW (Write-After-Write)</strong> hazards elsewhere in the course — each is named for
+        the program-order pair it protects, not for which event the pipeline lets slip out of order.
       </Key>
     </div>
   );
@@ -166,23 +172,21 @@ function RawNaming() {
 // ══════════════════════════════════════════════════════════════════
 function StallTrace() {
   const [i, setI] = useState(0);
-  // Add: F D C M W  at cycles 1 2 3 4 5
-  // Sub: F D(held,3) bubble(4) bubble(5) C(6) M(7) W(8)
   const addStages = ["F", "D", "C", "M", "W"];
   const subTimeline = [
-    { cyc: 1, note: 'Cycle 1 — Add is fetched.' },
-    { cyc: 2, note: 'Cycle 2 — Add decodes; Subtract is fetched right behind it.' },
-    { cyc: 3, note: 'Cycle 3 — Add computes (produces R2 at the end of this cycle). Subtract enters Decode — its NORMAL decode cycle, not extra time yet.' },
+    { cyc: 1, note: "Cycle 1 — Add is fetched." },
+    { cyc: 2, note: "Cycle 2 — Add decodes; Subtract is fetched right behind it." },
+    { cyc: 3, note: "Cycle 3 — Add computes (produces R2 at the end of this cycle). Subtract enters Decode — its NORMAL decode cycle, not extra time yet." },
     { cyc: 4, note: "Cycle 4 — R2 still isn't written. Subtract is HELD in Decode — bubble #1 injected downstream." },
-    { cyc: 5, note: 'Cycle 5 — Add writes R2. Subtract is STILL held — bubble #2 injected.' },
-    { cyc: 6, note: 'Cycle 6 — R2 is finally safely written. Subtract moves into Compute and reads R2 correctly.' },
+    { cyc: 5, note: "Cycle 5 — Add writes R2. Subtract is STILL held — bubble #2 injected." },
+    { cyc: 6, note: "Cycle 6 — R2 is finally safely written. Subtract moves into Compute and reads R2 correctly." },
   ];
   const s = subTimeline[i];
 
   const subKindAt = (cyc) => {
     if (cyc < 2) return "idle";
     if (cyc === 2) return "F";
-    if (cyc === 3) return "D";       // held here, but this IS its real decode slot
+    if (cyc === 3) return "D";
     if (cyc === 4 || cyc === 5) return "bubble";
     if (cyc === 6) return "C";
     return "idle";
@@ -225,18 +229,18 @@ function StallTrace() {
       </div>
 
       <div style={{ background: C.purple + "18", border: `1px solid ${C.purple}44`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.muted, lineHeight: 1.7 }}>
-        <strong style={{ color: C.purple }}>Resolving the "2 bubbles vs 3 cycles" question:</strong> cycle 3 was already going to be
-        Subtract's normal Decode cycle — it isn't "extra" time. Cycles 4 and 5 are the two <em>additional</em> idle cycles forced in
-        because R2 isn't ready — those are the two bubbles you see drawn. Add cycle 3 (held) + cycle 4 (bubble) + cycle 5 (bubble)
-        = Subtract is stuck in Decode for a <strong style={{ color: C.text }}>total of 3 cycles</strong> before moving to Compute in
-        cycle 6. So: <strong>2 bubbles</strong> = the extra delay injected; <strong>3 cycles</strong> = the full time spent stalled.
-        AVPS's own matching example agrees exactly — it stalls for 3 cycles too — but because its animation advances one stage per
-        cycle, you'll only ever see up to two bubble cards on screen together at once. That's the animation, not a disagreement.
+        <strong style={{ color: C.purple }}>Resolving the "2 bubbles vs 3 cycles" question:</strong> cycle 3 was already going to
+        be Subtract's normal Decode cycle — it isn't "extra" time. Cycles 4 and 5 are the two <em>additional</em> idle cycles
+        forced in because R2 isn't ready — those are the two bubbles you see drawn. Add cycle 3 (held) + cycle 4 (bubble) +
+        cycle 5 (bubble) = Subtract is stuck in Decode for a <strong style={{ color: C.text }}>total of 3 cycles</strong> before
+        moving to Compute in cycle 6. So: <strong>2 bubbles</strong> = the extra delay injected; <strong>3 cycles</strong> = the
+        full time spent stalled. AVPS's own matching example (Example 1, Fig 6.3) shows exactly this: 2 bubbles, Compute landing
+        on cycle 6.
       </div>
 
       <Key color={C.red}>
-        Each idle cycle inserted is called a <strong style={{ color: C.text }}>bubble</strong>; every instruction behind the stalled
-        one is delayed too — the same domino effect you saw with a cache miss in Unit 3.1.
+        Each idle cycle inserted is called a <strong style={{ color: C.text }}>bubble</strong>; every instruction behind the
+        stalled one is delayed too.
       </Key>
     </div>
   );
@@ -310,9 +314,9 @@ Subtract  R9, R2, #30`}
       )}
 
       <Key color={C.accent}>
-        In hardware, real processors prefer <strong style={{ color: C.text }}>forwarding</strong> — it's free once built. NOP/reorder
-        matter for simpler pipelines without forwarding hardware, or when forwarding still can't fully close the gap (next: the
-        load-use case).
+        In hardware, real processors prefer <strong style={{ color: C.text }}>forwarding</strong> — it's free once built. NOP/
+        reorder matter for simpler pipelines without forwarding hardware, or when forwarding still can't fully close the gap
+        (next: the load-use case).
       </Key>
     </div>
   );
@@ -345,9 +349,9 @@ function LoadUseHazard() {
 
       {showFix && (
         <div style={{ background: C.card, border: `1px solid ${C.orange}44`, borderRadius: 8, padding: "14px 16px", fontSize: 13, color: C.text, lineHeight: 1.8 }}>
-          A Load reads its data in the <strong>Memory</strong> stage — one stage <em>later</em> than the ALU (Compute) where Add's
-          result was ready. Subtract needs R2 in Compute, but Load doesn't have it until Memory — forwarding can't deliver a value
-          that doesn't exist yet. So even with forwarding hardware, a directly-following dependent instruction needs
+          A Load reads its data in the <strong>Memory</strong> stage — one stage <em>later</em> than the ALU (Compute) where
+          Add's result was ready. Subtract needs R2 in Compute, but Load doesn't have it until Memory — forwarding can't deliver
+          a value that doesn't exist yet. So even with forwarding hardware, a directly-following dependent instruction needs
           <strong style={{ color: C.red }}> one unavoidable stall</strong>. After that single bubble, the value (now sitting in
           register RY) <em>is</em> forwarded normally.
         </div>
@@ -361,8 +365,86 @@ function LoadUseHazard() {
       </div>
 
       <Key color={C.orange}>
-        A compiler can hide this one stall the same way it hid the 3-cycle case — by moving an independent instruction between the
-        Load and its user, so the CPU does useful work during the unavoidable cycle instead of nothing.
+        A compiler can hide this one stall the same way it hid the 3-cycle case — by moving an independent instruction between
+        the Load and its user, so the CPU does useful work during the unavoidable cycle instead of nothing.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 6 — Memory Delays: cache misses as a data-hazard-like stall
+//  (Sec 3.5, Fig 6.7) — folded in from the old, wrongly-scoped Unit3_1
+// ══════════════════════════════════════════════════════════════════
+function MemoryDelays() {
+  const [path, setPath] = useState("hit");
+  const isHit = path === "hit";
+  const [misses, setMisses] = useState(0);
+  const cells = Array.from({ length: 5 }, (_, i) => i < misses);
+  const cyclesNoMiss = 5;
+  const cyclesWithMiss = 5 + misses * 9;
+
+  return (
+    <div>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        One more source of stalls belongs here, alongside register dependencies: <strong style={{ color: C.text }}>memory
+        delays</strong>. Every Fetch (and every Load/Store in Memory) assumes the cache answers in about a cycle. When it
+        doesn't, the effect on the pipeline looks exactly like the hazards you just traced.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <button onClick={() => setPath("hit")} style={{
+          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
+          background: isHit ? C.green + "22" : C.card, border: `2px solid ${isHit ? C.green : C.border}`, color: isHit ? C.green : C.muted,
+        }}>✅ Cache HIT</button>
+        <button onClick={() => setPath("miss")} style={{
+          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
+          background: !isHit ? C.red + "22" : C.card, border: `2px solid ${!isHit ? C.red : C.border}`, color: !isHit ? C.red : C.muted,
+        }}>❌ Cache MISS</button>
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 14 }}>
+        {isHit
+          ? <span>The word is already in the small, fast cache — it comes back in about <strong style={{ color: C.green }}>one cycle</strong>, and the pipeline never notices.</span>
+          : <span>The word isn't in the cache. The request goes all the way to main memory, which is far slower (Figure 6.7 shows this as a <strong style={{ color: C.red }}>3-cycle</strong> miss; real misses often cost 10 or more) — the whole pipeline sits idle waiting.</span>}
+      </div>
+
+      <p style={{ color: C.muted, fontSize: 12.5, marginBottom: 10, lineHeight: 1.6 }}>
+        Try it yourself: how many of 5 fetches miss the cache?
+      </p>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ color: C.muted, fontSize: 12 }}>cache misses out of 5 fetches = <strong style={{ color: C.red }}>{misses}</strong></label>
+        <input type="range" min={0} max={4} value={misses} onChange={(e) => setMisses(Number(e.target.value))} style={{ width: "100%", accentColor: C.red }} />
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        {cells.map((miss, i) => (
+          <div key={i} style={{
+            flex: 1, height: 40, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 11, fontWeight: 800, color: miss ? C.red : C.green,
+            background: miss ? C.red + "18" : C.green + "18", border: `2px solid ${miss ? C.red : C.green}`,
+          }}>{miss ? "MISS" : "hit"}</div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 4 }}>
+        <div style={{ background: C.card, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{cyclesNoMiss}</div>
+          <div style={{ color: C.muted, fontSize: 10.5 }}>cycles, all hits</div>
+        </div>
+        <div style={{ background: C.card, border: `1.5px solid ${C.red}44`, borderRadius: 10, padding: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{cyclesWithMiss}</div>
+          <div style={{ color: C.muted, fontSize: 10.5 }}>cycles, with the misses above</div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
+        This lesson never asks <em>why</em> a word is or isn't in the cache — that's cache mapping, hit-rate mechanics, and
+        replacement policy, a topic of its own in a later module on memory organization. Here, all that matters is: a miss
+        stalls the pipeline exactly like a data hazard does, and it can hit at Fetch <em>or</em> at Memory.
+      </div>
+
+      <Key color={C.red}>
+        A cache miss stalls every stage behind it, the same domino effect as the RAW stall you traced earlier — except the
+        cause is memory being slow, not a register dependency.
       </Key>
     </div>
   );
@@ -393,7 +475,7 @@ function Quiz({ onComplete }) {
         "3-cycle stall means 3 bubbles were drawn but 2 were cut off",
       ],
       answer: 1,
-      explain: "2 bubbles = the extra delay injected (cycles 4, 5). 3 cycles = the FULL time Subtract spends stuck in Decode, including its own normal decode cycle (3). Both numbers describe the same event from different counting angles — and AVPS's matching example agrees exactly, showing at most 2 bubble cards at once purely due to its cycle-by-cycle animation.",
+      explain: "2 bubbles = the extra delay injected (cycles 4, 5). 3 cycles = the FULL time Subtract spends stuck in Decode, including its own normal decode cycle (3). Both numbers describe the same event, and AVPS's own matching example (once corrected) shows exactly the same thing.",
     },
     {
       q: "Why does operand forwarding eliminate the stall for Add→Subtract but NOT fully eliminate it for Load→Subtract?",
@@ -407,15 +489,15 @@ function Quiz({ onComplete }) {
       explain: "Add's result exists after Compute (in RZ), in time to forward to the very next instruction's Compute stage. A Load's result only exists after Memory — one stage too late for a directly-following instruction, forcing exactly one stall even with forwarding hardware present.",
     },
     {
-      q: "What's the key difference between NOP insertion and instruction scheduling as software fixes for a data hazard?",
+      q: "Why does a cache miss belong in the same unit as data hazards, rather than being treated as a totally separate topic?",
       options: [
-        "They cost different numbers of cycles",
-        "Both stall for the same number of cycles, but scheduling fills those cycles with independent, USEFUL instructions instead of doing nothing",
-        "NOP insertion is a hardware technique",
-        "Scheduling eliminates the hazard entirely with zero cycles lost",
+        "It doesn't really belong here at all",
+        "Because its effect on the pipeline is the same domino-effect stall as a data hazard — the cause differs (slow memory vs a register dependency) but the mechanism (everything behind it freezes) is identical",
+        "Cache misses only happen during Decode",
+        "Cache mapping and replacement policy are covered in this unit too",
       ],
       answer: 1,
-      explain: "Both approaches use the same number of cycles as a hardware stall would. NOPs waste those cycles outright; instruction scheduling reorders genuinely independent instructions into the same slots so real work gets done — same cost, better use of the cost.",
+      explain: "A cache miss and a data hazard both stall the pipeline the same way — everything behind the stalled instruction has nowhere to go. The notes treat memory delays as Sec 3.5 of the Data Hazards chapter for exactly this reason; cache mapping/replacement policy is a separate later topic.",
     },
   ];
 
@@ -440,9 +522,9 @@ function Quiz({ onComplete }) {
         <div style={{ fontSize: 52 }}>{score >= 3 ? "🎉" : "👍"}</div>
         <div style={{ fontSize: 24, fontWeight: 700, color: C.text, marginTop: 10 }}>You scored {score} / {questions.length}</div>
         <div style={{ color: C.muted, marginTop: 8, marginBottom: 20 }}>
-          {score === 4 ? "Perfect! RAW naming, the 3-cycle/2-bubble distinction, forwarding, and load-use are all locked in." :
+          {score === 4 ? "Perfect! RAW naming, the 3-cycle/2-bubble distinction, forwarding, load-use, and memory delays are all locked in." :
             score >= 2 ? "Good work! Replay 'Trace the Stall' and 'The Load-Use Gotcha' to lock in the tricky parts." :
-              "Revisit the RAW Naming card-flip and the stall trace — those two ideas unlock everything else here."}
+              "Revisit 'Why It Matters' and the stall trace — those two ideas unlock everything else here."}
         </div>
         <div style={{
           padding: "20px", borderRadius: 12,
@@ -451,8 +533,8 @@ function Quiz({ onComplete }) {
         }}>
           <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Unit 3.3 Complete!</div>
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
-            You can now explain RAW naming precisely, resolve the "3-cycle stall vs 2 bubbles" question, and compare stalling,
-            forwarding, and software scheduling as hazard cures.
+            You can now explain RAW naming precisely, resolve the "3-cycle stall vs 2 bubbles" question, compare stalling,
+            forwarding, and software scheduling as hazard cures, and recognize a cache miss as the same kind of stall.
             <br /><br />
             <strong style={{ color: C.accent }}>Next up: Unit 3.4 — Instruction Hazards.</strong> Data wasn't the only thing that
             could hold up the pipeline — branches can too, and for a very different reason.
@@ -511,6 +593,7 @@ export default function Unit3_3({ student, onUnitComplete }) {
     { id: "trace", label: "Trace the Stall" },
     { id: "cures", label: "Compare the Cures" },
     { id: "loaduse", label: "Load-Use Gotcha" },
+    { id: "memory", label: "Memory Delays" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -521,15 +604,16 @@ export default function Unit3_3({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>⏳ Why It Matters — independent vs dependent instructions</h3><WhyItMatters /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>⏳ Why It Matters — produced vs. safely available</h3><WhyItMatters /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>🏷️ RAW Naming — dependency vs hazard</h3><RawNaming /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>🔍 Trace the Stall — Figure 6.3, cycle by cycle</h3><StallTrace /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>⚖️ Compare the Cures — stall, forward, NOP, reorder</h3><CuresComparison /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>⚠️ The Load-Use Gotcha — forwarding's one limit</h3><LoadUseHazard /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>💾 Memory Delays — cache misses (Sec 3.5, Fig 6.7)</h3><MemoryDelays /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 3.3.</p>
-      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(6); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 
@@ -552,11 +636,11 @@ export default function Unit3_3({ student, onUnitComplete }) {
         <div style={{ display: "flex", gap: 4, marginBottom: 24, background: C.surface, borderRadius: 10, padding: 4, border: `1px solid ${C.border}`, flexWrap: "wrap" }}>
           {sections.map((s, i) => (
             <button key={i} onClick={() => setActiveSection(i)} style={{
-              flex: 1, minWidth: 70, padding: "8px 6px", borderRadius: 7,
+              flex: 1, minWidth: 64, padding: "8px 4px", borderRadius: 7,
               background: activeSection === i ? C.accentGlow : "transparent",
               border: "none", color: activeSection === i ? "#fff" : C.muted,
-              cursor: "pointer", fontSize: 10.5, fontWeight: activeSection === i ? 600 : 400,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+              cursor: "pointer", fontSize: 10, fontWeight: activeSection === i ? 600 : 400,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
               transition: "all 0.2s",
             }}>
               {completed.includes(i) && <span style={{ color: C.green }}>✓</span>}
