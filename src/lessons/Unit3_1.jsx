@@ -7,7 +7,7 @@
 // (Sec 1.1, assembly-line analogy), the five-step instruction (Sec 1.2),
 // the ideal overlapped case (Sec 1.3, Fig 6.1), and pipeline organization +
 // interstage buffers B1-B4 (Sec 1.4, Fig 6.2).
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const C = {
   bg: "#0D1117", surface: "#161B22", card: "#1C2333",
@@ -26,51 +26,131 @@ function Key({ color = C.purple, children }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 1 — Why? Two ways to make a program faster (Sec 1.1)
+//  Section 1 — Why? Animated assembly line: without vs. with pipelining
+//  (Sec 1.1). Four cars, four stations, one shared cycle clock driving
+//  both lanes at once so the throughput difference is directly visible.
 // ══════════════════════════════════════════════════════════════════
+const STATIONS = ["Chassis", "Engine", "Paint", "Interior"];
+const CAR_COLORS = [C.accent, C.teal, C.orange, C.purple];
+const NUM_CARS = 4;
+const NUM_STATIONS = 4;
+const SERIAL_MAX = NUM_STATIONS * NUM_CARS - 1;       // last occupied cycle, 0-indexed
+const PIPE_MAX = NUM_STATIONS + NUM_CARS - 1 - 1;     // last occupied cycle, 0-indexed
+const LOOP_AT = SERIAL_MAX + 4;                        // pause a beat, then loop
+
+// carIdx, cycle -> station index (0..3) if the car occupies a station this
+// cycle, or null if it hasn't started yet / has already finished.
+function serialStation(carIdx, cycle) {
+  const start = carIdx * NUM_STATIONS;
+  const s = cycle - start;
+  return s >= 0 && s < NUM_STATIONS ? s : null;
+}
+function pipelinedStation(carIdx, cycle) {
+  const start = carIdx;
+  const s = cycle - start;
+  return s >= 0 && s < NUM_STATIONS ? s : null;
+}
+
+function AssemblyLane({ title, color, cycle, stationFn, maxCycle, icon }) {
+  const finishedCount = Array.from({ length: NUM_CARS }).filter((_, i) => {
+    // a car has finished once cycle has passed the last cycle it could occupy a station
+    const lastOccupied = stationFn === serialStation ? i * NUM_STATIONS + NUM_STATIONS - 1 : i + NUM_STATIONS - 1;
+    return cycle > lastOccupied;
+  }).length;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color }}>{icon} {title}</span>
+        <span style={{ marginLeft: "auto", fontSize: 11.5, color: C.muted }}>
+          <strong style={{ color: finishedCount === NUM_CARS ? C.green : C.text }}>{finishedCount} / {NUM_CARS}</strong> cars finished
+        </span>
+      </div>
+
+      <div style={{ position: "relative", background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 0 26px", overflow: "hidden" }}>
+        {/* station zone backgrounds + labels */}
+        <div style={{ display: "flex" }}>
+          {STATIONS.map((s, i) => (
+            <div key={i} style={{
+              flex: 1, height: 44, borderRight: i < 3 ? `1px dashed ${C.border}` : "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <span style={{ fontSize: 9.5, color: C.border, fontWeight: 700 }} />
+            </div>
+          ))}
+        </div>
+        {/* station labels row */}
+        <div style={{ display: "flex", position: "absolute", bottom: 4, left: 0, right: 0 }}>
+          {STATIONS.map((s, i) => (
+            <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 9, color: C.muted }}>{s}</div>
+          ))}
+        </div>
+        {/* car tokens, absolutely positioned, sliding via CSS transition */}
+        {Array.from({ length: NUM_CARS }, (_, carIdx) => {
+          const station = stationFn(carIdx, cycle);
+          const startCycle = stationFn === serialStation ? carIdx * NUM_STATIONS : carIdx;
+          let leftPct;
+          if (cycle < startCycle) leftPct = -14; // waiting, parked off the left edge
+          else if (station !== null) leftPct = station * 25 + 6.5; // riding through a station
+          else leftPct = 108; // finished, slid off the right edge
+          return (
+            <div key={carIdx} title={`Car ${carIdx + 1}`} style={{
+              position: "absolute", top: 7, left: `${leftPct}%`, width: "13%", height: 30,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "left 0.6s ease",
+              background: CAR_COLORS[carIdx] + "26", border: `1.5px solid ${CAR_COLORS[carIdx]}`,
+              borderRadius: 7, color: CAR_COLORS[carIdx], fontWeight: 800, fontSize: 15,
+            }}>🚗</div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function WhyPipelining() {
-  const [mode, setMode] = useState("assembly"); // "onecar" | "assembly"
-  const isAssembly = mode === "assembly";
+  const [cycle, setCycle] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!playing) return undefined;
+    timerRef.current = setInterval(() => {
+      setCycle((c) => (c >= LOOP_AT ? 0 : c + 1));
+    }, 650);
+    return () => clearInterval(timerRef.current);
+  }, [playing]);
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
         A program can be made faster in <strong style={{ color: C.text }}>two</strong> broad ways: use faster circuitry, or
-        arrange the hardware so more than one operation happens at the same time. Pipelining takes the second route. The classic
-        analogy is a car factory — toggle between the two ways of building cars.
+        arrange the hardware so more than one operation happens at the same time. Pipelining takes the second route. Watch four
+        cars move through the same four stations — one lane with no overlap, one lane pipelined — on the <strong style={{ color: C.text }}>same
+        clock</strong>, so you can see the throughput difference happen live.
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button onClick={() => setMode("onecar")} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: !isAssembly ? C.red + "22" : C.card, border: `2px solid ${!isAssembly ? C.red : C.border}`, color: !isAssembly ? C.red : C.muted,
-        }}>❌ One car at a time</button>
-        <button onClick={() => setMode("assembly")} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: isAssembly ? C.green + "22" : C.card, border: `2px solid ${isAssembly ? C.green : C.border}`, color: isAssembly ? C.green : C.muted,
-        }}>✅ Assembly line</button>
-      </div>
+      <AssemblyLane title="No pipelining — one car at a time" icon="❌" color={C.red} cycle={cycle} stationFn={serialStation} maxCycle={SERIAL_MAX} />
+      <AssemblyLane title="Pipelined — every station always busy" icon="✅" color={C.green} cycle={cycle} stationFn={pipelinedStation} maxCycle={PIPE_MAX} />
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
-        {!isAssembly ? (
-          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.8 }}>
-            One team builds an ENTIRE car — chassis, engine, paint, interior — before starting the next one. Each car still
-            takes the same few hours to build, and cars roll out one every <strong style={{ color: C.red }}>few hours</strong>.
-          </div>
-        ) : (
-          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.8 }}>
-            Every station does ONE step (chassis, then engine, then paint, then interior) and is <strong>always working on a
-            different car</strong>. Any one car still takes the same few hours start-to-finish — but once the line is full, a
-            finished car rolls off <strong style={{ color: C.green }}>every few minutes</strong>.
-          </div>
-        )}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <button onClick={() => setPlaying((p) => !p)} style={{
+          padding: "8px 16px", borderRadius: 8, border: "none", background: C.accentGlow, color: "#fff",
+          fontWeight: 700, cursor: "pointer", fontSize: 12.5,
+        }}>{playing ? "⏸ Pause" : "▶ Play"}</button>
+        <button onClick={() => setCycle(0)} style={{
+          padding: "8px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.muted,
+          fontWeight: 700, cursor: "pointer", fontSize: 12.5,
+        }}>↺ Restart</button>
+        <span style={{ marginLeft: "auto", fontSize: 11.5, color: C.muted }}>time step {cycle}</span>
       </div>
 
       <Key color={C.accent}>
-        Nothing about building any ONE car got faster. What changed is <strong style={{ color: C.text }}>throughput</strong> —
-        how many cars finish per unit time. This is exactly what pipelining does for instructions: it
-        <strong style={{ color: C.text }}> overlaps</strong> the execution of successive instructions across dedicated hardware
-        stages.
+        Nothing about building any ONE car got faster — each car still passes through all four stations taking the same time
+        per station. What changed is <strong style={{ color: C.text }}>throughput</strong>: the pipelined lane finishes all 4
+        cars in far fewer time steps, because every station is always working on a <em>different</em> car instead of sitting
+        idle. This is exactly what pipelining does for instructions: it <strong style={{ color: C.text }}>overlaps</strong> the
+        execution of successive instructions across dedicated hardware stages.
       </Key>
     </div>
   );
