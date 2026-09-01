@@ -1,10 +1,10 @@
-// Unit3_4.jsx — Module 3 › Unit 3.4 — "Instruction Hazards"
-// Foothold formula: GitHub-dark palette, free-nav tab strip, one interactive
-// widget per section, 🔑 key-insight callouts, 4-question quiz.
-// Source: Hamacher §6.6, Figs 6.9-6.12 — class notes ch.4 (branch problem,
-// branch penalty + early-decode fix, delay slot, static + 2-bit dynamic
-// prediction, branch target buffer).
-import { useState } from "react";
+// Unit3_4.jsx — Module 3 › Unit 3.4 — "Instruction Hazards" (branch / control hazards)
+// Rebuilt for interactivity to match Units 0–2: every section is a DIFFERENT interaction —
+// a before/after toggle, an AUTO-PLAYING branch-flush pipeline, a predict-before-reveal
+// delay-slot fill, and an interactive 2-bit-predictor finite-state machine. The PipelineGrid /
+// buildStraightRows / buildRows helpers are copied in verbatim from Unit 3.2 (each lesson is
+// self-contained). Source: Hamacher §6.6, class notes ch.4.
+import { useState, useEffect } from "react";
 
 const C = {
   bg: "#0D1117", surface: "#161B22", card: "#1C2333",
@@ -14,6 +14,9 @@ const C = {
   text: "#E6EDF3", muted: "#8B949E", border: "#30363D",
 };
 
+// Stage → colour (shared across all Unit 3 pipeline diagrams)
+const STAGE_COLOR = { IF: C.accent, ID: C.purple, EX: C.orange, MEM: C.teal, WB: C.green, "○": C.muted };
+
 function Key({ color = C.purple, children }) {
   return (
     <div style={{ marginTop: 16, background: color + "18", border: `1px solid ${color}44`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
@@ -22,18 +25,114 @@ function Key({ color = C.purple, children }) {
   );
 }
 
+// ── buildStraightRows: instruction i occupies cycles (i+1 .. i+5) with stages IF..WB ──
+// A "bubble" entry {after: s, count: c} inserts c stall cycles before stage index s.
+function buildStraightRows(instrs) {
+  return instrs.map((ins, i) => {
+    const cells = {};
+    ["IF", "ID", "EX", "MEM", "WB"].forEach((st, s) => { cells[i + 1 + s] = st; });
+    return { label: ins.label, color: ins.color, cells };
+  });
+}
+
+// ── buildRows: general schedule builder — place any stage (or a flushed "○" slot) at an explicit cycle ──
+function buildRows(schedule) {
+  // schedule: [{ label, color, stages: [{ name, cycle }] }]  — name is IF/ID/EX/MEM/WB, or "○" for a flushed/bubble slot
+  return schedule.map((s) => {
+    const cells = {};
+    s.stages.forEach((st) => { cells[st.cycle] = st.name; });
+    return { label: s.label, color: s.color, cells };
+  });
+}
+
 // ══════════════════════════════════════════════════════════════════
-//  Section 1 — Why? A branch means "what's next?" isn't known yet
+//  Shared PipelineGrid — an auto-playing space-time (reservation) diagram.
+//  rows: [{ label, color, cells: { <cycleNumber>: <stageLabel> } }], plus totalCycles.
+//  Reveals every cell whose cycle ≤ the current clock; Play advances it on its own.
 // ══════════════════════════════════════════════════════════════════
-function WhyItMatters() {
+function PipelineGrid({ rows, totalCycles, caption, speed = 650, height }) {
+  const [clock, setClock] = useState(0);      // 0 = pipeline empty, nothing issued yet
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!playing) return;
+    if (clock >= totalCycles) { setPlaying(false); return; }
+    const t = setTimeout(() => setClock((c) => c + 1), speed);
+    return () => clearTimeout(t);
+  }, [playing, clock, totalCycles, speed]);
+
+  // How many instructions have fully retired (their WB cycle ≤ current clock)?
+  const wbCycleOf = (r) => Math.max(...Object.keys(r.cells).filter((cy) => r.cells[cy] === "WB").map(Number));
+  const done = rows.filter((r) => wbCycleOf(r) <= clock).length;
+
+  const cycleNums = Array.from({ length: totalCycles }, (_, i) => i + 1);
+
+  return (
+    <div>
+      {/* controls */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <button onClick={() => { if (clock >= totalCycles) setClock(0); setPlaying((p) => !p); }}
+          style={btn(playing ? C.orange : C.green)}>
+          {playing ? "⏸ Pause" : clock >= totalCycles ? "↺ Replay" : "▶ Run cycles"}
+        </button>
+        <button onClick={() => { setPlaying(false); setClock((c) => Math.min(totalCycles, c + 1)); }} style={btn(C.accentGlow)}>Step ▶</button>
+        <button onClick={() => { setPlaying(false); setClock(0); }} style={btn(C.card, C.muted)}>↺ Reset</button>
+        <div style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>
+          clock = <strong style={{ color: C.accent }}>{clock}</strong> / {totalCycles} · done = <strong style={{ color: C.green }}>{done}</strong> / {rows.length}
+        </div>
+      </div>
+
+      {/* grid (horizontal scroll so it never gets shoved off-screen) */}
+      <div style={{ overflowX: "auto", background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: `88px repeat(${totalCycles}, 40px)`, gap: 4, minWidth: "fit-content" }}>
+          {/* header row: cycle numbers */}
+          <div style={{ fontSize: 10, color: C.muted, alignSelf: "center" }}>instr \ cycle</div>
+          {cycleNums.map((cy) => (
+            <div key={cy} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: cy === clock ? C.accent : C.muted }}>{cy}</div>
+          ))}
+          {/* one row per instruction — flat map so no React.Fragment import is needed */}
+          {rows.flatMap((r, ri) => [
+            <div key={`lbl-${ri}`} style={{ fontSize: 12, fontFamily: "monospace", color: r.color, alignSelf: "center", whiteSpace: "nowrap" }}>{r.label}</div>,
+            ...cycleNums.map((cy) => {
+              const st = r.cells[cy];
+              const shown = st && cy <= clock;
+              return (
+                <div key={`c-${ri}-${cy}`} style={{
+                  height: 30, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10.5, fontWeight: 700,
+                  background: shown ? STAGE_COLOR[st] + (st === "○" ? "22" : "33") : "transparent",
+                  border: shown ? `1px solid ${STAGE_COLOR[st]}` : `1px dashed ${C.border}`,
+                  color: shown ? STAGE_COLOR[st] : "transparent",
+                }}>{shown ? st : "·"}</div>
+              );
+            }),
+          ])}
+        </div>
+      </div>
+
+      {caption && <div style={{ marginTop: 10, fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>{caption(clock, done)}</div>}
+    </div>
+  );
+}
+
+function btn(bg, col = "#fff") {
+  return { padding: "7px 14px", borderRadius: 7, background: bg, border: "none", color: col, fontWeight: 600, fontSize: 12.5, cursor: "pointer" };
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Section 1 — The Branch Problem (before/after toggle + analogy)
+// ══════════════════════════════════════════════════════════════════
+function BranchProblem() {
   const [resolved, setResolved] = useState(false);
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        To stay full, Fetch grabs the <strong style={{ color: C.text }}>next instruction in sequence</strong>, every single cycle —
-        it has no choice but to guess. A branch can redirect execution somewhere else entirely, but the pipeline can't know that
-        until the branch is actually decoded/computed. Toggle to see what happens if it guesses wrong.
+        Imagine a kitchen that <strong style={{ color: C.text }}>starts cooking the next dish before the order arrives</strong>. Most
+        nights the guess is right and no time is lost. But when the order finally comes back different, the half-cooked dish gets
+        thrown out — pure wasted effort. A pipeline does exactly this: to stay full, <strong style={{ color: C.text }}>Fetch grabs the
+        next instruction in sequence every single cycle</strong> (the datapath from Unit 2.5 can't sit idle), long before a branch has
+        been decided. Toggle to see what happens when the guess is wrong.
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
@@ -50,285 +149,286 @@ function WhyItMatters() {
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
         {!resolved ? (
           <div style={{ color: C.text, fontSize: 13, lineHeight: 1.7 }}>
-            Fetch keeps grabbing instructions <strong>right after</strong> the branch, in sequence, because it has to fetch
-            <em> something</em> every cycle. If the branch is actually taken, all of those already-fetched instructions are the
-            <strong style={{ color: C.red }}> wrong ones</strong> — they must be discarded.
+            Fetch keeps grabbing the instructions that sit <strong>right after</strong> the branch (the "fall-through" path), because it
+            must fetch <em>something</em> each cycle. If the branch turns out to be <strong>taken</strong>, every one of those
+            already-fetched instructions is the <strong style={{ color: C.red }}>wrong dish</strong> — it has to be discarded.
           </div>
         ) : (
           <div style={{ color: C.text, fontSize: 13, lineHeight: 1.7 }}>
             Once the branch's outcome and target ARE known, Fetch can finally grab the <strong style={{ color: C.green }}>correct</strong> next
-            instruction. Everything fetched wrongly in the meantime was wasted work — those lost cycles are the
+            instruction. Everything fetched wrongly in the meantime was thrown out — those lost cycles are the
             <strong> branch penalty</strong>.
           </div>
         )}
       </div>
 
       <Key color={C.orange}>
-        This is called a <strong style={{ color: C.text }}>control hazard</strong> (or instruction hazard) — and it matters a lot:
-        branches make up roughly <strong style={{ color: C.text }}>20%</strong> of instructions in typical code, so even a small
-        penalty per branch adds up fast.
+        The jargon for this is a <strong style={{ color: C.text }}>control hazard</strong> (a.k.a. instruction hazard): unlike the data
+        hazards of Unit 3.3 — where an instruction waited on a <em>result</em> — here the pipeline doesn't even know <em>which</em>
+        instruction comes next. And it happens often: branches are roughly <strong style={{ color: C.text }}>20%</strong> of all
+        instructions, so even a small per-branch penalty adds up fast.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 2 — Anatomy: branch penalty, Compute-stage vs Decode-stage
+//  Section 2 — Branch Penalty (FLAGSHIP: auto-playing branch-flush animation)
 // ══════════════════════════════════════════════════════════════════
 function BranchPenalty() {
-  const [stage, setStage] = useState("compute"); // compute | decode
-
-  const isCompute = stage === "compute";
-  const penalty = isCompute ? 2 : 1;
-  const cols = isCompute ? 8 : 7;
+  // beq resolves in EX (cycle 3). The two fall-through instrs fetched in cycles 2–3 are squashed to ○.
+  const schedule = [
+    { label: "beq  R6,R0,T", color: C.accent, stages: [
+      { name: "IF", cycle: 1 }, { name: "ID", cycle: 2 }, { name: "EX", cycle: 3 }, { name: "MEM", cycle: 4 }, { name: "WB", cycle: 5 },
+    ] },
+    { label: "add  (wrong)", color: C.red, stages: [
+      { name: "IF", cycle: 2 }, { name: "○", cycle: 3 }, { name: "○", cycle: 4 },
+    ] },
+    { label: "or   (wrong)", color: C.red, stages: [
+      { name: "IF", cycle: 3 }, { name: "○", cycle: 4 },
+    ] },
+    { label: "sub  (target)", color: C.green, stages: [
+      { name: "IF", cycle: 4 }, { name: "ID", cycle: 5 }, { name: "EX", cycle: 6 }, { name: "MEM", cycle: 7 }, { name: "WB", cycle: 8 },
+    ] },
+  ];
+  const rows = buildRows(schedule);
+  const total = 8;
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The penalty size depends on <strong style={{ color: C.text }}>how late</strong> the branch's outcome is known. Toggle
-        between the two designs.
+        Hit <strong style={{ color: C.green }}>▶ Run cycles</strong> and watch the wrong guesses get thrown out. The branch
+        <code style={{ color: C.accent }}> beq</code> resolves in its <strong style={{ color: C.orange }}>EX</strong> stage — but by
+        then Fetch has already pulled in the two fall-through instructions behind it.
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button onClick={() => setStage("compute")} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: isCompute ? C.red + "22" : C.card, border: `2px solid ${isCompute ? C.red : C.border}`, color: isCompute ? C.red : C.muted,
-        }}>Resolved in Compute (Fig 6.9)</button>
-        <button onClick={() => setStage("decode")} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: !isCompute ? C.green + "22" : C.card, border: `2px solid ${!isCompute ? C.green : C.border}`, color: !isCompute ? C.green : C.muted,
-        }}>Resolved in Decode (Fig 6.10)</button>
+      <PipelineGrid rows={rows} totalCycles={total} caption={(clk) =>
+        clk === 0 ? "Cycle 0 — pipeline empty. beq will be fetched first." :
+        clk < 3 ? `Cycle ${clk} — beq is still moving down the pipe. Fetch has ALREADY grabbed the fall-through add and or, because it must fetch something every cycle.` :
+        clk === 3 ? "Cycle 3 — beq resolves in EX and it was TAKEN. That makes add and or the WRONG instructions." :
+        clk < total ? `Cycle ${clk} — add and or are SQUASHED to bubbles (○). The correct target (sub) couldn't be fetched until cycle 4 — cycles 2 and 3 of fetch were wasted.` :
+        `Cycle ${total} — target retired. Two fetched-then-flushed slots = a 2-cycle branch penalty, paid every time a branch this design is taken.`
+      } />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 16 }}>
+        <div style={{ background: C.card, border: `1.5px solid ${C.red}44`, borderRadius: 10, padding: 14, textAlign: "center" }}>
+          <div style={{ color: C.red, fontWeight: 700, fontSize: 12, marginBottom: 8 }}>❌ FLUSHED</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>2</div>
+          <div style={{ color: C.muted, fontSize: 11 }}>wrongly-fetched instrs (add, or) → ○</div>
+        </div>
+        <div style={{ background: C.card, border: `1.5px solid ${C.orange}44`, borderRadius: 10, padding: 14, textAlign: "center" }}>
+          <div style={{ color: C.orange, fontWeight: 700, fontSize: 12, marginBottom: 8 }}>⏱ PENALTY</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>2 cycles</div>
+          <div style={{ color: C.muted, fontSize: 11 }}>target slips from cycle 2 → cycle 4</div>
+        </div>
       </div>
 
-      <div style={{ overflowX: "auto", marginBottom: 12 }}>
-        <table style={{ borderCollapse: "collapse", minWidth: 460 }}>
-          <thead>
-            <tr>
-              <th style={{ padding: "4px 8px", fontSize: 10, color: C.muted, textAlign: "left" }}></th>
-              {Array.from({ length: cols }, (_, c) => <th key={c} style={{ padding: "4px", fontSize: 10, color: C.muted, width: 38 }}>{c + 1}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", paddingRight: 6 }}>Branch</td>
-              {["F", "D", isCompute ? "C" : null].filter((x) => x !== null || true).map((v, i) => (
-                <td key={i} style={{ padding: 2 }}>
-                  {v && <div style={{ height: 26, borderRadius: 4, background: C.accent + "22", border: `1.5px solid ${C.accent}`, color: C.accent, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{v}</div>}
-                </td>
-              ))}
-              {Array.from({ length: cols - (isCompute ? 3 : 2) }, (_, i) => <td key={"e" + i} />)}
-            </tr>
-            <tr>
-              <td style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", paddingRight: 6 }}>discarded</td>
-              <td />
-              {isCompute
-                ? <>
-                    <td style={{ padding: 2 }}><div style={{ height: 26, borderRadius: 4, background: C.red + "22", border: `1.5px dashed ${C.red}`, color: C.red, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>F ✗</div></td>
-                    <td style={{ padding: 2 }}><div style={{ height: 26, borderRadius: 4, background: C.red + "22", border: `1.5px dashed ${C.red}`, color: C.red, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>F ✗</div></td>
-                  </>
-                : <td style={{ padding: 2 }}><div style={{ height: 26, borderRadius: 4, background: C.red + "22", border: `1.5px dashed ${C.red}`, color: C.red, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>F ✗</div></td>}
-            </tr>
-            <tr>
-              <td style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", paddingRight: 6 }}>Target</td>
-              {Array.from({ length: cols }, (_, c) => {
-                const startCol = isCompute ? 3 : 2; // 0-indexed offset where target starts
-                const seq = ["F", "D", "C", "M", "W"];
-                const idx = c - startCol;
-                const v = idx >= 0 && idx < 5 ? seq[idx] : null;
-                return (
-                  <td key={c} style={{ padding: 2 }}>
-                    {v && <div style={{ height: 26, borderRadius: 4, background: C.green + "22", border: `1.5px solid ${C.green}`, color: C.green, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{v}</div>}
-                  </td>
-                );
-              })}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
-        <span style={{ fontSize: 12, color: C.muted }}>penalty for this design: </span>
-        <span style={{ fontSize: 20, fontWeight: 800, color: penalty === 1 ? C.green : C.red }}>{penalty}-cycle</span>
-      </div>
+      <p style={{ color: C.muted, fontSize: 12.5, marginTop: 14, lineHeight: 1.6 }}>
+        Resolve the branch <strong style={{ color: C.text }}>one stage earlier</strong> (in Decode instead of Compute — an extra adder
+        and comparator wired into ID) and only ONE instruction is fetched wrongly: the penalty drops from 2 cycles to 1.
+      </p>
 
       <Key color={C.accent}>
-        Deciding earlier costs extra hardware — an adder (and, for a conditional branch, a comparator) placed right in
-        <strong style={{ color: C.text }}> Decode</strong> — but only <strong style={{ color: C.text }}>one</strong> wrong instruction
-        gets fetched instead of two. At ~20% of instructions being branches, cutting the penalty from 2 to 1 cycle is a real win.
+        Every squashed instruction is a cycle where nothing retires — exactly like the stalls from Unit 3.3, it pushes the average
+        cycles-per-instruction <strong style={{ color: C.text }}>S above the ideal 1</strong>. That feeds straight into
+        <strong style={{ color: C.text }}> T = N·S/R</strong> from Unit 3.2: the branch penalty is a term that raises S, so cutting it
+        directly shrinks execution time.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 3 — Build It: the branch delay slot
+//  Section 3 — The Delay Slot (predict-before-reveal: which instr can safely move in?)
 // ══════════════════════════════════════════════════════════════════
 function DelaySlot() {
-  const [filled, setFilled] = useState(false);
+  const [guess, setGuess] = useState(null);
+
+  // The slot right after the branch is fetched anyway — put a genuinely independent instruction there.
+  const options = [
+    { id: 0, code: "sub  R6, R7, R8", note: "computes the value the branch tests", correct: false,
+      why: "The branch compares R6 — if you move this BELOW the branch, the branch would test a stale R6. It's a dependency, not independent." },
+    { id: 1, code: "add  R1, R2, R3", note: "unrelated bookkeeping, always needed", correct: true,
+      why: "This touches R1/R2/R3 — nothing the branch or the target depends on. It runs no matter which way the branch goes, so it safely fills the slot." },
+    { id: 2, code: "NOP", note: "do nothing", correct: false,
+      why: "A NOP is the fallback when NO independent instruction exists — but here one does, so a NOP would waste a perfectly good slot." },
+  ];
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Here's a clever trick: the instruction slot right after a branch gets fetched <strong style={{ color: C.text }}>anyway</strong> —
-        so why not always execute it, and let the compiler put something useful there? This is the
-        <strong style={{ color: C.text }}> branch delay slot</strong>.
+        Here's the clever trick. The slot right after a branch gets fetched <strong style={{ color: C.text }}>anyway</strong> — so
+        instead of squashing it, some designs <em>always execute it</em> and let the compiler drop something useful in. This is the
+        <strong style={{ color: C.text }}> branch delay slot</strong>. Consider this code, where the branch takes effect one
+        instruction late:
       </p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button onClick={() => setFilled(false)} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: !filled ? C.red + "22" : C.card, border: `2px solid ${!filled ? C.red : C.border}`, color: !filled ? C.red : C.muted,
-        }}>❌ Slot wasted (NOP)</button>
-        <button onClick={() => setFilled(true)} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: filled ? C.green + "22" : C.card, border: `2px solid ${filled ? C.green : C.border}`, color: filled ? C.green : C.muted,
-        }}>✅ Slot filled (Add moved up)</button>
-      </div>
-
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, marginBottom: 14 }}>
         <pre style={{ fontFamily: "monospace", fontSize: 13, color: C.text, margin: 0, lineHeight: 1.9 }}>
-{!filled ? (
-`Add       R7, R8, R9
-Branch_if<R3=0>  TARGET
-` ) : (
-`Branch_if<R3=0>  TARGET
-Add       R7, R8, R9    ← delay slot, always executed
-`)}
+{`sub  R6, R7, R8      ; feeds the branch condition
+add  R1, R2, R3      ; unrelated work
+beq  R6, R0, TARGET  ; the branch
+________             ; ← delay slot (always executes)`}
         </pre>
-        {!filled && <div style={{ color: C.red, fontFamily: "monospace", fontSize: 13 }}>NOP                       ← wasted slot</div>}
       </div>
 
-      <div style={{ marginTop: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.text, lineHeight: 1.6 }}>
-        {!filled
-          ? "Before: the instruction right after the branch does nothing useful — a NOP fills the wasted slot."
-          : "After: the compiler moves an independent instruction (the Add) INTO the delay slot. It gets executed no matter which way the branch goes, and the branch itself takes effect one instruction later — this is delayed branching."}
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 10, lineHeight: 1.7 }}>
+        <strong style={{ color: C.text }}>Predict first:</strong> which instruction can the compiler safely move DOWN into the delay
+        slot, so the slot does real work?
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
+        {options.map((o) => {
+          let bg = C.card, bd = C.border, col = C.text;
+          if (guess !== null) {
+            if (o.correct) { bg = C.green + "22"; bd = C.green; col = C.green; }
+            else if (o.id === guess) { bg = C.red + "22"; bd = C.red; col = C.red; }
+          }
+          return (
+            <button key={o.id} onClick={() => guess === null && setGuess(o.id)} style={{
+              textAlign: "left", padding: "11px 14px", borderRadius: 8, background: bg, border: `1.5px solid ${bd}`, color: col,
+              cursor: guess === null ? "pointer" : "default", fontSize: 13,
+            }}>
+              <span style={{ fontFamily: "monospace", fontWeight: 700 }}>
+                {guess !== null && o.correct ? "✓ " : guess === o.id && !o.correct ? "✗ " : ""}{o.code}
+              </span>
+              <span style={{ color: C.muted, fontSize: 11.5 }}> — {o.note}</span>
+            </button>
+          );
+        })}
       </div>
+
+      {guess !== null && (
+        <div style={{ background: C.purple + "18", border: `1px solid ${C.purple}44`, borderRadius: 8, padding: "12px 14px", fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+          💡 The safe move is <strong style={{ color: C.green }}>add R1, R2, R3</strong>. {options.find((o) => o.id === guess).why}
+          {" "}Moved into the slot, it runs whichever way the branch goes and the wasted cycle disappears — this is
+          <strong style={{ color: C.text }}> delayed branching</strong>.
+        </div>
+      )}
 
       <Key color={C.green}>
-        This only works when the compiler can find a genuinely independent instruction to move — which happens about
-        <strong style={{ color: C.text }}> 70% of the time</strong>. The rest of the time, a NOP has to go there anyway.
+        This only works when the compiler can actually find a genuinely independent instruction — which happens about
+        <strong style={{ color: C.text }}> 70%</strong> of the time. When it can't, a NOP fills the slot and the penalty comes back.
+        That's why modern designs lean less on delay slots and more on the predictor coming up next.
       </Key>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 4 — Playground: the 2-bit branch predictor FSM
+//  Section 4 — The 2-Bit Predictor (interactive finite-state machine) + static & BTB note
 // ══════════════════════════════════════════════════════════════════
 function BranchPredictor() {
-  const states = ["SNT", "LNT", "LT", "ST"];
-  const stateNames = ["Strongly Not-Taken", "Likely Not-Taken", "Likely Taken", "Strongly Taken"];
-  const predictTaken = [false, false, true, true];
+  const states = ["SNT", "WNT", "WT", "ST"];
+  const stateNames = ["Strongly Not-Taken", "Weakly Not-Taken", "Weakly Taken", "Strongly Taken"];
+  const predictTaken = [false, false, true, true]; // states 2 & 3 predict "taken"
   const [state, setState] = useState(0);
+  const [hits, setHits] = useState(0);
+  const [misses, setMisses] = useState(0);
   const [log, setLog] = useState([]);
 
+  // Standard saturating counter: taken → +1 (cap ST), not-taken → −1 (floor SNT).
   const step = (actualTaken) => {
     const predicted = predictTaken[state];
     const correct = predicted === actualTaken;
-    let next = state;
-    if (actualTaken) next = Math.min(3, state + 1);
-    else next = Math.max(0, state - 1);
-    setLog((l) => [...l.slice(-6), { actualTaken, predicted, correct }]);
+    const next = actualTaken ? Math.min(3, state + 1) : Math.max(0, state - 1);
+    if (correct) setHits((h) => h + 1); else setMisses((m) => m + 1);
+    setLog((l) => [...l.slice(-11), { actualTaken, correct }]);
     setState(next);
   };
-  const reset = () => { setState(0); setLog([]); };
+  const reset = () => { setState(0); setHits(0); setMisses(0); setLog([]); };
+
+  const total = hits + misses;
+  const acc = total ? Math.round((hits / total) * 100) : 0;
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        A 2-bit saturating counter "remembers" recent behaviour so it can guess better than a coin flip. Click "Taken" or "Not Taken"
-        to feed it real outcomes and watch it adapt — notice it takes <strong style={{ color: C.text }}>two wrong guesses in a
-        row</strong> to actually flip its prediction.
+        Instead of always guessing the same way, let the hardware <strong style={{ color: C.text }}>learn a habit</strong> — like
+        knowing a friend takes the same route to work every day. One unusual detour shouldn't make you forget their routine. A
+        <strong style={{ color: C.text }}> 2-bit saturating counter</strong> does exactly that: it needs <strong style={{ color: C.text }}>two
+        wrong guesses in a row</strong> to actually flip its prediction. Feed it real outcomes and watch the state (and the tally) move.
       </p>
 
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, gap: 4 }}>
+      {/* the four FSM states */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, gap: 4 }}>
         {states.map((s, i) => (
           <div key={i} style={{
             flex: 1, textAlign: "center", padding: "12px 4px", borderRadius: 10,
             background: i === state ? (predictTaken[i] ? C.green + "22" : C.red + "22") : C.card,
             border: `2px solid ${i === state ? (predictTaken[i] ? C.green : C.red) : C.border}`,
           }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: i === state ? (predictTaken[i] ? C.green : C.red) : C.muted }}>{s}</div>
-            <div style={{ fontSize: 9.5, color: C.muted, marginTop: 3 }}>{predictTaken[i] ? "predict ✓ taken" : "predict ✗ not-taken"}</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: i === state ? (predictTaken[i] ? C.green : C.red) : C.muted }}>{s}</div>
+            <div style={{ fontSize: 9, color: C.muted, marginTop: 3, lineHeight: 1.3 }}>{stateNames[i]}</div>
+            <div style={{ fontSize: 9.5, color: C.muted, marginTop: 4 }}>{predictTaken[i] ? "→ predict TAKEN" : "→ predict not-taken"}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button onClick={() => step(true)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: C.green, color: "#0D1117", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Branch was TAKEN</button>
-        <button onClick={() => step(false)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Branch was NOT taken</button>
+      {/* current prediction banner */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", marginBottom: 12, fontSize: 12.5, color: C.muted, textAlign: "center" }}>
+        current state <strong style={{ color: C.accent }}>{states[state]}</strong> → next branch will be predicted{" "}
+        <strong style={{ color: predictTaken[state] ? C.green : C.red }}>{predictTaken[state] ? "TAKEN" : "NOT taken"}</strong>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <button onClick={() => step(true)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: C.green, color: "#0D1117", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Branch TAKEN</button>
+        <button onClick={() => step(false)} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>NOT taken</button>
         <button onClick={reset} style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>↺</button>
       </div>
 
+      {/* running tally */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10, textAlign: "center" }}>
+        <div style={{ background: C.card, border: `1px solid ${C.green}44`, borderRadius: 8, padding: "8px 4px" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: C.green }}>{hits}</div>
+          <div style={{ fontSize: 10, color: C.muted }}>hits</div>
+        </div>
+        <div style={{ background: C.card, border: `1px solid ${C.red}44`, borderRadius: 8, padding: "8px 4px" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: C.red }}>{misses}</div>
+          <div style={{ fontSize: 10, color: C.muted }}>misses</div>
+        </div>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 4px" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{acc}%</div>
+          <div style={{ fontSize: 10, color: C.muted }}>accuracy</div>
+        </div>
+      </div>
+
       {log.length > 0 && (
-        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
           {log.map((l, i) => (
             <div key={i} style={{
-              flex: 1, height: 26, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
+              flex: 1, height: 24, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 10, fontWeight: 800, color: l.correct ? C.green : C.red,
               background: (l.correct ? C.green : C.red) + "18", border: `1.5px solid ${l.correct ? C.green : C.red}`,
             }}>{l.correct ? "✓" : "✗"}</div>
           ))}
         </div>
       )}
-
-      <Key color={C.purple}>
-        For a loop that runs many times and exits once, this means only the <strong style={{ color: C.text }}>final,
-        exit</strong> iteration gets mispredicted — every earlier "loop back" guess stays correct, unlike a naive 1-bit predictor
-        that would flip (and mispredict again) on the very next iteration too.
-      </Key>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════
-//  Section 5 — Concept: static prediction + the branch target buffer
-// ══════════════════════════════════════════════════════════════════
-function StaticAndBTB() {
-  const [tab, setTab] = useState("static");
-
-  return (
-    <div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The 2-bit predictor is <em>dynamic</em> — it learns. Two more pieces complete the picture: simpler static guesses, and how a
-        prediction gets used fast enough to matter.
-      </p>
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        <button onClick={() => setTab("static")} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: tab === "static" ? C.accent + "22" : C.card, border: `2px solid ${tab === "static" ? C.accent : C.border}`, color: tab === "static" ? C.accent : C.muted,
-        }}>Static prediction</button>
-        <button onClick={() => setTab("btb")} style={{
-          flex: 1, padding: "9px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12.5,
-          background: tab === "btb" ? C.teal + "22" : C.card, border: `2px solid ${tab === "btb" ? C.teal : C.border}`, color: tab === "btb" ? C.teal : C.muted,
-        }}>Branch target buffer</button>
+      <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
+        Try it: click <strong style={{ color: C.green }}>TAKEN</strong> four times (a loop looping back), then one
+        <strong style={{ color: C.red }}> NOT taken</strong> (the loop exits) — the state only slips ST → WT and still predicts taken.
+        A 1-bit predictor would have flipped and mispredicted the next iteration too.
       </div>
 
-      {tab === "static" ? (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, fontSize: 13, color: C.text, lineHeight: 1.8 }}>
-          Static prediction makes the <strong>same guess every time</strong> — no learning, no history:
-          <ul style={{ marginTop: 8, paddingLeft: 18 }}>
-            <li><strong style={{ color: C.orange }}>Assume not-taken</strong> — just keep fetching in sequence (~50% right for a random branch).</li>
-            <li><strong style={{ color: C.orange }}>Use direction</strong> — a backward branch (a loop's end, jumping back up) is usually taken; predict from the sign of the offset.</li>
-            <li><strong style={{ color: C.orange }}>Hint bit</strong> — the compiler can set a bit on the instruction itself saying "expect taken" or "expect not-taken," based on what it knows about the code.</li>
-          </ul>
+      {/* static prediction + BTB note */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 8 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.orange}44`, borderRadius: 10, padding: "12px 14px", fontSize: 12, color: C.muted, lineHeight: 1.55 }}>
+          <div style={{ color: C.orange, fontWeight: 700, fontSize: 12, marginBottom: 4 }}>Static prediction</div>
+          The simpler cousin: <strong style={{ color: C.text }}>always guess the same way</strong>, no learning — e.g. "assume
+          not-taken," or "a backward branch (a loop's end) is usually taken," or a compiler hint bit on the instruction.
         </div>
-      ) : (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, fontSize: 13, color: C.text, lineHeight: 1.8 }}>
-          A 2-bit predictor's state has to be looked up <strong>before</strong> the branch is even decoded — otherwise the
-          prediction arrives too late to help. The <strong style={{ color: C.teal }}>Branch Target Buffer (BTB)</strong> is a small,
-          fast table (~1024 entries) keyed by the branch's own address. A hit in cycle 1 (while the branch is still being fetched)
-          immediately gives two things: the prediction state bits, <em>and</em> the target address — so the very next cycle can
-          fetch the predicted-correct instruction instead of just the next one in sequence.
+        <div style={{ background: C.card, border: `1px solid ${C.teal}44`, borderRadius: 10, padding: "12px 14px", fontSize: 12, color: C.muted, lineHeight: 1.55 }}>
+          <div style={{ color: C.teal, fontWeight: 700, fontSize: 12, marginBottom: 4 }}>Branch Target Buffer</div>
+          A prediction is only useful if it's ready in <strong style={{ color: C.text }}>cycle 1</strong>. The
+          <strong style={{ color: C.text }}> BTB</strong> is a small fast table keyed by the branch's own address — a hit hands back the
+          counter bits <em>and</em> the target, so the very next fetch goes to the predicted-correct instruction.
         </div>
-      )}
+      </div>
 
-      <Key color={C.teal}>
-        Control hazards shrink three independent ways, and real processors use all three together: decide the branch
-        <strong style={{ color: C.text }}> early</strong> (Decode, not Compute), fill the <strong style={{ color: C.text }}>delay
-        slot</strong> with useful work, and <strong style={{ color: C.text }}>predict</strong> — static, dynamic 2-bit, and a BTB so
-        the prediction is ready in cycle 1.
+      <Key color={C.purple}>
+        Two bits of history beat one because a single anomaly (that loop-exit branch) can't flip the prediction — only a sustained
+        change does. Combined with an early decode, a filled delay slot, and a BTB, the control-hazard penalty from Unit 3.2's
+        <strong style={{ color: C.text }}> S</strong> shrinks toward zero, pushing the pipeline back toward the ideal S = 1.
       </Key>
     </div>
   );
@@ -340,48 +440,48 @@ function StaticAndBTB() {
 function Quiz({ onComplete }) {
   const questions = [
     {
-      q: "Why is a branch instruction a special problem for the pipeline, even though it's just one more instruction?",
+      q: "Why is a branch a special problem for the pipeline, even though it's just one more instruction?",
       options: [
         "Branches take more ALU cycles than other instructions",
-        "The pipeline must fetch something every cycle, but a branch's target/outcome isn't known until it's decoded or computed — so the pipeline may fetch the wrong instructions and have to discard them",
+        "The pipeline must fetch something every cycle, but a branch's target/outcome isn't known until it's decoded or computed — so it may fetch the wrong instructions and have to discard them",
         "Branches can't be stored in the instruction cache",
         "Branches always cause a data hazard too",
       ],
       answer: 1,
-      explain: "Fetch has no choice but to guess the next instruction every cycle. A branch may redirect execution, but that's only known once it's resolved — anything fetched in the meantime that turns out wrong must be discarded, costing the branch penalty.",
+      explain: "Fetch has to guess the next instruction every cycle. A branch may redirect execution, but that's only known once it resolves — anything fetched in the meantime that turns out wrong must be squashed, costing the branch penalty.",
     },
     {
-      q: "Resolving a branch in the Decode stage instead of Compute cuts the penalty from 2 cycles to 1. Why?",
+      q: "In the animation, the branch resolved in EX and TWO instructions were flushed to ○. Resolving it one stage earlier (in Decode) would change the penalty to what?",
       options: [
-        "Decode is a faster stage",
-        "Adding an adder (and comparator, for conditional branches) into Decode means the target/outcome is known one stage earlier, so only ONE wrongly-fetched instruction needs discarding instead of two",
-        "It removes the need for prediction entirely",
-        "It only works for unconditional branches",
+        "0 cycles — no instruction is ever fetched wrongly",
+        "1 cycle — only one instruction gets fetched before the branch is known, so only one needs squashing",
+        "3 cycles — earlier resolution is slower",
+        "It stays 2 cycles regardless",
       ],
       answer: 1,
-      explain: "Every stage earlier the decision is made means one fewer wrongly-fetched instruction downstream. Extra hardware (adder + comparator) in Decode buys exactly one stage of earliness, cutting the penalty from 2 cycles to 1.",
+      explain: "Each stage earlier the decision is made means one fewer wrongly-fetched instruction downstream. Extra hardware (an adder + comparator in Decode) buys exactly one stage of earliness, cutting the penalty from 2 cycles to 1.",
     },
     {
-      q: "A 2-bit branch predictor is in the Strongly-Taken state. The branch is NOT taken once (an unusual iteration), then taken again as normal. What does the predictor do?",
+      q: "A 2-bit predictor is in the Strongly-Taken (ST) state. The branch is NOT taken once (an odd iteration), then taken again. What happens?",
       options: [
         "It immediately predicts not-taken on the very next branch",
-        "It drops to Likely-Taken but STILL predicts taken next time — a single miss doesn't flip the prediction, so the normal pattern keeps being predicted correctly",
+        "It slips ST → Weakly-Taken but STILL predicts taken — a single miss can't flip the prediction, so the normal pattern is predicted correctly next time",
         "It resets to Strongly-Not-Taken",
-        "It stops predicting until manually reset",
+        "It stops predicting until reset",
       ],
       answer: 1,
-      explain: "The 2-bit counter needs two wrong guesses in a row to actually flip its prediction. One odd iteration only nudges it from Strongly-Taken to Likely-Taken — both states still predict 'taken' — so the very next (normal) branch is still predicted correctly.",
+      explain: "The 2-bit counter needs two wrong guesses in a row to flip. One odd iteration only nudges ST → WT — and both states predict 'taken' — so the next (normal) branch is still predicted correctly. This is exactly why 2 bits beat 1 bit.",
     },
     {
-      q: "Why does the Branch Target Buffer (BTB) need to be looked up in cycle 1, using just the branch's address?",
+      q: "Why must the Branch Target Buffer (BTB) be looked up in cycle 1, using just the branch's address?",
       options: [
         "To save memory",
-        "Because a prediction is only useful if it's ready BEFORE the branch would otherwise stall Fetch — waiting until Decode/Compute to predict defeats the purpose of predicting at all",
-        "The BTB replaces the need for Decode entirely",
+        "A prediction only helps if it's ready BEFORE Fetch would otherwise stall — waiting until Decode/Compute to predict defeats the purpose of predicting at all",
+        "The BTB replaces the Decode stage entirely",
         "It has nothing to do with timing",
       ],
       answer: 1,
-      explain: "The whole point of prediction is to keep Fetch supplied with (hopefully) correct instructions without waiting. A BTB hit in cycle 1 — keyed just by address, before the instruction is even decoded — hands back both the prediction and the target address in time for the very next fetch.",
+      explain: "The whole point of prediction is to keep Fetch supplied without waiting. A BTB hit in cycle 1 — keyed just by address, before the instruction is even decoded — returns both the prediction and the target address in time for the very next fetch.",
     },
   ];
 
@@ -407,8 +507,8 @@ function Quiz({ onComplete }) {
         <div style={{ fontSize: 24, fontWeight: 700, color: C.text, marginTop: 10 }}>You scored {score} / {questions.length}</div>
         <div style={{ color: C.muted, marginTop: 8, marginBottom: 20 }}>
           {score === 4 ? "Perfect! Branch penalty, delay slots, and 2-bit prediction are all locked in." :
-            score >= 2 ? "Good work! Replay the Branch Predictor playground and the penalty comparison." :
-              "Revisit 'Why It Matters' and 'Branch Penalty' — everything else builds on those two ideas."}
+            score >= 2 ? "Good work! Replay the branch-flush animation and the 2-bit predictor to lock in the details." :
+              "Revisit 'The Branch Problem' and 'Branch Penalty' — everything else builds on those two ideas."}
         </div>
         <div style={{
           padding: "20px", borderRadius: 12,
@@ -417,10 +517,12 @@ function Quiz({ onComplete }) {
         }}>
           <div style={{ color: C.accent, fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🎓 Unit 3.4 Complete!</div>
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
-            You can now explain the branch penalty, delay slots, static vs 2-bit dynamic prediction, and the BTB's role.
+            You can now explain the branch penalty, the delay slot, static vs 2-bit dynamic prediction, and the BTB's role — every
+            one of them a way to keep the control-hazard term in T = N·S/R small.
             <br /><br />
-            <strong style={{ color: C.accent }}>Next up: Unit 3.5 — Instruction Sets, Datapath &amp; Control.</strong> Time to see
-            how the instruction set itself was shaped by the pipeline you've now fully explored.
+            <strong style={{ color: C.accent }}>Next up: Unit 3.5 — Instruction Sets, Datapath &amp; Control.</strong> You've spent
+            three units fighting hazards on a fixed 5-stage pipe; next you'll see how the instruction set itself — the opcodes,
+            addressing modes, and the control signals that drive the datapath — was shaped by exactly these pipeline pressures.
           </div>
         </div>
       </div>
@@ -471,11 +573,10 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 export default function Unit3_4({ student, onUnitComplete }) {
   const sections = [
-    { id: "why", label: "Why It Matters" },
+    { id: "problem", label: "The Branch Problem" },
     { id: "penalty", label: "Branch Penalty" },
     { id: "delay", label: "Delay Slot" },
     { id: "predictor", label: "2-Bit Predictor" },
-    { id: "static", label: "Static & BTB" },
     { id: "quiz", label: "Quiz & Wrap-up" },
   ];
 
@@ -486,15 +587,14 @@ export default function Unit3_4({ student, onUnitComplete }) {
   const goNext = () => { markComplete(activeSection); setActiveSection((s) => Math.min(sections.length - 1, s + 1)); };
 
   const content = [
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>⏳ Why It Matters — the pipeline has to guess</h3><WhyItMatters /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>📊 Branch Penalty — Compute vs Decode resolution</h3><BranchPenalty /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🍳 The Branch Problem — cooking before the order arrives</h3><BranchProblem /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>💥 Branch Penalty — watch the wrong guesses get flushed</h3><BranchPenalty /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>🎯 The Delay Slot — never waste the fetch</h3><DelaySlot /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🔮 The 2-Bit Predictor — learning from history</h3><BranchPredictor /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🗂️ Static Prediction &amp; the BTB</h3><StaticAndBTB /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🔮 The 2-Bit Predictor — learning a habit</h3><BranchPredictor /></div>,
     <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 3.4.</p>
-      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(4); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 
@@ -517,10 +617,10 @@ export default function Unit3_4({ student, onUnitComplete }) {
         <div style={{ display: "flex", gap: 4, marginBottom: 24, background: C.surface, borderRadius: 10, padding: 4, border: `1px solid ${C.border}`, flexWrap: "wrap" }}>
           {sections.map((s, i) => (
             <button key={i} onClick={() => setActiveSection(i)} style={{
-              flex: 1, minWidth: 70, padding: "8px 6px", borderRadius: 7,
+              flex: 1, minWidth: 80, padding: "8px 6px", borderRadius: 7,
               background: activeSection === i ? C.accentGlow : "transparent",
               border: "none", color: activeSection === i ? "#fff" : C.muted,
-              cursor: "pointer", fontSize: 10.5, fontWeight: activeSection === i ? 600 : 400,
+              cursor: "pointer", fontSize: 11, fontWeight: activeSection === i ? 600 : 400,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
               transition: "all 0.2s",
             }}>
