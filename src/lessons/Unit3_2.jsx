@@ -158,54 +158,200 @@ function WhyItMatters() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 2 — Count the Cycles: guess first, then the k+(n-1) reveal
+//  Section 2 — Count the Cycles: DERIVE k + (n-1) yourself, step by step.
+//  Previously this section jumped straight from "pick a number out of a
+//  hat" to stating the formula outright -- a flat multiple-choice guess
+//  with the answer handed over one line later. Rewritten (per Aishu's
+//  feedback, Sept 2026) into a four-beat guided derivation, so the FORMULA
+//  is something the student assembles with their own clicks, not something
+//  they are simply told:
+//    Beat ① — recall check: how long until the very FIRST instruction
+//             finishes? (answer: k -- nothing shortens I1's own trip)
+//    Beat ② — recall check: once the pipe is FULL, how far apart do two
+//             consecutive instructions finish? (answer: 1 -- Unit 3.1's
+//             throughput idea, restated as a number)
+//    Beat ③ — BUILD IT BY HAND: click through instructions I2..I20 one at
+//             a time. Each click is one more "+1 cycle" landing, live, on
+//             screen -- the derivation is the clicking, not a sentence.
+//    Beat ④ — the formula is unveiled as the ALGEBRAIC NAME for what was
+//             just built: k + (n − 1). "k" = beat ①'s answer. "n − 1" =
+//             every instruction beat ③ added one at a time.
+//  The "explore any n" slider that follows is the same generalisation tool
+//  the old version had (drag n, watch speedup climb toward k) -- kept,
+//  because feeling the k−1 fixed cost shrink in relative terms is still
+//  the best payoff of dragging that slider. It now only appears once the
+//  student has actually derived the formula in Beat ④, not before.
 // ══════════════════════════════════════════════════════════════════
 function CountTheCycles() {
-  const [guess, setGuess] = useState(null);
-  const guesses = [25, 24, 100, 5];
-  const correct = 24;
+  // Beats ① and ② are small recall checks. Each just needs to know whether
+  // the student has clicked an option yet -- answering (right or wrong)
+  // unlocks the next beat, the same progressive-reveal idiom every other
+  // Unit 3 lesson uses (e.g. WhyPipelineRegisters in Unit3_1.jsx).
+  const [beat1, setBeat1] = useState(null); // student's pick: cycles until I1 finishes
+  const [beat2, setBeat2] = useState(null); // student's pick: gap between consecutive finishes
 
+  // Beat ③ runs the fixed scenario the OLD quiz asked about cold: k=5
+  // stages, n=20 instructions, correct answer 24 -- except now the student
+  // reaches 24 by clicking instructions in one at a time, not by picking
+  // it off a 4-option list.
+  const K = 5;
+  const N_DEMO = 20;
+  const [built, setBuilt] = useState(0);         // how many of I2..I20 the student has clicked in (0..19)
+  const runningTotal = K + built;                 // cycle at which the most-recently-added instruction finishes
+  const derivationDone = built >= N_DEMO - 1;      // true once all 19 "extra" instructions have been placed
+
+  // Beat ④ unlocks the moment the derivation completes, and STAYS unlocked
+  // even if the student resets the builder afterwards to play with it again
+  // -- resetting shouldn't take away the payoff they already earned.
+  const [formulaRevealed, setFormulaRevealed] = useState(false);
+  useEffect(() => { if (derivationDone) setFormulaRevealed(true); }, [derivationDone]);
+
+  // "Explore any n" -- unchanged in spirit from the old version's slider,
+  // just gated behind Beat ④ now instead of behind a single guess.
   const [n, setN] = useState(20);
-  const k = 5;
-  const serial = k * n;
-  const pipelined = k + (n - 1);
+  const serial = K * n;
+  const pipelined = K + (n - 1);
   const speedup = (serial / pipelined).toFixed(2);
-  const pct = Math.min(100, (speedup / k) * 100);
+  const pct = Math.min(100, (speedup / K) * 100);
+
+  const beat1Options = [
+    { v: 5, label: "5 — one cycle per stage" },
+    { v: 1, label: "1 — pipelining makes it instant" },
+    { v: 20, label: "20 — one cycle per instruction in the program" },
+    { v: 100, label: "100 — it touches every stage of every other instruction" },
+  ];
+  const beat2Options = [
+    { v: 1, label: "1 cycle — a new one finishes every cycle" },
+    { v: 5, label: "5 cycles — same as any single instruction" },
+    { v: 2, label: "2 cycles" },
+    { v: 0, label: "0 — they all finish at once" },
+  ];
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Before any formula — <strong style={{ color: C.text }}>guess</strong>. A 5-stage pipe runs 20 independent
-        instructions. How many cycles does it take once you account for the fill-up you just watched?
+        Don't reach for a formula yet. Answer two questions you already know from Section 1 — then build the cycle
+        count for 20 instructions <strong style={{ color: C.text }}>one instruction at a time, by hand</strong>, before
+        any algebra shows up.
       </p>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-        {guesses.map((g) => {
-          let bg = C.card, bd = C.border, col = C.text;
-          if (guess !== null) {
-            if (g === correct) { bg = C.green + "22"; bd = C.green; col = C.green; }
-            else if (g === guess) { bg = C.red + "22"; bd = C.red; col = C.red; }
-          }
-          return (
-            <button key={g} onClick={() => guess === null && setGuess(g)} style={{
-              padding: "10px 18px", borderRadius: 8, background: bg, border: `1.5px solid ${bd}`, color: col,
-              fontWeight: 700, fontSize: 14, cursor: guess === null ? "pointer" : "default",
-            }}>{guess !== null && g === correct ? "✓ " : guess === g && g !== correct ? "✗ " : ""}{g}</button>
-          );
-        })}
+      {/* ---------------- Beat ① ---------------- */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 14 }}>
+        <div style={{ fontSize: 12.5, color: C.accent, fontWeight: 700, marginBottom: 10 }}>① How many cycles until the very FIRST instruction (I1) reaches WB?</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {beat1Options.map((o) => {
+            let bg = C.bg, bd = C.border, col = C.text;
+            if (beat1 !== null) {
+              if (o.v === K) { bg = C.green + "22"; bd = C.green; col = C.green; }
+              else if (o.v === beat1) { bg = C.red + "22"; bd = C.red; col = C.red; }
+            }
+            return (
+              <button key={o.v} onClick={() => beat1 === null && setBeat1(o.v)} style={{
+                textAlign: "left", padding: "8px 12px", borderRadius: 7, background: bg, border: `1.5px solid ${bd}`, color: col,
+                fontSize: 12.5, cursor: beat1 === null ? "pointer" : "default", flex: "1 1 220px",
+              }}>{beat1 !== null && o.v === K ? "✓ " : beat1 === o.v && o.v !== K ? "✗ " : ""}{o.label}</button>
+            );
+          })}
+        </div>
+        {beat1 !== null && (
+          <div style={{ marginTop: 10, fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+            💡 Every instruction — the first one included — walks through all k = 5 stages. Nothing shortens that trip; I1 has no earlier instruction to overlap with yet.
+          </div>
+        )}
       </div>
 
-      {guess !== null && (
-        <div style={{ background: C.purple + "18", border: `1px solid ${C.purple}44`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.muted, lineHeight: 1.6, marginBottom: 16 }}>
-          💡 It's <strong style={{ color: C.green }}>k + (n − 1) = 5 + 19 = 24</strong> cycles. Not 100 (that's the no-overlap
-          k × n), not 25 (that would be n=21), and definitely not 5. Now drag n and watch the speedup climb.
+      {/* ---------------- Beat ② (unlocked once Beat ① is answered) ---------------- */}
+      {beat1 !== null && (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 14 }}>
+          <div style={{ fontSize: 12.5, color: C.accent, fontWeight: 700, marginBottom: 10 }}>② Once the pipe is FULL (Section 1's steady state), how many cycles apart do two consecutive instructions finish?</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {beat2Options.map((o) => {
+              let bg = C.bg, bd = C.border, col = C.text;
+              if (beat2 !== null) {
+                if (o.v === 1) { bg = C.green + "22"; bd = C.green; col = C.green; }
+                else if (o.v === beat2) { bg = C.red + "22"; bd = C.red; col = C.red; }
+              }
+              return (
+                <button key={o.v} onClick={() => beat2 === null && setBeat2(o.v)} style={{
+                  textAlign: "left", padding: "8px 12px", borderRadius: 7, background: bg, border: `1.5px solid ${bd}`, color: col,
+                  fontSize: 12.5, cursor: beat2 === null ? "pointer" : "default", flex: "1 1 220px",
+                }}>{beat2 !== null && o.v === 1 ? "✓ " : beat2 === o.v && o.v !== 1 ? "✗ " : ""}{o.label}</button>
+              );
+            })}
+          </div>
+          {beat2 !== null && (
+            <div style={{ marginTop: 10, fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+              💡 Right — once every stage is busy, one instruction retires every single cycle. That's the throughput win from Unit 3.1, now as a number.
+            </div>
+          )}
         </div>
       )}
 
-      {guess !== null && (
+      {/* ---------------- Beat ③: build it by hand (unlocked once Beat ② is answered) ---------------- */}
+      {beat2 !== null && (
+        <div style={{ background: C.card, border: `1.5px solid ${C.teal}55`, borderRadius: 10, padding: "16px", marginBottom: 14 }}>
+          <div style={{ fontSize: 12.5, color: C.teal, fontWeight: 700, marginBottom: 10 }}>③ Now build it. I1 finishes at cycle {K}. Click to bring in I2, I3, … one at a time — each one lands exactly 1 cycle after the last (that's ② talking).</div>
+
+          {/* the running total in big friendly digits — this IS the derivation, happening live as they click */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 18, margin: "14px 0" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: C.muted }}>instructions placed</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>{1 + built} <span style={{ fontSize: 13, color: C.muted, fontWeight: 400 }}>/ {N_DEMO}</span></div>
+            </div>
+            <div style={{ fontSize: 22, color: C.muted }}>→</div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: C.muted }}>cycle the LAST one finishes</div>
+              <div style={{ fontSize: 34, fontWeight: 800, color: C.green }}>{runningTotal}</div>
+            </div>
+          </div>
+
+          {/* the chip strip: I1 is fixed at cycle K; every click reveals the next chip's finish cycle */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center", marginBottom: 14 }}>
+            {Array.from({ length: N_DEMO }, (_, i) => i + 1).map((instrNum) => {
+              const placed = instrNum === 1 || instrNum - 1 <= built; // I1 always placed; I(m) placed once built >= m-1
+              const finishCycle = K + (instrNum - 1);
+              const justAdded = instrNum === 1 + built; // the most recently revealed chip, highlighted
+              return (
+                <div key={instrNum} style={{
+                  width: 46, height: 34, borderRadius: 6, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  background: placed ? (justAdded ? C.teal + "33" : C.card) : C.bg,
+                  border: `1px solid ${placed ? (justAdded ? C.teal : C.border) : C.border}`,
+                  opacity: placed ? 1 : 0.35,
+                }}>
+                  <div style={{ fontSize: 8.5, color: C.muted }}>I{instrNum}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: placed ? C.text : C.muted }}>{placed ? finishCycle : "?"}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={() => setBuilt((b) => Math.min(N_DEMO - 1, b + 1))} disabled={derivationDone} style={btn(derivationDone ? C.border : C.teal)}>+ Add next instruction</button>
+            <button onClick={() => setBuilt((b) => Math.min(N_DEMO - 1, b + 5))} disabled={derivationDone} style={btn(derivationDone ? C.border : C.accentGlow)}>+5 instructions</button>
+            <button onClick={() => setBuilt(0)} style={btn(C.card, C.muted)}>↺ Reset</button>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- Beat ④: the formula, unveiled as the NAME for what just happened ---------------- */}
+      {formulaRevealed && (
+        <div style={{ background: `linear-gradient(135deg, ${C.green}22, ${C.teal}18)`, border: `1px solid ${C.green}55`, borderRadius: 10, padding: "16px", marginBottom: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 12, color: C.green, fontWeight: 700, marginBottom: 6 }}>🎉 THAT'S THE FORMULA — YOU JUST BUILT IT</div>
+          <div style={{ fontFamily: "monospace", fontSize: 20, color: C.text, marginBottom: 6 }}>
+            k + (n − 1) &nbsp;=&nbsp; 5 + (20 − 1) &nbsp;=&nbsp; <strong style={{ color: C.green }}>24</strong>
+          </div>
+          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6 }}>
+            "k" is the head start I1 alone needed (5 cycles, from ①). "n − 1" is every OTHER instruction, each adding
+            just 1 more cycle (from ②) — because it lands one cycle behind the one before it, not five.
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- explore any n (same tool as before, now gated behind the derivation) ---------------- */}
+      {formulaRevealed && (
         <>
           <div style={{ marginBottom: 14 }}>
-            <label style={{ color: C.muted, fontSize: 12 }}>n (instructions) = <strong style={{ color: C.teal }}>{n}</strong></label>
+            <label style={{ color: C.muted, fontSize: 12 }}>Now generalise — drag n (instructions) = <strong style={{ color: C.teal }}>{n}</strong></label>
             <input type="range" min={1} max={200} value={n} onChange={(e) => setN(Number(e.target.value))} style={{ width: "100%", accentColor: C.teal }} />
           </div>
 
@@ -214,7 +360,7 @@ function CountTheCycles() {
               <div><div style={{ fontSize: 11, color: C.muted }}>no pipeline: k × n</div><div style={{ fontSize: 22, fontWeight: 800, color: C.red }}>{serial}</div></div>
               <div><div style={{ fontSize: 11, color: C.muted }}>pipelined: k + (n − 1)</div><div style={{ fontSize: 22, fontWeight: 800, color: C.green }}>{pipelined}</div></div>
             </div>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>speedup {speedup}× &nbsp;→&nbsp; ideal ceiling {k}×</div>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>speedup {speedup}× &nbsp;→&nbsp; ideal ceiling {K}×</div>
             <div style={{ height: 14, background: C.bg, borderRadius: 7, overflow: "hidden", border: `1px solid ${C.border}` }}>
               <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${C.accent}, ${C.green})`, transition: "width 0.3s" }} />
             </div>
@@ -235,6 +381,14 @@ function CountTheCycles() {
 // ══════════════════════════════════════════════════════════════════
 function PerformanceEquation() {
   const [part, setPart] = useState(null);
+  // Drives the NEW "S converges toward 1" widget below: cpiN is the program
+  // length (n) the student is exploring; everything else (cpiValue, the
+  // marker position, the checkpoint bars) is derived from it each render.
+  const [cpiN, setCpiN] = useState(5);
+  const K_REF = 5; // this course's own pipeline depth, used as the S=5 endpoint throughout Unit 3
+  const cpiValue = (K_REF + (cpiN - 1)) / cpiN;               // Section 2's total-cycle formula, divided across n -- literally what "average CPI" means
+  const cpiMarkerPct = Math.min(100, Math.max(0, ((cpiValue - 1) / (K_REF - 1)) * 100)); // 0% at S=1 (ideal), 100% at S=5 (no overlap)
+  const CPI_CHECKPOINTS = [1, 2, 5, 10, 20, 50, 100, 200]; // fixed n's for the staircase mini-chart, so the trend reads even without dragging
   const terms = {
     T: { color: C.text, name: "T — execution time", body: "The total wall-clock time to run the program. This is what we're ultimately trying to shrink." },
     N: { color: C.teal, name: "N — instruction count", body: "How many instructions actually execute. Set by the program and the compiler — pipelining doesn't change N." },
@@ -267,9 +421,53 @@ function PerformanceEquation() {
         </div>
       )}
 
+      {/* ---------------- NEW: S doesn't jump from 5 to 1 — it EARNS its way there as n grows ---------------- */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px", marginBottom: 16 }}>
+        <p style={{ color: C.muted, fontSize: 12.5, marginBottom: 12, lineHeight: 1.6 }}>
+          S doesn't jump straight from 5 to 1 — it <strong style={{ color: C.text }}>earns</strong> its way there as the program gets
+          longer. S is just Section 2's total-cycle count divided across n instructions:
+          <strong style={{ color: C.text }}> S = (k + (n − 1)) / n</strong>. Drag n and watch it fall.
+        </p>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: C.muted, fontSize: 12 }}>n (instructions in the program) = <strong style={{ color: C.orange }}>{cpiN}</strong></label>
+          <input type="range" min={1} max={200} value={cpiN} onChange={(e) => setCpiN(Number(e.target.value))} style={{ width: "100%", accentColor: C.orange }} />
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 14, flexWrap: "wrap" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 11, color: C.muted }}>average CPI at this n</div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: C.orange }}>{cpiValue.toFixed(2)}</div>
+          </div>
+          {/* a track from S=1 (ideal, left) to S=5 (no overlap, right) with a marker at the live value */}
+          <div style={{ flex: "1 1 200px", maxWidth: 240 }}>
+            <div style={{ position: "relative", height: 10, borderRadius: 5, background: `linear-gradient(90deg, ${C.green}, ${C.orange}, ${C.red})` }}>
+              <div style={{ position: "absolute", top: -4, left: `calc(${cpiMarkerPct}% - 6px)`, width: 12, height: 18, borderRadius: 3, background: C.text, border: `2px solid ${C.bg}`, transition: "left 0.2s" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: C.muted, marginTop: 3 }}><span>S=1 (ideal)</span><span>S=5 (no pipeline)</span></div>
+          </div>
+        </div>
+
+        {/* checkpoint staircase — the same curve at a handful of fixed n's, so the DOWNWARD TREND reads at a glance without dragging */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, justifyContent: "center", height: 70 }}>
+          {CPI_CHECKPOINTS.map((cn) => {
+            const s = (K_REF + (cn - 1)) / cn;
+            const h = Math.max(6, ((s - 1) / (K_REF - 1)) * 60);
+            const active = cn === cpiN;
+            return (
+              <div key={cn} style={{ textAlign: "center" }}>
+                <div style={{ width: 22, height: h, borderRadius: "4px 4px 0 0", background: active ? C.orange : C.orange + "55", border: `1px solid ${C.orange}` }} />
+                <div style={{ fontSize: 8.5, color: active ? C.text : C.muted, fontWeight: active ? 700 : 400, marginTop: 3 }}>{cn}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 10, color: C.muted, textAlign: "center", marginTop: 4 }}>n (instructions) — bar height = average CPI at that n. Longer program, shorter bar, closer to S=1.</div>
+      </div>
+
       <p style={{ color: C.muted, fontSize: 12.5, marginBottom: 10, lineHeight: 1.6 }}>
-        Same program (same N), same clock (same R). The ONLY thing pipelining changes is S — from 5 down toward 1. That's
-        the whole ballgame:
+        Same program (same N), same clock (same R). The ONLY thing pipelining changes is S — from 5 down toward 1. Here
+        are the two ends of the curve you just dragged through:
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -284,8 +482,9 @@ function PerformanceEquation() {
       </div>
 
       <Key color={C.accent}>
-        Non-pipelined S = 5; ideal pipelined S = 1 — an up-to <strong style={{ color: C.text }}>5× throughput gain</strong> from
-        one term of the equation. Once S = 1 the throughput equals the clock rate R exactly.
+        S = 1 is a LIMIT, not a guarantee — it's only reached as n → ∞. Every real, finite program's average CPI sits a
+        little above 1, but the longer the program runs, the closer it gets — which is why the up-to-5× ceiling from
+        Section 2 is a target that longer programs approach and short snippets fall well short of.
       </Key>
     </div>
   );
@@ -313,55 +512,135 @@ function MiniPipe({ stagger }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 4 — How Many Stages? trade-off (slider drives a visible pipe)
+//  Section 4 — How Many Stages? Two mechanisms, taught, not asserted.
+//  The old version was a slider driving two numbers out of an unexplained
+//  formula, with a "risk" label nobody could derive. Rewritten (per Aishu's
+//  feedback -- "this is not foothold... necessary scaffolding should be
+//  there") to teach BOTH causal mechanisms explicitly before showing their
+//  trade-off:
+//    Mechanism A — clock rate: a FIXED amount of combinational delay (the
+//      time it takes one instruction's logic to settle, non-pipelined) gets
+//      divided across k stages. More stages -> each stage does less work ->
+//      settles faster -> the clock can tick faster. This stops helping once
+//      a stage would need to be shorter than the "slowest basic operation"
+//      (the ALU) can physically go -- the textbook's own floor.
+//    Mechanism B — hazard risk: at steady state there are always exactly k
+//      instructions in flight. Two concrete consequences of that: (i) more
+//      neighbours who might depend on each other's results, and (ii) if a
+//      branch's outcome isn't known until the LAST stage, every one of the
+//      k-1 instructions fetched behind it (worst case) must be discarded --
+//      a real, growing number, not a vague label.
+//  TOTAL_DELAY and ALU_FLOOR are illustrative teaching units, not real
+//  hardware nanoseconds -- deliberately labelled "relative" throughout so
+//  nothing here reads as a fabricated spec number. What matters is the
+//  SHAPE (rises, then flattens at the floor), which is exactly what
+//  Hamacher's own bullet points describe qualitatively.
 // ══════════════════════════════════════════════════════════════════
 function HowManyStages() {
   const [k, setK] = useState(5);
-  const clockGhz = (0.5 + k * 0.35).toFixed(2);
+
+  // ---- Mechanism A: clock rate is delay-per-stage, inverted ----
+  const TOTAL_DELAY = 12;   // illustrative total combinational delay for one instruction, non-pipelined (relative units)
+  const ALU_FLOOR = 1.2;    // illustrative floor: no stage can beat the ALU's own settling time
+  const idealStageDelay = TOTAL_DELAY / k;             // what the split WOULD be with no floor
+  const actualPeriod = Math.max(idealStageDelay, ALU_FLOOR); // the floor kicks in once idealStageDelay < ALU_FLOOR
+  const floorHit = idealStageDelay < ALU_FLOOR;
+  const period5 = Math.max(TOTAL_DELAY / 5, ALU_FLOOR); // this course's own k=5 pipeline, used as the "1.00x" baseline
+  const relClock = (period5 / actualPeriod).toFixed(2); // clock rate relative to the k=5 baseline (not a fake absolute GHz)
+
+  // ---- Mechanism B: k instructions in flight -> k-1 possible flush on a mispredicted branch ----
+  const branchPenalty = k - 1; // worst case: branch resolves at the very last stage, so every earlier-fetched instruction behind it is wasted
   const risk = k <= 4 ? "low" : k <= 8 ? "moderate" : k <= 14 ? "high" : "very high";
   const riskColor = k <= 4 ? C.green : k <= 8 ? C.yellow : k <= 14 ? C.orange : C.red;
 
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        More stages = less work per stage = a shorter clock period = a higher clock rate R. But more instructions are
-        in flight at once, so more of them can depend on one still in the pipe. Drag k and watch both sides move — and
-        watch how many instructions are in flight (coloured) at once.
+        Two forces pull in opposite directions as you add pipeline stages, and neither is obvious on its own. Drag k —
+        we'll build up WHY each side moves before showing you the trade-off.
       </p>
 
-      <div style={{ marginBottom: 14 }}>
+      <div style={{ marginBottom: 18 }}>
         <label style={{ color: C.muted, fontSize: 12 }}>k (pipeline stages) = <strong style={{ color: C.accent }}>{k}</strong></label>
         <input type="range" min={2} max={16} value={k} onChange={(e) => setK(Number(e.target.value))} style={{ width: "100%", accentColor: C.accent }} />
       </div>
 
-      {/* in-flight visual: k slots, all coloured = all busy at steady state */}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14, justifyContent: "center" }}>
-        {Array.from({ length: k }).map((_, i) => (
-          <div key={i} style={{ width: 26, height: 26, borderRadius: 5, background: riskColor + "33", border: `1px solid ${riskColor}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: riskColor, fontWeight: 700 }}>S{i + 1}</div>
-        ))}
+      {/* ---------------- Mechanism A: why clock rate rises (and then stops) ---------------- */}
+      <div style={{ background: C.card, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: "16px", marginBottom: 16 }}>
+        <div style={{ fontSize: 12.5, color: C.green, fontWeight: 700, marginBottom: 8 }}>Why does clock rate change with k? — the same work has to go SOMEWHERE</div>
+        <p style={{ color: C.muted, fontSize: 12.5, marginBottom: 10, lineHeight: 1.6 }}>
+          One instruction's full computation takes a FIXED amount of settling time (here, <strong style={{ color: C.text }}>{TOTAL_DELAY}</strong> relative
+          units — think of it as how long the non-pipelined datapath from Unit 2.5 takes end to end). Splitting the datapath into
+          k stages divides that delay k ways, so each stage only has to settle <strong style={{ color: C.text }}>{idealStageDelay.toFixed(2)}</strong> units
+          before the clock can tick again.
+        </p>
+        {/* the delay bar: fixed total width, split into k equal segments — visually thinner segments as k grows */}
+        <div style={{ display: "flex", gap: 1, height: 22, borderRadius: 5, overflow: "hidden", border: `1px solid ${C.border}`, marginBottom: 8 }}>
+          {Array.from({ length: k }).map((_, i) => (
+            <div key={i} style={{ flex: 1, background: C.green + "33", borderRight: i < k - 1 ? `1px solid ${C.bg}` : "none" }} />
+          ))}
+        </div>
+        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 12 }}>{TOTAL_DELAY} units of total delay, split into {k} equal stage{k > 1 ? "s" : ""}</div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, textAlign: "center" }}>
+          <div>
+            <div style={{ fontSize: 11, color: C.muted }}>actual clock period</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{actualPeriod.toFixed(2)}</div>
+            <div style={{ fontSize: 9.5, color: floorHit ? C.orange : C.muted }}>{floorHit ? "⚠ floored by the ALU — more stages won't help" : "= idealStageDelay (no floor hit yet)"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: C.muted }}>clock rate, relative to k=5</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.green }}>{relClock}×</div>
+            <div style={{ fontSize: 9.5, color: C.muted }}>this course's own pipeline is the 1.00× baseline</div>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 12 }}>
-        <div style={{ background: C.card, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: 14, textAlign: "center" }}>
-          <div style={{ color: C.green, fontWeight: 700, fontSize: 12, marginBottom: 8 }}>✅ CLOCK RATE ↑</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>~{clockGhz} GHz</div>
-          <div style={{ color: C.muted, fontSize: 10.5, marginTop: 4 }}>less work per stage → shorter period</div>
+      {/* ---------------- Mechanism B: why hazard risk rises ---------------- */}
+      <div style={{ background: C.card, border: `1.5px solid ${riskColor}44`, borderRadius: 10, padding: "16px", marginBottom: 16 }}>
+        <div style={{ fontSize: 12.5, color: riskColor, fontWeight: 700, marginBottom: 8 }}>Why does hazard risk change with k? — more instructions are ALWAYS mid-flight</div>
+        <p style={{ color: C.muted, fontSize: 12.5, marginBottom: 10, lineHeight: 1.6 }}>
+          At steady state (Unit 3.1) there are always exactly k instructions inside the pipe at once. Worst case: a branch's
+          outcome isn't known until it reaches the very LAST stage. Every instruction already fetched behind it — k − 1 of
+          them — has to be thrown away if the branch was mispredicted.
+        </p>
+        {/* the flush strip: first box is the branch itself; the rest are the instructions that would be discarded */}
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10, justifyContent: "center" }}>
+          {Array.from({ length: k }).map((_, i) => {
+            const isBranch = i === 0;
+            const col = isBranch ? C.accent : C.red;
+            return (
+              <div key={i} style={{ width: 30, height: 30, borderRadius: 5, background: col + "33", border: `1.5px solid ${col}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5, color: col, fontWeight: 700 }}>
+                {isBranch ? "BR" : "✕"}
+              </div>
+            );
+          })}
         </div>
-        <div style={{ background: C.card, border: `1.5px solid ${riskColor}44`, borderRadius: 10, padding: 14, textAlign: "center" }}>
-          <div style={{ color: riskColor, fontWeight: 700, fontSize: 12, marginBottom: 8 }}>⚠️ HAZARD RISK</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: C.text, textTransform: "capitalize" }}>{risk}</div>
-          <div style={{ color: C.muted, fontSize: 10.5, marginTop: 4 }}>{k} in flight → more dependencies, bigger branch penalty</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, textAlign: "center" }}>
+          <div>
+            <div style={{ fontSize: 11, color: C.muted }}>worst-case branch penalty</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.red }}>{branchPenalty} cycle{branchPenalty === 1 ? "" : "s"}</div>
+            <div style={{ fontSize: 9.5, color: C.muted }}>= k − 1 instructions flushed</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: C.muted }}>qualitative hazard risk</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.text, textTransform: "capitalize" }}>{risk}</div>
+            <div style={{ fontSize: 9.5, color: C.muted }}>{k} in flight → more possible dependencies too</div>
+          </div>
         </div>
       </div>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
-        The clock can't go below the <strong>slowest basic operation</strong> (usually the ALU). Gains flatten past a point;
-        real designs use roughly 10–20 stages at several GHz — balancing both sides, not maximising either.
+        Notice the two mechanisms don't move together: Mechanism A flattens out once the ALU floor is hit, but Mechanism B
+        (the flush count) keeps climbing with every extra stage, forever. That mismatch — one side capping out, the other
+        not — is exactly why real designs stop around 10–20 stages instead of pushing k as high as possible.
       </div>
 
       <Key color={C.purple}>
-        Ideal speedup approaches the number of stages, but every stall pulls the real gain below ideal — which is exactly
-        what <strong style={{ color: C.text }}>Unit 3.3, Data Hazards</strong> is about.
+        Push k up in T = N·S/R: R rises (Mechanism A) — but S can rise too, because bigger stalls and a bigger branch
+        penalty (Mechanism B) mean more wasted cycles per instruction. The two effects fight each other directly in that
+        one equation, so more stages is not automatically more speed. Learning to fight the S side of that fight is
+        exactly what <strong style={{ color: C.text }}>Unit 3.3, Data Hazards</strong> teaches next.
       </Key>
     </div>
   );
@@ -488,7 +767,7 @@ export default function Unit3_2({ student, onUnitComplete }) {
 
   const content = [
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>⏳ Watch It Fill — the ramp-up nobody escapes</h3><WhyItMatters /></div>,
-    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🧮 Count the Cycles — guess, then k + (n − 1)</h3><CountTheCycles /></div>,
+    <div><h3 style={{ color: C.text, marginBottom: 6 }}>🧮 Count the Cycles — derive k + (n − 1) yourself</h3><CountTheCycles /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>📐 The Performance Equation — T = N·S/R</h3><PerformanceEquation /></div>,
     <div><h3 style={{ color: C.text, marginBottom: 6 }}>⚖️ How Many Stages? — the trade-off</h3><HowManyStages /></div>,
     <div>
