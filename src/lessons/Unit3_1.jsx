@@ -294,6 +294,107 @@ function WatchItOverlap() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  InterstageBuffers — the textbook's own names for the pipeline registers.
+//  This is our redrawn version of Hamacher Fig. 6.2 (section 1.4 of the
+//  Unit 3 Student Notes): instead of the textbook's vertical block diagram
+//  (stage boxes with a horizontal "Interstage buffer" bar underneath, and a
+//  legend of what flows through it), we lay the same five stages and four
+//  buffers out left-to-right — matching the space-time diagram direction
+//  students just watched animate in Section 3 (WatchItOverlap above).
+//  Concept reproduced, not the picture: click-to-reveal replaces the
+//  figure's static caption boxes ("Datapath operands and results" /
+//  "Source-destination register identifiers" / "Control signals for
+//  different stages").
+// ══════════════════════════════════════════════════════════════════
+function InterstageBuffers() {
+  // Which of the four buffers (index 0..3, i.e. B1..B4) is currently
+  // expanded in the reveal panel below. null = nothing picked yet.
+  const [openBuffer, setOpenBuffer] = useState(null);
+
+  // One entry per interstage buffer, in pipeline order. "after"/"into" name
+  // the two stages the buffer physically sits between; "carries" is what
+  // Hamacher's Fig. 6.2 shows flowing across that buffer — kept in the
+  // book's own terms so this matches the Student Notes exactly.
+  const buffers = [
+    { id: "B1", after: "IF", into: "ID",
+      carries: "The instruction word just fetched from memory — everything Decode needs to read and interpret it." },
+    { id: "B2", after: "ID", into: "EX",
+      carries: "The two operands read from the register file, the immediate value, and the control signals every later stage will need." },
+    { id: "B3", after: "EX", into: "MEM",
+      carries: "The ALU's result — either the value to write, or the address/data for a memory access." },
+    { id: "B4", after: "MEM", into: "WB",
+      carries: "The value that Write Back will place into the register file." },
+  ];
+
+  const stages = ["IF", "ID", "EX", "MEM", "WB"];
+
+  return (
+    <div style={{ marginTop: 18 }}>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
+        Hamacher's textbook doesn't leave those registers unnamed — it calls them
+        <strong style={{ color: C.text }}> interstage buffers B1–B4</strong> (Fig. 6.2), and each one carries something
+        specific forward, not just "the data". Click a buffer to see exactly what crosses it.
+      </p>
+
+      {/*
+        The strip below alternates a stage box, then the buffer that follows
+        it, all the way to WB (which has no buffer after it — nothing needs
+        to carry WB's result anywhere further down this pipe). Built with
+        .flatMap so the last stage doesn't get an orphan buffer, and so no
+        extra React.Fragment import is needed (same trick PipelineGrid uses
+        above).
+      */}
+      <div style={{ display: "flex", alignItems: "stretch", gap: 4, marginBottom: 14, overflowX: "auto" }}>
+        {stages.flatMap((st, i) => {
+          // The stage box itself — colour-matched to STAGE_COLOR so it reads
+          // as "the same IF/ID/EX/MEM/WB" the student has seen since Section 2.
+          const stageCell = (
+            <div key={`s-${st}`} style={{
+              flex: "0 0 64px", display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 8, border: `1.5px solid ${STAGE_COLOR[st]}`, background: STAGE_COLOR[st] + "18",
+              color: STAGE_COLOR[st], fontWeight: 800, fontSize: 13, padding: "10px 4px",
+            }}>{st}</div>
+          );
+          if (i === stages.length - 1) return [stageCell]; // WB: stage only, no trailing buffer
+          const buf = buffers[i];
+          const open = openBuffer === i;
+          // The clickable buffer box (B1..B4) sitting right after this stage.
+          const bufferCell = (
+            <button key={`b-${buf.id}`} onClick={() => setOpenBuffer(open ? null : i)} style={{
+              flex: "0 0 46px", display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 6, border: `1.5px dashed ${open ? C.yellow : C.border}`,
+              background: open ? C.yellow + "22" : C.card, color: open ? C.yellow : C.muted,
+              fontWeight: 700, fontSize: 11, cursor: "pointer",
+            }}>{buf.id}</button>
+          );
+          return [stageCell, bufferCell];
+        })}
+      </div>
+
+      {/* Reveal panel: shows the picked buffer's contents, or a hint if none picked yet. */}
+      <div style={{ background: C.card, border: `1px solid ${openBuffer !== null ? C.yellow + "66" : C.border}`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.text, lineHeight: 1.6, minHeight: 54 }}>
+        {openBuffer !== null ? (
+          <span>
+            <strong style={{ color: C.yellow }}>{buffers[openBuffer].id}</strong> sits between
+            <strong style={{ color: STAGE_COLOR[buffers[openBuffer].after] }}> {buffers[openBuffer].after}</strong> and
+            <strong style={{ color: STAGE_COLOR[buffers[openBuffer].into] }}> {buffers[openBuffer].into}</strong>: {buffers[openBuffer].carries}
+          </span>
+        ) : (
+          <span style={{ color: C.muted }}>Click B1, B2, B3, or B4 above to see what it carries forward.</span>
+        )}
+      </div>
+
+      <Key color={C.yellow}>
+        Notice B2 and B3 don't just carry data — they carry <strong style={{ color: C.text }}>control signals</strong> too, riding
+        along with the instruction they belong to. That's <strong style={{ color: C.text }}>pipelined control</strong>: instead of one
+        global controller deciding everything up front, each stage's control bits travel down the pipe inside the buffers and get
+        used only when that instruction actually reaches the stage they're meant for.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  Section 4 — Why Pipeline Registers? Predict what breaks, then reveal
 // ══════════════════════════════════════════════════════════════════
 function WhyPipelineRegisters() {
@@ -363,6 +464,8 @@ function WhyPipelineRegisters() {
         </div>
       )}
 
+      {guess !== null && <InterstageBuffers />}
+
       <Key color={C.purple}>
         The registers between stages are what make an overlapped pipeline actually correct, not just fast: they keep each in-flight
         instruction's data — and its control signals — separate. Every clock edge, all four latches capture at once and the whole
@@ -419,7 +522,7 @@ function Quiz({ onComplete }) {
         "Registers between stages are optional and only save power",
       ],
       answer: 1,
-      explain: "Stage logic is combinational, so without a latch between stages the following instruction's data would race through and overwrite values still in use. The pipeline registers hold each instruction's data steady for its cycle.",
+      explain: "Stage logic is combinational, so without a latch between stages the following instruction's data would race through and overwrite values still in use. Hamacher's textbook names these four latches B1\u2013B4: B1 carries the fetched instruction, B2 the operands/immediate/control signals, B3 the ALU result, and B4 the write-back value \u2014 each held steady for its cycle.",
     },
   ];
 
