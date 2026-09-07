@@ -328,26 +328,97 @@ function InterstageBuffers() {
 
   const stages = ["IF", "ID", "EX", "MEM", "WB"];
 
+  // ---------------------------------------------------------------------
+  // NEW: "Watch it flow" — an auto-playing animation of ONE instruction's
+  // journey through the pipe. FLOW lists the 9 stops in order: stage,
+  // buffer, stage, buffer, ... stage (5 stages + 4 buffers). flowStep is an
+  // index into FLOW; playing advances it on a timer, same auto-play idiom
+  // PipelineGrid (Unit3_1's own space-time diagram, Section 3 above) uses
+  // for its ▶ Run cycles button. This is the piece the click-inspector
+  // below didn't have: it shows the SAME instruction crossing every buffer
+  // in sequence, so "what travels through the pipe" reads as a journey,
+  // not four disconnected facts.
+  // ---------------------------------------------------------------------
+  const FLOW = [
+    { kind: "stage", key: "IF" },
+    { kind: "buffer", i: 0 }, // B1
+    { kind: "stage", key: "ID" },
+    { kind: "buffer", i: 1 }, // B2
+    { kind: "stage", key: "EX" },
+    { kind: "buffer", i: 2 }, // B3
+    { kind: "stage", key: "MEM" },
+    { kind: "buffer", i: 3 }, // B4
+    { kind: "stage", key: "WB" },
+  ];
+  const [flowStep, setFlowStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    if (!playing) return;
+    if (flowStep >= FLOW.length - 1) { setPlaying(false); return; }
+    const t = setTimeout(() => setFlowStep((s) => s + 1), 900);
+    return () => clearTimeout(t);
+  }, [playing, flowStep]);
+  const flowNow = FLOW[flowStep];
+  // The caption under the animation: inside a stage, describe what work
+  // happens there; crossing a buffer, reuse that buffer's own "carries"
+  // text so the flow animation and the click-inspector always agree.
+  const flowCaption = flowNow.kind === "stage"
+    ? `Inside ${flowNow.key} — this stage does its own work on the instruction now sitting in it.`
+    : `Crossing ${buffers[flowNow.i].id} — ${buffers[flowNow.i].carries}`;
+
   return (
     <div style={{ marginTop: 18 }}>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
         Hamacher's textbook doesn't leave those registers unnamed — it calls them
         <strong style={{ color: C.text }}> interstage buffers B1–B4</strong> (Fig. 6.2), and each one carries something
-        specific forward, not just "the data". Click a buffer to see exactly what crosses it.
+        specific forward, not just "the data". Watch one instruction travel the whole pipe below, or click any buffer
+        to inspect it on its own.
       </p>
 
-      {/*
-        The strip below alternates a stage box, then the buffer that follows
-        it, all the way to WB (which has no buffer after it — nothing needs
-        to carry WB's result anywhere further down this pipe). Built with
-        .flatMap so the last stage doesn't get an orphan buffer, and so no
-        extra React.Fragment import is needed (same trick PipelineGrid uses
-        above).
-      */}
+      {/* ---------------- Watch it flow: auto-play animation ---------------- */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+        <button onClick={() => { if (flowStep >= FLOW.length - 1) setFlowStep(0); setPlaying((p) => !p); }}
+          style={btn(playing ? C.orange : C.green)}>
+          {playing ? "⏸ Pause" : flowStep >= FLOW.length - 1 ? "↺ Replay" : "▶ Watch it flow"}
+        </button>
+        <button onClick={() => { setPlaying(false); setFlowStep((s) => Math.min(FLOW.length - 1, s + 1)); }} style={btn(C.accentGlow)}>Step ▶</button>
+        <button onClick={() => { setPlaying(false); setFlowStep(0); }} style={btn(C.card, C.muted)}>↺ Reset</button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "stretch", gap: 4, marginBottom: 10, overflowX: "auto" }}>
+        {FLOW.map((f, idx) => {
+          const active = idx === flowStep;
+          if (f.kind === "stage") {
+            const col = STAGE_COLOR[f.key];
+            return (
+              <div key={`fs-${idx}`} style={{
+                flex: "0 0 64px", display: "flex", alignItems: "center", justifyContent: "center",
+                borderRadius: 8, border: `${active ? 2.5 : 1.5}px solid ${col}`, background: col + (active ? "33" : "18"),
+                color: col, fontWeight: 800, fontSize: 13, padding: "10px 4px",
+                boxShadow: active ? `0 0 0 3px ${col}33` : "none", transition: "all 0.2s",
+              }}>{f.key}</div>
+            );
+          }
+          const buf = buffers[f.i];
+          return (
+            <div key={`fb-${idx}`} style={{
+              flex: "0 0 46px", display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 6, border: `${active ? 2.5 : 1.5}px dashed ${active ? C.yellow : C.border}`,
+              background: active ? C.yellow + "33" : C.card, color: active ? C.yellow : C.muted,
+              fontWeight: 700, fontSize: 11, transition: "all 0.2s",
+            }}>{buf.id}</div>
+          );
+        })}
+      </div>
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.text, lineHeight: 1.6, minHeight: 54, marginBottom: 18 }}>
+        {flowCaption}
+      </div>
+
+      {/* ---------------- Or click any buffer to inspect it directly (unchanged from before) ---------------- */}
+      <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Or inspect any buffer on its own</div>
       <div style={{ display: "flex", alignItems: "stretch", gap: 4, marginBottom: 14, overflowX: "auto" }}>
         {stages.flatMap((st, i) => {
-          // The stage box itself — colour-matched to STAGE_COLOR so it reads
-          // as "the same IF/ID/EX/MEM/WB" the student has seen since Section 2.
           const stageCell = (
             <div key={`s-${st}`} style={{
               flex: "0 0 64px", display: "flex", alignItems: "center", justifyContent: "center",
@@ -358,7 +429,6 @@ function InterstageBuffers() {
           if (i === stages.length - 1) return [stageCell]; // WB: stage only, no trailing buffer
           const buf = buffers[i];
           const open = openBuffer === i;
-          // The clickable buffer box (B1..B4) sitting right after this stage.
           const bufferCell = (
             <button key={`b-${buf.id}`} onClick={() => setOpenBuffer(open ? null : i)} style={{
               flex: "0 0 46px", display: "flex", alignItems: "center", justifyContent: "center",
@@ -371,7 +441,6 @@ function InterstageBuffers() {
         })}
       </div>
 
-      {/* Reveal panel: shows the picked buffer's contents, or a hint if none picked yet. */}
       <div style={{ background: C.card, border: `1px solid ${openBuffer !== null ? C.yellow + "66" : C.border}`, borderRadius: 8, padding: "12px 16px", fontSize: 13, color: C.text, lineHeight: 1.6, minHeight: 54 }}>
         {openBuffer !== null ? (
           <span>

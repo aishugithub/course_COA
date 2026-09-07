@@ -448,6 +448,12 @@ function PerformanceEquation() {
           </div>
         </div>
 
+        {/* Plug THIS n and S straight back into the formula above -- the equation stays visible and live, not a separate fact. With R=1 (one cycle per "tick") T comes out in cycles, and it always lands exactly on Section 2's k+(n-1) -- the two sections are describing the same number two different ways. */}
+        <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: 13, color: C.muted, marginBottom: 14, background: C.bg, borderRadius: 8, padding: "8px 10px" }}>
+          T = N × S / R &nbsp;=&nbsp; {cpiN} × {cpiValue.toFixed(2)} / R &nbsp;=&nbsp; <strong style={{ color: C.text }}>{Math.round(cpiN * cpiValue)}</strong> cycles (R = 1)
+          <div style={{ fontSize: 10.5, color: C.muted, marginTop: 4 }}>— exactly Section 2's k + (n − 1) = 5 + {cpiN - 1} = {5 + (cpiN - 1)}. Same number, two routes to it.</div>
+        </div>
+
         {/* checkpoint staircase — the same curve at a handful of fixed n's, so the DOWNWARD TREND reads at a glance without dragging */}
         <div style={{ display: "flex", alignItems: "flex-end", gap: 6, justifyContent: "center", height: 70 }}>
           {CPI_CHECKPOINTS.map((cn) => {
@@ -512,81 +518,112 @@ function MiniPipe({ stagger }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 4 — How Many Stages? Two mechanisms, taught, not asserted.
-//  The old version was a slider driving two numbers out of an unexplained
-//  formula, with a "risk" label nobody could derive. Rewritten (per Aishu's
-//  feedback -- "this is not foothold... necessary scaffolding should be
-//  there") to teach BOTH causal mechanisms explicitly before showing their
-//  trade-off:
-//    Mechanism A — clock rate: a FIXED amount of combinational delay (the
-//      time it takes one instruction's logic to settle, non-pipelined) gets
-//      divided across k stages. More stages -> each stage does less work ->
-//      settles faster -> the clock can tick faster. This stops helping once
-//      a stage would need to be shorter than the "slowest basic operation"
-//      (the ALU) can physically go -- the textbook's own floor.
-//    Mechanism B — hazard risk: at steady state there are always exactly k
-//      instructions in flight. Two concrete consequences of that: (i) more
-//      neighbours who might depend on each other's results, and (ii) if a
-//      branch's outcome isn't known until the LAST stage, every one of the
-//      k-1 instructions fetched behind it (worst case) must be discarded --
-//      a real, growing number, not a vague label.
-//  TOTAL_DELAY and ALU_FLOOR are illustrative teaching units, not real
-//  hardware nanoseconds -- deliberately labelled "relative" throughout so
-//  nothing here reads as a fabricated spec number. What matters is the
-//  SHAPE (rises, then flattens at the floor), which is exactly what
-//  Hamacher's own bullet points describe qualitatively.
+//  Section 4 — How Many Stages? A relay of painters, and two animations.
+//  Second rewrite of this section. The first rewrite explained the two
+//  mechanisms in words and numbers but the numbers were ugly decimals
+//  (TOTAL_DELAY=12 / ALU_FLOOR=1.2 -> "2.40") and nothing MOVED. Per
+//  Aishu's feedback this pass: (a) whole-number-friendly constants -- her
+//  own example, 10 units of delay over 5 stages = 2, exactly -- with every
+//  displayed period rounded to a whole unit; (b) a concrete physical
+//  analogy (painting a 10-minute fence in relay, one station per stage)
+//  instead of an abstract "combinational delay"; (c) two actual animations,
+//  not just static numbers: a token crossing the delay bar (Mechanism A --
+//  same total job, more/shorter ticks as k rises), and a step-through
+//  misprediction flush (Mechanism B -- watch the wasted instructions get
+//  discarded one at a time instead of seeing them all appear at once).
+//  TOTAL_DELAY / ALU_FLOOR remain illustrative teaching units, not real
+//  hardware nanoseconds -- what matters is the SHAPE (rises, then flattens
+//  at the floor), which is exactly what Hamacher's own bullet points
+//  describe qualitatively.
 // ══════════════════════════════════════════════════════════════════
 function HowManyStages() {
   const [k, setK] = useState(5);
 
-  // ---- Mechanism A: clock rate is delay-per-stage, inverted ----
-  const TOTAL_DELAY = 12;   // illustrative total combinational delay for one instruction, non-pipelined (relative units)
-  const ALU_FLOOR = 1.2;    // illustrative floor: no stage can beat the ALU's own settling time
-  const idealStageDelay = TOTAL_DELAY / k;             // what the split WOULD be with no floor
-  const actualPeriod = Math.max(idealStageDelay, ALU_FLOOR); // the floor kicks in once idealStageDelay < ALU_FLOOR
+  // ---- Mechanism A numbers: same as before, just whole-number-friendly ----
+  const TOTAL_DELAY = 10;  // "the fence takes 10 minutes to paint, start to finish, with one painter doing it alone"
+  const ALU_FLOOR = 1;     // "no painter can dip the brush and lay even one stroke in under 1 minute" -- the ALU floor
+  const idealStageDelay = TOTAL_DELAY / k;                    // what the split WOULD be with no floor (kept unrounded for correct floor logic)
+  const actualPeriodRaw = Math.max(idealStageDelay, ALU_FLOOR);
+  const actualPeriod = Math.round(actualPeriodRaw);           // ROUNDED for display only -- Aishu's ask: no more "2.40", just "2"
   const floorHit = idealStageDelay < ALU_FLOOR;
-  const period5 = Math.max(TOTAL_DELAY / 5, ALU_FLOOR); // this course's own k=5 pipeline, used as the "1.00x" baseline
-  const relClock = (period5 / actualPeriod).toFixed(2); // clock rate relative to the k=5 baseline (not a fake absolute GHz)
+  const period5 = Math.max(TOTAL_DELAY / 5, ALU_FLOOR);       // this course's own k=5 pipeline = the "1.00x" baseline (works out to a clean 2)
+  const relClock = (period5 / actualPeriodRaw).toFixed(2);    // a genuine ratio/multiplier, so decimals here are normal (e.g. "1.67x"), not a raw unit count
 
-  // ---- Mechanism B: k instructions in flight -> k-1 possible flush on a mispredicted branch ----
+  // ---- Mechanism A animation: a token crossing the SAME fixed-length job, cut into k stations ----
+  // The whole crossing always takes ANIM_MS in real time, however many stations k there are -- that's
+  // the point: it's the SAME 10-minute job either way. What changes is how many times the "tick" fires
+  // along the way (once per station), which is the whole clock-rate story made visible.
+  const ANIM_MS = 3000;
+  const [tick, setTick] = useState(0);      // how many station-boundaries the token has crossed, 0..k
+  const [running, setRunning] = useState(false);
+  useEffect(() => { setTick(0); setRunning(false); }, [k]); // dragging k mid-animation resets it cleanly
+  useEffect(() => {
+    if (!running) return;
+    if (tick >= k) { setRunning(false); return; }
+    const t = setTimeout(() => setTick((t2) => t2 + 1), ANIM_MS / k);
+    return () => clearTimeout(t);
+  }, [running, tick, k]);
+
+  // ---- Mechanism B numbers ----
   const branchPenalty = k - 1; // worst case: branch resolves at the very last stage, so every earlier-fetched instruction behind it is wasted
   const risk = k <= 4 ? "low" : k <= 8 ? "moderate" : k <= 14 ? "high" : "very high";
   const riskColor = k <= 4 ? C.green : k <= 8 ? C.yellow : k <= 14 ? C.orange : C.red;
 
+  // ---- Mechanism B animation: reveal the flushed instructions one at a time instead of all at once ----
+  const [flushed, setFlushed] = useState(0); // how many of the k-1 red boxes have been "discarded" so far
+  const [flushing, setFlushing] = useState(false);
+  useEffect(() => { setFlushed(0); setFlushing(false); }, [k]);
+  useEffect(() => {
+    if (!flushing) return;
+    if (flushed >= branchPenalty) { setFlushing(false); return; }
+    const t = setTimeout(() => setFlushed((f) => f + 1), 260);
+    return () => clearTimeout(t);
+  }, [flushing, flushed, branchPenalty]);
+
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Two forces pull in opposite directions as you add pipeline stages, and neither is obvious on its own. Drag k —
-        we'll build up WHY each side moves before showing you the trade-off.
+        Picture a 10-minute fence-painting job, done solo. Now cut that SAME job into k stations along the fence, one
+        painter per station, each passing the brush down the line — exactly like the datapath stages you already know.
+        Two things change as you add stations, and they pull in opposite directions. Drag k.
       </p>
 
       <div style={{ marginBottom: 18 }}>
-        <label style={{ color: C.muted, fontSize: 12 }}>k (pipeline stages) = <strong style={{ color: C.accent }}>{k}</strong></label>
+        <label style={{ color: C.muted, fontSize: 12 }}>k (pipeline stages / painting stations) = <strong style={{ color: C.accent }}>{k}</strong></label>
         <input type="range" min={2} max={16} value={k} onChange={(e) => setK(Number(e.target.value))} style={{ width: "100%", accentColor: C.accent }} />
       </div>
 
       {/* ---------------- Mechanism A: why clock rate rises (and then stops) ---------------- */}
       <div style={{ background: C.card, border: `1.5px solid ${C.green}44`, borderRadius: 10, padding: "16px", marginBottom: 16 }}>
-        <div style={{ fontSize: 12.5, color: C.green, fontWeight: 700, marginBottom: 8 }}>Why does clock rate change with k? — the same work has to go SOMEWHERE</div>
+        <div style={{ fontSize: 12.5, color: C.green, fontWeight: 700, marginBottom: 8 }}>Why clock rate rises — the SAME 10-minute job, cut into more pieces</div>
         <p style={{ color: C.muted, fontSize: 12.5, marginBottom: 10, lineHeight: 1.6 }}>
-          One instruction's full computation takes a FIXED amount of settling time (here, <strong style={{ color: C.text }}>{TOTAL_DELAY}</strong> relative
-          units — think of it as how long the non-pipelined datapath from Unit 2.5 takes end to end). Splitting the datapath into
-          k stages divides that delay k ways, so each stage only has to settle <strong style={{ color: C.text }}>{idealStageDelay.toFixed(2)}</strong> units
-          before the clock can tick again.
+          The whole fence still takes <strong style={{ color: C.text }}>{TOTAL_DELAY}</strong> minutes to paint, start to finish — cutting it
+          into stations doesn't shrink the total job. But with k stations sharing it, each one only has to paint for about
+          <strong style={{ color: C.text }}> {idealStageDelay.toFixed(1)}</strong> minutes before passing the brush on — and the clock can tick
+          exactly that often.
         </p>
-        {/* the delay bar: fixed total width, split into k equal segments — visually thinner segments as k grows */}
-        <div style={{ display: "flex", gap: 1, height: 22, borderRadius: 5, overflow: "hidden", border: `1px solid ${C.border}`, marginBottom: 8 }}>
+
+        {/* the delay bar: fixed total width, split into k equal stations */}
+        <div style={{ display: "flex", gap: 1, height: 22, borderRadius: 5, overflow: "hidden", border: `1px solid ${C.border}`, marginBottom: 4, position: "relative" }}>
           {Array.from({ length: k }).map((_, i) => (
-            <div key={i} style={{ flex: 1, background: C.green + "33", borderRight: i < k - 1 ? `1px solid ${C.bg}` : "none" }} />
+            <div key={i} style={{ flex: 1, background: i < tick ? C.green + "55" : C.green + "18", borderRight: i < k - 1 ? `1px solid ${C.bg}` : "none", transition: "background 0.15s" }} />
           ))}
         </div>
-        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 12 }}>{TOTAL_DELAY} units of total delay, split into {k} equal stage{k > 1 ? "s" : ""}</div>
+        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 10 }}>{TOTAL_DELAY} minutes of fence, split into {k} equal station{k > 1 ? "s" : ""} — {tick} of {k} crossed so far</div>
+
+        {/* the animation controls: watch the SAME job cross the bar, ticking once per station */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          <button onClick={() => { if (tick >= k) setTick(0); setRunning((r) => !r); }} style={btn(running ? C.orange : C.green)}>
+            {running ? "⏸ Pause" : tick >= k ? "↺ Replay" : "▶ Watch the brush travel"}
+          </button>
+          <button onClick={() => { setRunning(false); setTick(0); }} style={btn(C.card, C.muted)}>↺ Reset</button>
+        </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, textAlign: "center" }}>
           <div>
-            <div style={{ fontSize: 11, color: C.muted }}>actual clock period</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{actualPeriod.toFixed(2)}</div>
-            <div style={{ fontSize: 9.5, color: floorHit ? C.orange : C.muted }}>{floorHit ? "⚠ floored by the ALU — more stages won't help" : "= idealStageDelay (no floor hit yet)"}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>actual clock period (rounded)</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{actualPeriod}</div>
+            <div style={{ fontSize: 9.5, color: floorHit ? C.orange : C.muted }}>{floorHit ? "⚠ floored by the 1-minute brush-dip — more stations won't help" : "≈ the fence-length ÷ k"}</div>
           </div>
           <div>
             <div style={{ fontSize: 11, color: C.muted }}>clock rate, relative to k=5</div>
@@ -598,23 +635,36 @@ function HowManyStages() {
 
       {/* ---------------- Mechanism B: why hazard risk rises ---------------- */}
       <div style={{ background: C.card, border: `1.5px solid ${riskColor}44`, borderRadius: 10, padding: "16px", marginBottom: 16 }}>
-        <div style={{ fontSize: 12.5, color: riskColor, fontWeight: 700, marginBottom: 8 }}>Why does hazard risk change with k? — more instructions are ALWAYS mid-flight</div>
+        <div style={{ fontSize: 12.5, color: riskColor, fontWeight: 700, marginBottom: 8 }}>Why hazard risk rises — more painters are ALWAYS mid-stroke</div>
         <p style={{ color: C.muted, fontSize: 12.5, marginBottom: 10, lineHeight: 1.6 }}>
-          At steady state (Unit 3.1) there are always exactly k instructions inside the pipe at once. Worst case: a branch's
-          outcome isn't known until it reaches the very LAST stage. Every instruction already fetched behind it — k − 1 of
-          them — has to be thrown away if the branch was mispredicted.
+          At steady state there are always exactly k instructions inside the pipe. Worst case: a branch's outcome isn't
+          known until it reaches the very LAST station. Everything fetched behind it — k − 1 instructions — has to be
+          thrown away if the branch was mispredicted. Press play to watch them go, one wasted cycle at a time.
         </p>
-        {/* the flush strip: first box is the branch itself; the rest are the instructions that would be discarded */}
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10, justifyContent: "center" }}>
           {Array.from({ length: k }).map((_, i) => {
             const isBranch = i === 0;
+            const isFlushed = !isBranch && i <= flushed; // revealed progressively by the animation below
             const col = isBranch ? C.accent : C.red;
             return (
-              <div key={i} style={{ width: 30, height: 30, borderRadius: 5, background: col + "33", border: `1.5px solid ${col}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5, color: col, fontWeight: 700 }}>
-                {isBranch ? "BR" : "✕"}
+              <div key={i} style={{
+                width: 30, height: 30, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 9.5, fontWeight: 700, transition: "all 0.2s",
+                background: isBranch ? col + "33" : (isFlushed ? col + "55" : C.bg),
+                border: `1.5px solid ${isBranch ? col : (isFlushed ? col : C.border)}`,
+                color: isBranch ? col : (isFlushed ? col : C.muted),
+                transform: isFlushed ? "scale(1.08)" : "scale(1)",
+              }}>
+                {isBranch ? "BR" : (isFlushed ? "✕" : "·")}
               </div>
             );
           })}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          <button onClick={() => { if (flushed >= branchPenalty) setFlushed(0); setFlushing((f) => !f); }} disabled={branchPenalty === 0} style={btn(branchPenalty === 0 ? C.border : (flushing ? C.orange : C.red))}>
+            {flushing ? "⏸ Pause" : flushed >= branchPenalty && branchPenalty > 0 ? "↺ Replay" : "▶ Simulate a misprediction"}
+          </button>
+          <button onClick={() => { setFlushing(false); setFlushed(0); }} style={btn(C.card, C.muted)}>↺ Reset</button>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, textAlign: "center" }}>
           <div>
@@ -631,9 +681,10 @@ function HowManyStages() {
       </div>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, color: C.text, lineHeight: 1.6 }}>
-        Notice the two mechanisms don't move together: Mechanism A flattens out once the ALU floor is hit, but Mechanism B
-        (the flush count) keeps climbing with every extra stage, forever. That mismatch — one side capping out, the other
-        not — is exactly why real designs stop around 10–20 stages instead of pushing k as high as possible.
+        Notice the two mechanisms don't move together: Mechanism A flattens out once the 1-minute brush-dip floor is hit,
+        but Mechanism B (the flush count) keeps climbing with every extra station, forever. That mismatch — one side
+        capping out, the other not — is exactly why real designs stop around 10–20 stages instead of pushing k as high
+        as possible.
       </div>
 
       <Key color={C.purple}>
