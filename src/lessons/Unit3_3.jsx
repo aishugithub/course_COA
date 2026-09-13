@@ -121,11 +121,11 @@ function btn(bg, col = "#fff") {
 // Small static stage-strip used by the collision + cure compares (not the animated grid)
 function MiniRow({ label, stages }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6, overflowX: "auto" }}>
       <div style={{ width: 132, fontSize: 11.5, color: C.text, fontFamily: "monospace", flexShrink: 0, whiteSpace: "nowrap" }}>{label}</div>
       {stages.map((st, i) => (
         <div key={i} style={{
-          flex: 1, height: 28, minWidth: 26, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
+          width: 32, flexShrink: 0, height: 28, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 10, fontWeight: 800,
           background: st ? STAGE_COLOR[st] + (st === "○" ? "22" : "33") : "transparent",
           color: st ? STAGE_COLOR[st] : "transparent",
