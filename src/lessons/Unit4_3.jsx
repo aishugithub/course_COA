@@ -146,6 +146,267 @@ function MappingTechniques() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  Section 2.5 — Where It Lands  (the "memory picture" animation)
+// ──────────────────────────────────────────────────────────────────
+//  Section 2 shows how the ADDRESS is split into fields. This section
+//  shows the SPATIAL consequence of those fields — the mental picture
+//  students otherwise lack: main memory is enormous, the cache is tiny,
+//  so "where is block N allowed to sit?" is the whole game.
+//
+//  A deliberately small model (16 visible main-memory blocks, an 8-line
+//  cache) so the arithmetic is visible:
+//    • Direct           → line = block mod 8  → exactly ONE legal line.
+//    • Set-associative  → set  = block mod 4  → EITHER line of a 2-line set.
+//    • Fully associative→ no constraint       → ANY of the 8 lines.
+//  Picking a block + scheme draws animated arrows to every LEGAL line
+//  (little "b_N" pucks flow along them), and "Place it" actually drops
+//  the block in — so a student can place two colliding blocks and watch
+//  direct mapping evict, while set-associative fits both. This makes the
+//  trade-off from Section 1 physical instead of verbal.
+//
+//  How it fits the unit: it sits between "Three Techniques" (the address
+//  math) and "Trace It" (a direct-mapped miss trace), turning the math
+//  into a picture the trace then animates over time.
+// ══════════════════════════════════════════════════════════════════
+function BlockPlacement() {
+  const LINES = 8, WAYS = 2, SETS = LINES / WAYS, MM_N = 16; // model sizes
+
+  // ── State (all hooks at the top level) ──
+  const [scheme, setSchemeRaw] = useState("direct"); // "direct" | "set" | "fully"
+  const [pick, setPick] = useState(3);                // which main-memory block
+  const [cache, setCache] = useState(Array(LINES).fill(null)); // line -> block or null
+  const [stats, setStats] = useState({ hits: 0, misses: 0, evictions: 0 });
+  const [msg, setMsg] = useState(null);               // result of the last placement
+
+  // Each scheme gets the colour it already uses in Section 2's field diagram.
+  const schemeCol = scheme === "direct" ? C.accent : scheme === "fully" ? C.orange : C.purple;
+
+  // The legal cache line(s) a block may occupy under the chosen scheme.
+  const candFor = (sc, b) => {
+    if (sc === "direct") return [b % LINES];                 // one fixed line
+    if (sc === "fully") return [0, 1, 2, 3, 4, 5, 6, 7];     // anywhere
+    const s = b % SETS; return [s * WAYS, s * WAYS + 1];     // either line of the set
+  };
+  const cands = candFor(scheme, pick);
+
+  // Switching scheme wipes the cache (its contents were placed under the old
+  // rule, so mixing would mislead). Switching block keeps it — that is how a
+  // student deliberately builds up a collision.
+  const setScheme = (x) => { setSchemeRaw(x); setCache(Array(LINES).fill(null)); setStats({ hits: 0, misses: 0, evictions: 0 }); setMsg(null); };
+  const stepPick = (d) => { setPick((p) => (p + d + MM_N) % MM_N); setMsg(null); };
+  const reset = () => { setCache(Array(LINES).fill(null)); setStats({ hits: 0, misses: 0, evictions: 0 }); setMsg(null); };
+
+  // Drop the current block into the cache, following the placement rule:
+  // reuse the line if it's already there (hit); else take the first free
+  // legal line (miss); else evict the first legal line (miss + eviction).
+  const place = () => {
+    const cs = candFor(scheme, pick);
+    const hitLine = cs.find((l) => cache[l] === pick);
+    let line, kind, evicted = null;
+    if (hitLine != null) { line = hitLine; kind = "hit"; }
+    else {
+      const free = cs.find((l) => cache[l] === null);
+      if (free != null) { line = free; kind = "miss"; }
+      else { line = cs[0]; kind = "evict"; evicted = cache[line]; }
+    }
+    setCache((prev) => { const n = [...prev]; n[line] = pick; return n; });
+    setStats((s) => ({
+      hits: s.hits + (kind === "hit" ? 1 : 0),
+      misses: s.misses + (kind !== "hit" ? 1 : 0),
+      evictions: s.evictions + (kind === "evict" ? 1 : 0),
+    }));
+    setMsg({ b: pick, line, kind, evicted });
+  };
+
+  // ── SVG geometry (user units; the viewBox scales to the card width) ──
+  const MMx = 26, MMw = 100, MMy0 = 54, MMbh = 21, MMs = 23; // main-memory column
+  const mmY = (i) => MMy0 + i * MMs, mmCy = (i) => mmY(i) + MMbh / 2;
+  const Cx = 386, Cw = 148, Cy0 = 60, Clh = 32, Cs = 42;     // cache column
+  const clY = (j) => Cy0 + j * Cs, clCy = (j) => clY(j) + Clh / 2;
+
+  // Injected keyframes: dashes flow along the candidate arrows (direction
+  // cue), and the selecting address-field gently brightens (ca-glow).
+  const styleTag = "@keyframes ca-dash{to{stroke-dashoffset:-18}}.ca-flow{stroke-dasharray:6 4;animation:ca-dash .6s linear infinite}@keyframes ca-glowk{0%,100%{filter:brightness(1)}50%{filter:brightness(1.4)}}.ca-glow{animation:ca-glowk 1s ease-in-out infinite}";
+
+  // Plain-language statement of the current rule, with the actual arithmetic.
+  const ruleText = scheme === "direct"
+    ? `Block ${pick}: line = ${pick} mod ${LINES} = ${pick % LINES}. It may ONLY sit in line ${pick % LINES}.`
+    : scheme === "fully"
+      ? `Block ${pick}: no line or set constraint — it may sit in ANY of the ${LINES} lines.`
+      : `Block ${pick}: set = ${pick} mod ${SETS} = ${pick % SETS}. It may sit in EITHER line of set ${pick % SETS} (lines ${(pick % SETS) * WAYS} & ${(pick % SETS) * WAYS + 1}).`;
+
+  const stepBtn = { width: 30, height: 30, borderRadius: 7, border: `1px solid ${C.border}`, background: C.card, color: C.text, cursor: "pointer", fontSize: 12, fontWeight: 700 };
+
+  // ── Address decomposition of the picked block, per scheme. The full demo
+  //    address is 6 bits: 4 block bits + 2 word-offset bits (word 0 shown).
+  //    The Line/Set field is exactly the low bits of the block number, so its
+  //    value literally IS the line/set the block lands in — tying the bit
+  //    split (Section 2) to the placement picture below, for all 3 schemes. ──
+  const blockBits = pick.toString(2).padStart(4, "0");
+  const addrFields = scheme === "direct"
+    ? [{ l: "Tag", v: blockBits.slice(0, 1), sel: false }, { l: "Line", v: (pick % LINES).toString(2).padStart(3, "0"), sel: true }, { l: "Word", v: "00", sel: false }]
+    : scheme === "fully"
+      ? [{ l: "Tag", v: blockBits, sel: true }, { l: "Word", v: "00", sel: false }]
+      : [{ l: "Tag", v: blockBits.slice(0, 2), sel: false }, { l: "Set", v: (pick % SETS).toString(2).padStart(2, "0"), sel: true }, { l: "Word", v: "00", sel: false }];
+  const structureLabel = scheme === "direct" ? "Tag / Line / Word" : scheme === "fully" ? "Tag / Word" : "Tag / Set / Word";
+  const fieldNote = scheme === "direct"
+    ? `The Line field (${(pick % LINES).toString(2).padStart(3, "0")} = ${pick % LINES}) picks the one legal line; the Tag (${blockBits.slice(0, 1)}) is stored to tell apart blocks that share that line.`
+    : scheme === "fully"
+      ? `There is no Line or Set field — the Tag IS the whole block number, so it must be compared against every line at once.`
+      : `The Set field (${(pick % SETS).toString(2).padStart(2, "0")} = ${pick % SETS}) picks the set; the Tag (${blockBits.slice(0, 2)}) tells apart the blocks that share that set.`;
+
+  return (
+    <div>
+      <style>{styleTag}</style>
+
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 12, lineHeight: 1.7 }}>
+        Main memory has hundreds of thousands of blocks; the cache has only a handful of lines. So
+        the real question is: when block N is fetched, <strong style={{ color: C.text }}>where in this tiny cache is it allowed to sit?</strong> Pick
+        a block and a scheme — the arrows show its legal home(s) — then press <strong style={{ color: C.text }}>Place it</strong> and
+        watch what happens.
+      </p>
+
+      {/* Scheme toggle — same three schemes as the field diagram above. */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        {[["direct", "Direct", C.accent], ["set", "Set-associative (2-way)", C.purple], ["fully", "Fully associative", C.orange]].map(([id, label, col]) => (
+          <button key={id} onClick={() => setScheme(id)} style={{
+            flex: 1, minWidth: 110, padding: "8px 6px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700,
+            border: `1.5px solid ${scheme === id ? col : C.border}`, background: scheme === id ? col + "22" : C.card, color: scheme === id ? col : C.muted,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Block picker + actions */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+        <span style={{ color: C.muted, fontSize: 12 }}>Fetch main-memory block:</span>
+        <button onClick={() => stepPick(-1)} style={stepBtn}>◀</button>
+        <span style={{ fontFamily: "monospace", fontWeight: 800, color: schemeCol, fontSize: 15, minWidth: 74, textAlign: "center" }}>block {pick}</span>
+        <button onClick={() => stepPick(1)} style={stepBtn}>▶</button>
+        <button onClick={place} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: C.accentGlow, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Place it ▶</button>
+        <button onClick={reset} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${C.border}`, background: "transparent", color: C.muted, cursor: "pointer", fontSize: 12 }}>↺ Reset cache</button>
+      </div>
+
+      {/* Address decomposition of the picked block — Tag / Line-or-Set / Word,
+          with the selecting field glowing. Shown for all three schemes. */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: C.muted, marginBottom: 5 }}>
+          Address of block {pick} → <span style={{ fontFamily: "monospace", color: C.text, letterSpacing: 1 }}>{blockBits}<span style={{ color: C.muted }}>00</span></span> &nbsp;<span style={{ opacity: 0.8 }}>(6-bit demo address — same {structureLabel} structure as the 24-bit worked example above, scaled down)</span>
+        </div>
+        <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: `1px solid ${schemeCol}55` }}>
+          {addrFields.map((f, i) => (
+            <div key={i} className={f.sel ? "ca-glow" : ""} style={{
+              flex: f.v.length, padding: "8px 4px", textAlign: "center",
+              background: f.sel ? schemeCol + "2E" : C.card,
+              borderRight: i < addrFields.length - 1 ? `1px solid ${schemeCol}44` : "none",
+            }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: f.sel ? schemeCol : C.muted }}>{f.l}</div>
+              <div style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: C.text, letterSpacing: 1 }}>{f.v}</div>
+              <div style={{ fontSize: 9, color: C.muted }}>{f.v.length} bit{f.v.length > 1 ? "s" : ""}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: C.muted, marginTop: 6, lineHeight: 1.55 }}>{fieldNote}</div>
+      </div>
+
+      {/* The memory picture itself. Scrolls sideways on narrow phones. */}
+      <div style={{ overflowX: "auto", background: C.bg, borderRadius: 10, border: `1px solid ${C.border}`, marginBottom: 12 }}>
+        <svg viewBox="0 0 600 450" width="100%" style={{ minWidth: 520, display: "block" }}>
+
+          {/* Column headers */}
+          <text x={MMx} y={26} fontSize="12" fontWeight="700" fill={C.text}>MAIN MEMORY</text>
+          <text x={MMx} y={43} fontSize="9.5" fill={C.muted}>huge — 256K blocks (showing 16)</text>
+          <text x={Cx} y={26} fontSize="12" fontWeight="700" fill={C.text}>CACHE</text>
+          <text x={Cx} y={43} fontSize="9.5" fill={C.muted}>small — {LINES} lines</text>
+
+          {/* Main-memory blocks (click one to select it) */}
+          {Array.from({ length: MM_N }).map((_, i) => (
+            <g key={"mm" + i} onClick={() => { setPick(i); setMsg(null); }} style={{ cursor: "pointer" }}>
+              <rect x={MMx} y={mmY(i)} width={MMw} height={MMbh} rx={4}
+                fill={i === pick ? schemeCol + "22" : C.card} stroke={i === pick ? schemeCol : C.border} strokeWidth={i === pick ? 2 : 1} />
+              <text x={MMx + 9} y={mmY(i) + 15} fontSize="11" fontWeight={i === pick ? 700 : 400} fill={i === pick ? C.text : C.muted}>block {i}</text>
+            </g>
+          ))}
+          <text x={MMx + MMw / 2} y={mmY(MM_N) + 13} fontSize="12" fill={C.muted} textAnchor="middle">⋮</text>
+
+          {/* Set brackets (only meaningful for set-associative) */}
+          {scheme === "set" && Array.from({ length: SETS }).map((_, s) => {
+            const top = clY(s * WAYS) - 5, h = (clY(s * WAYS + 1) + Clh) - clY(s * WAYS) + 10;
+            const active = s === pick % SETS;
+            return (
+              <g key={"set" + s}>
+                <rect x={Cx - 7} y={top} width={Cw + 14} height={h} rx={8} fill="none" stroke={active ? C.purple : C.border} strokeWidth={active ? 1.5 : 1} strokeDasharray="4 3" />
+                <text x={Cx + Cw + 10} y={(clCy(s * WAYS) + clCy(s * WAYS + 1)) / 2 + 4} fontSize="9" fontWeight={active ? 700 : 400} fill={active ? C.purple : C.muted}>set {s}</text>
+              </g>
+            );
+          })}
+
+          {/* Cache lines */}
+          {Array.from({ length: LINES }).map((_, j) => {
+            const isCand = cands.includes(j);
+            const occ = cache[j];
+            const isLast = msg && msg.line === j;
+            const lastCol = isLast ? (msg.kind === "hit" ? C.green : msg.kind === "evict" ? C.red : C.green) : null;
+            return (
+              <g key={"cl" + j}>
+                <rect x={Cx} y={clY(j)} width={Cw} height={Clh} rx={5}
+                  fill={lastCol ? lastCol + "22" : occ != null ? C.card : C.bg}
+                  stroke={lastCol || (isCand ? schemeCol : C.border)} strokeWidth={(lastCol || isCand) ? 2 : 1} />
+                <text x={Cx + 10} y={clY(j) + 21} fontSize="11" fill={C.muted}>line {j}</text>
+                <text x={Cx + Cw - 12} y={clY(j) + 21} fontSize="13" fontWeight="800" textAnchor="end" fill={occ != null ? C.text : C.muted + "66"}>{occ != null ? "block " + occ : "—"}</text>
+              </g>
+            );
+          })}
+
+          {/* Arrows from the selected block to every LEGAL line, with a little
+              puck flowing along each one (fully-associative fans out to all 8). */}
+          {cands.map((j) => {
+            const sx = MMx + MMw, sy = mmCy(pick), dx = Cx, dy = clCy(j);
+            const op = scheme === "fully" ? 0.45 : 0.9;
+            return (
+              <g key={"ar" + j}>
+                <line x1={sx} y1={sy} x2={dx} y2={dy} stroke={schemeCol} strokeWidth={1.6} opacity={op} className="ca-flow" />
+                <polygon points={`${dx - 7},${dy - 4} ${dx - 7},${dy + 4} ${dx},${dy}`} fill={schemeCol} opacity={op} />
+                <g opacity={op}>
+                  <rect x={-15} y={-8} width={30} height={16} rx={4} fill={schemeCol} />
+                  <text x={0} y={4} fontSize="9" fontWeight="700" textAnchor="middle" fill={C.bg}>b{pick}</text>
+                  <animateMotion dur={scheme === "fully" ? "1.6s" : "1.3s"} repeatCount="indefinite" path={`M ${sx},${sy} L ${dx},${dy}`} />
+                </g>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* The rule, spelled out with the actual mod arithmetic */}
+      <div style={{ background: schemeCol + "14", border: `1px solid ${schemeCol}44`, borderRadius: 8, padding: "10px 14px", color: C.text, fontSize: 13, lineHeight: 1.6, marginBottom: 10 }}>
+        📍 {ruleText}
+      </div>
+
+      {/* What happened on the last Place, plus running counters */}
+      <div style={{ padding: "10px 14px", borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, color: C.muted, fontSize: 13, lineHeight: 1.6, marginBottom: 8 }}>
+        {msg
+          ? (msg.kind === "hit"
+            ? <span><strong style={{ color: C.green }}>HIT</strong> — block {msg.b} was already in line {msg.line}.</span>
+            : msg.kind === "evict"
+              ? <span><strong style={{ color: C.red }}>MISS + EVICTION</strong> — block {msg.b} took line {msg.line}, evicting block {msg.evicted}. Under fully/set-associative it could have used a free line instead.</span>
+              : <span><strong style={{ color: C.orange }}>MISS</strong> — line {msg.line} was free, so block {msg.b} moved in.</span>)
+          : "Press Place it — then try placing two blocks that map to the same line and compare the three schemes."}
+      </div>
+      <div style={{ fontSize: 12, color: C.muted }}>
+        Hits: <strong style={{ color: C.green }}>{stats.hits}</strong> · Misses: <strong style={{ color: C.red }}>{stats.misses}</strong> · Evictions: <strong style={{ color: C.orange }}>{stats.evictions}</strong>
+      </div>
+
+      <Key color={schemeCol}>
+        Same block, three rules: <strong style={{ color: C.text }}>direct</strong> gives it exactly one slot (cheap to check, but blocks that
+        share a slot keep evicting each other), <strong style={{ color: C.text }}>fully associative</strong> lets it go anywhere (no forced
+        collisions, but every tag must be searched at once), and <strong style={{ color: C.text }}>set-associative</strong> fixes the set yet
+        allows a few choices within it. That middle ground is why nearly every real cache is set-associative — neither extreme is the right answer.
+      </Key>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  Section 3 — Trace It: Direct-Mapped Collisions in Action
 // ══════════════════════════════════════════════════════════════════
 function DirectTrace() {
@@ -452,6 +713,7 @@ export default function Unit4_3({ student, onUnitComplete }) {
   const sections = [
     { id: "need", label: "One Slot or Any?" },
     { id: "mapping", label: "Three Techniques" },
+    { id: "picture", label: "Where It Lands" },
     { id: "trace", label: "Trace It" },
     { id: "policies", label: "Replace & Write" },
     { id: "quiz", label: "Quiz & Wrap-up" },
@@ -473,6 +735,10 @@ export default function Unit4_3({ student, onUnitComplete }) {
       <MappingTechniques />
     </div>,
     <div>
+      <h3 style={{ color: C.text, marginBottom: 6 }}>📍 Where It Lands: the Memory Picture</h3>
+      <BlockPlacement />
+    </div>,
+    <div>
       <h3 style={{ color: C.text, marginBottom: 6 }}>🔁 Trace It: Direct-Mapped Collisions</h3>
       <DirectTrace />
     </div>,
@@ -484,7 +750,7 @@ export default function Unit4_3({ student, onUnitComplete }) {
       <h3 style={{ color: C.text, marginBottom: 6 }}>Quick Quiz</h3>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>4 questions to check your understanding of Unit 4.3.</p>
       {/* The quiz's onComplete is the ONLY caller of onUnitComplete. */}
-      <Quiz onComplete={() => { markComplete(4); onUnitComplete && onUnitComplete(); }} />
+      <Quiz onComplete={() => { markComplete(5); onUnitComplete && onUnitComplete(); }} />
     </div>,
   ];
 
