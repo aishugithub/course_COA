@@ -7,7 +7,7 @@
 // build a bigger module out of small chips -> quiz. Scaffolds on Unit1_4
 // (byte-addressable memory, word length) and Unit4_1 (main memory's place
 // in the hierarchy) without repeating either.
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const C = {
   bg: "#0D1117", surface: "#161B22", card: "#1C2333",
@@ -80,59 +80,409 @@ function OpenTheBox() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  Section 2 — Anatomy of a Chip (click to reveal)
+//  Section 2 — Anatomy of a Chip  (interactive animation)
+// ──────────────────────────────────────────────────────────────────
+//  This widget replaces the old static "click a label" diagram with a
+//  living one that has TWO modes, chosen by a toggle at the top:
+//
+//    • "Explore parts" — click any part of the chip (address lines,
+//      decoder, cell array, CS, R/W̄, data lines) to read what it does.
+//      This preserves the glossary the section had before.
+//
+//    • "Run a cycle"   — pick an address (0–7) and Read or Write, then
+//      Step (or Play) an animation that lights the signal path IN ORDER:
+//         ① CS wakes the chip  →  ② the 3-to-8 decoder raises exactly
+//         ONE word-line  →  ③ that word-line activates one row of cells
+//         →  ④ the R/W̄ line sends the 4 bits OUT (read) or IN (write).
+//      A WRITE is committed into the on-screen cell array, so a student
+//      can write a value and then read it back — the payoff of the whole
+//      section.
+//
+//  We deliberately shrink the chip to a tiny 8-word × 4-bit array
+//  (3 address lines, a 3→8 decoder, 4 data lines) so every wire is
+//  visible.  A real chip is the identical idea with thousands of rows —
+//  the "n address lines select 2ⁿ locations" rule (used again in the
+//  Build-a-Module section below) is exactly what scales this up.
+//
+//  How it fits the lesson: this is stage 2 of Unit4_2's six-section
+//  tab strip ("Chip Anatomy"). It opens the black box that Section 1
+//  ("Open the Box") teased, and its 8×4 cell array is the concrete
+//  object the later "Build a Module" section stacks and lines up.
 // ══════════════════════════════════════════════════════════════════
+
+// Glossary text for each clickable part, shown in the info box in
+// Explore mode. `col` is the highlight colour that part uses everywhere.
 const PARTS = {
-  addr: { name: "Address lines", col: C.teal, text: "10 address lines (A0–A9) can select 2¹⁰ = 1024 distinct locations. This is a 1K × 1 chip — 1024 locations, 1 bit each." },
-  dec: { name: "Decoder", col: C.purple, text: "Converts the 10-bit binary address into exactly ONE active output line out of 1024 — that line \"wakes up\" one row of the cell array and no other." },
-  cell: { name: "Cell array", col: C.accent, text: "A grid of 1024 tiny storage cells, one per address. The decoder's output line selects a single cell to be read from or written to." },
-  cs: { name: "CS (Chip Select)", col: C.orange, text: "Chip Select — must be active or the chip ignores everything on its pins. Lets many chips share the same address/data wires without colliding." },
-  rw: { name: "R/W̄ (Read/Write)", col: C.orange, text: "One control line decides direction: R/W̄ = 1 → read (chip drives data out); R/W̄ = 0 → write (chip accepts data in)." },
-  data: { name: "Data line", col: C.green, text: "The single line carrying the 1 bit this chip is responsible for. A real memory word needs several of these chips side by side." },
+  addr: { name: "Address lines (A2 A1 A0)", col: C.teal,
+    text: "The 3 address lines carry the binary number of the location you want. 3 lines select 2³ = 8 rows (0–7). The rule generalises: n address lines select exactly one of 2ⁿ locations." },
+  dec: { name: "Decoder (3 → 8)", col: C.purple,
+    text: "The decoder turns the 3-bit binary address into ONE active output. Binary 101 → decimal 5 → only word-line 5 goes high; the other seven stay low. That is how a plain number picks a single row." },
+  cell: { name: "Cell array (8 × 4)", col: C.accent,
+    text: "64 storage cells arranged as 8 words of 4 bits. The decoder's active word-line connects exactly one row of 4 cells to the data lines; every other row stays electrically disconnected." },
+  cs: { name: "CS — Chip Select", col: C.orange,
+    text: "The chip ignores its address and data pins entirely until CS is asserted. This is what lets many chips share the same address/data wires — only the selected chip answers." },
+  rw: { name: "R/W̄ — Read / Write", col: C.orange,
+    text: "One control line sets the direction. R/W̄ = 1 → READ: the selected cells drive their stored bits onto the data lines. R/W̄ = 0 → WRITE: the value on the data lines is forced into the selected cells." },
+  data: { name: "Data lines (D3–D0)", col: C.green,
+    text: "The 4 bit-lines carry one whole word in or out at the same time. The number of data lines is the word width — here 4 bits. To widen a word you add data lines, not address lines." },
 };
 
 function ChipAnatomy() {
-  const [sel, setSel] = useState("addr");
-  const p = PARTS[sel];
+  // ── Interaction state. React rule (see project workflow notes): every
+  //    hook is declared here at the top level, never inside a branch,
+  //    loop or nested function. ────────────────────────────────────────
+  const [mode, setMode] = useState("explore");        // "explore" | "run"
+  const [sel, setSel] = useState("addr");             // selected part (Explore mode)
+  const [addr, setAddr] = useState(5);                // 0..7 : address to operate on
+  const [op, setOp] = useState("read");               // "read" | "write"
+  const [wbits, setWbits] = useState([1, 0, 1, 1]);   // [D3,D2,D1,D0] value to WRITE
+  const [stage, setStage] = useState(0);              // 0..5 : animation progress
+  const [playing, setPlaying] = useState(false);      // auto-advance flag
 
-  const Chip = ({ id, label, x, y, w = 110 }) => (
-    <button onClick={() => setSel(id)} style={{
-      position: "absolute", left: x, top: y, width: w, padding: "8px 6px", borderRadius: 7, cursor: "pointer",
-      border: `1.5px solid ${sel === id ? PARTS[id].col : C.border}`,
-      background: sel === id ? PARTS[id].col + "22" : C.card,
-      color: sel === id ? PARTS[id].col : C.text, fontSize: 11, fontWeight: 600, textAlign: "center",
-    }}>{label}</button>
-  );
+  // Live contents of the 8×4 memory; each word is [D3,D2,D1,D0].
+  // Seeded with a readable pattern so the very first READ shows real bits.
+  const [mem, setMem] = useState([
+    [0, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0], [0, 1, 1, 0],
+    [1, 0, 0, 1], [1, 0, 1, 1], [0, 0, 0, 1], [1, 1, 0, 0],
+  ]);
+
+  const bin = addr.toString(2).padStart(3, "0");      // address as a 3-bit string
+  const readVal = mem[addr].join("");                 // what a READ would return
+  const writeVal = wbits.join("");                    // what a WRITE would store
+
+  // Advance to a stage. When the animation reaches the final stage of a
+  // WRITE, commit the new bits into the addressed word so they persist
+  // (a student can WRITE 1011 to row 5, then switch to READ and get 1011).
+  const goToStage = (ns) => {
+    if (ns >= 5 && op === "write") {
+      setMem((m) => m.map((row, i) => (i === addr ? [...wbits] : row)));
+    }
+    setStage(ns);
+  };
+
+  // Auto-play: while `playing`, step forward every 1.1 s until the last
+  // stage, then stop. The cleanup clears the pending timer whenever the
+  // effect re-runs, so we never stack timers or advance after unmount.
+  useEffect(() => {
+    if (!playing) return;
+    if (stage >= 5) { setPlaying(false); return; }
+    const t = setTimeout(() => goToStage(stage + 1), 1100);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, stage]);
+
+  // Any change to the inputs rewinds the animation to idle so it always
+  // replays cleanly from stage 0.
+  const resetAnim = () => { setPlaying(false); setStage(0); };
+  const pickAddr = (a) => { resetAnim(); setAddr(a); };
+  const pickOp = (o) => { resetAnim(); setOp(o); };
+  const flipBit = (i) => { resetAnim(); setWbits((b) => b.map((v, j) => (j === i ? (v ? 0 : 1) : v))); };
+  const play = () => { if (stage >= 5) setStage(0); setPlaying(true); };
+  const step = () => { setPlaying(false); goToStage(Math.min(5, stage + 1)); };
+
+  // ── SVG layout constants. Coordinates are in "user units"; the viewBox
+  //    scales the whole picture to whatever width the card gives it. ────
+  const VB_W = 580, VB_H = 400;
+  const DEC_X = 120, DEC_W = 54, DEC_TOP = 40, DEC_BOT = 344;   // decoder box
+  const CELLS_X = 250, COL_W = 72, CELL_W = 62, CELL_H = 30;    // cell grid geometry
+  const ROW_TOP = 44, ROW_H = 37;
+  const rowY = (i) => ROW_TOP + i * ROW_H;          // top-left y of row i
+  const rowC = (i) => rowY(i) + CELL_H / 2;         // vertical centre of row i
+  const colX = (j) => CELLS_X + j * COL_W;          // left x of column j
+  const colC = (j) => colX(j) + CELL_W / 2;         // horizontal centre of column j
+  const DATA_Y = 352;                               // top y of the data-pin boxes
+
+  // Is a part "asserted" (coloured)?  Explore mode → it's the selected
+  // part; Run mode → the animation has reached the stage that turns it on.
+  const isOn = (part) => {
+    if (mode === "explore") return sel === part;
+    switch (part) {
+      case "cs": return stage >= 1;
+      case "addr":
+      case "dec": return stage >= 2;
+      case "cell": return stage >= 3;
+      case "rw":
+      case "data": return stage >= 4;
+      default: return false;
+    }
+  };
+  // Is a part the one animating THIS exact step?  (adds the flowing-dash
+  // or glow effect to just the active signal, for a sense of motion).
+  const isPulse = (part) => {
+    if (mode !== "run") return false;
+    switch (part) {
+      case "cs": return stage === 1;
+      case "addr":
+      case "dec": return stage === 2;
+      case "cell": return stage === 3;
+      case "rw":
+      case "data": return stage === 4;
+      default: return false;
+    }
+  };
+  const partCol = (part, base = C.border) => (isOn(part) ? PARTS[part].col : base);
+
+  // A word-line is drawn active only for the addressed row, once the
+  // decoder has fired (stage ≥ 2). All other word-lines stay low.
+  const wlOn = (i) => mode === "run" && i === addr && stage >= 2;
+  const wlPulse = (i) => mode === "run" && i === addr && (stage === 2 || stage === 3);
+
+  // Which rows are highlighted?  Run mode → the addressed row after the
+  // word-line fires; Explore mode → the whole array when "cell" is picked.
+  const rowActive = (i) =>
+    mode === "run" ? (stage >= 3 && i === addr) : (sel === "cell");
+
+  // Displayed value of one cell. During a WRITE's data step (stage 4) we
+  // show the incoming bits already landing on the addressed row, for effect.
+  const cellVal = (i, j) =>
+    (op === "write" && mode === "run" && stage === 4 && i === addr) ? wbits[j] : mem[i][j];
+
+  // Value shown at each data pin (bottom of the diagram). For a WRITE the
+  // pins are YOUR input (always shown); for a READ they stay blank until
+  // the cells drive them at stage 4.
+  const pinVal = (j) => {
+    if (op === "write") return wbits[j];
+    if (mode === "run" && stage >= 4) return mem[addr][j];
+    return "·";
+  };
+
+  // Narration under the diagram — the pedagogical spine of the animation.
+  const narration = () => {
+    const dir = op === "read" ? "1 → READ" : "0 → WRITE";
+    switch (stage) {
+      case 0: return `Address ${addr} (binary ${bin}) is on the address lines, but nothing happens yet — the chip stays idle until Chip Select is asserted. Pick Read or Write, then press Step (or Play).`;
+      case 1: return `① Chip Select (CS) asserted — the chip wakes up and begins responding to its pins. Until now it ignored everything, which is how many chips share one bus.`;
+      case 2: return `② The 3→8 decoder reads the address ${bin} and converts it to decimal ${addr}. It raises exactly ONE of its eight word-lines — line ${addr} — and holds the other seven low.`;
+      case 3: return `③ Word-line ${addr} activates row ${addr}. Those 4 cells are now the only ones connected to the data lines; every other row is disconnected.`;
+      case 4: return op === "read"
+        ? `④ R/W̄ = ${dir}. The 4 selected cells drive their stored bits outward onto the data lines D3–D0.`
+        : `④ R/W̄ = ${dir}. The 4 bits you placed on the data lines are forced inward, overwriting the selected cells.`;
+      default: return op === "read"
+        ? `✓ READ complete — the CPU reads ${readVal} from address ${addr}.`
+        : `✓ WRITE complete — address ${addr} now holds ${writeVal}. Switch to Read and run it again to confirm.`;
+    }
+  };
+
+  // Injected keyframes (self-contained, class names prefixed "ca-" so
+  // they can't collide with anything else). One animates "current flow"
+  // along a wire (moving dashes); the other softly pulses a box.
+  const styleTag =
+    "@keyframes ca-dash{to{stroke-dashoffset:-20}}" +
+    ".ca-flow{stroke-dasharray:7 5;animation:ca-dash .55s linear infinite}" +
+    "@keyframes ca-glow{0%,100%{opacity:.55}50%{opacity:1}}" +
+    ".ca-pulse{animation:ca-glow .9s ease-in-out infinite}";
+
+  // Small reusable button style for the control row.
+  const ctrlBtn = (active, color) => ({
+    padding: "7px 12px", borderRadius: 7, cursor: "pointer", fontSize: 12, fontWeight: 700,
+    border: `1.5px solid ${active ? color : C.border}`,
+    background: active ? color + "22" : C.card, color: active ? color : C.muted,
+  });
 
   return (
     <div>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        This is the classic worked example: a 1K × 1 memory chip (1024 one-bit locations). Click
-        each part to see what it does.
+      <style>{styleTag}</style>
+
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 12, lineHeight: 1.7 }}>
+        Here is the chip with its lid off — shrunk to a tiny <strong style={{ color: C.text }}>8-word × 4-bit</strong> array
+        so every wire is visible. <strong style={{ color: C.text }}>Explore</strong> the parts, or switch to <strong style={{ color: C.text }}>Run a cycle</strong> to
+        watch a read or a write actually happen, step by step.
       </p>
 
-      <div style={{ position: "relative", height: 230, background: C.bg, borderRadius: 10, border: `1px solid ${C.border}`, marginBottom: 14 }}>
-        <Chip id="addr" label="A0..A9 (address)" x={10} y={95} />
-        <Chip id="dec" label="Decoder" x={150} y={95} w={90} />
-        <Chip id="cell" label="1024 × 1 cell array" x={265} y={70} w={130} />
-        <Chip id="data" label="Data" x={420} y={95} w={70} />
-        <Chip id="cs" label="CS" x={150} y={10} w={90} />
-        <Chip id="rw" label="R/W̄" x={150} y={180} w={90} />
-        <svg width="100%" height="100%" style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none" }}>
-          <line x1="120" y1="110" x2="150" y2="110" stroke={C.border} strokeWidth="2" />
-          <line x1="240" y1="110" x2="265" y2="105" stroke={C.border} strokeWidth="2" />
-          <line x1="395" y1="105" x2="420" y2="110" stroke={C.border} strokeWidth="2" />
+      {/* Mode toggle: Explore parts  ↔  Run a cycle */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+        <button onClick={() => setMode("explore")} style={{ ...ctrlBtn(mode === "explore", C.accent), flex: 1 }}>🔍 Explore parts</button>
+        <button onClick={() => { setMode("run"); setStage(0); }} style={{ ...ctrlBtn(mode === "run", C.green), flex: 1 }}>▶ Run a read / write</button>
+      </div>
+
+      {/* The chip diagram. Wrapped so narrow phones can scroll it
+          sideways instead of squashing the text to nothing. */}
+      <div style={{ overflowX: "auto", background: C.bg, borderRadius: 10, border: `1px solid ${C.border}`, marginBottom: 14 }}>
+        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" style={{ minWidth: 520, display: "block" }}>
+
+          {/* ── CS (Chip Select) pin + wire down into the decoder top ── */}
+          <g onClick={() => mode === "explore" && setSel("cs")} style={{ cursor: mode === "explore" ? "pointer" : "default" }}>
+            <text x={DEC_X + DEC_W / 2} y={10} textAnchor="middle" fontSize="10" fontWeight="700" fill={partCol("cs", C.muted)}>CS</text>
+            <line x1={DEC_X + DEC_W / 2} y1={14} x2={DEC_X + DEC_W / 2} y2={DEC_TOP}
+              stroke={partCol("cs")} strokeWidth={isOn("cs") ? 2.5 : 1.5} className={isPulse("cs") ? "ca-flow" : ""} />
+          </g>
+
+          {/* ── Address lines A2 A1 A0 entering the decoder from the left ── */}
+          <g onClick={() => mode === "explore" && setSel("addr")} style={{ cursor: mode === "explore" ? "pointer" : "default" }}>
+            {[0, 1, 2].map((k) => {
+              const y = 150 + k * 45;
+              return (
+                <g key={k}>
+                  <text x={12} y={y - 6} fontSize="11" fontWeight="700" fill={partCol("addr", C.muted)}>A{2 - k} = {bin[k]}</text>
+                  <line x1={70} y1={y} x2={DEC_X} y2={y}
+                    stroke={partCol("addr")} strokeWidth={isOn("addr") ? 2.5 : 1.5} className={isPulse("addr") ? "ca-flow" : ""} />
+                </g>
+              );
+            })}
+          </g>
+
+          {/* ── The decoder box (3 → 8) ── */}
+          <g onClick={() => mode === "explore" && setSel("dec")} style={{ cursor: mode === "explore" ? "pointer" : "default" }}>
+            <rect x={DEC_X} y={DEC_TOP} width={DEC_W} height={DEC_BOT - DEC_TOP} rx="6"
+              fill={isOn("dec") ? C.purple + "22" : C.card} stroke={partCol("dec")} strokeWidth={isOn("dec") ? 2 : 1.5}
+              className={isPulse("dec") ? "ca-pulse" : ""} />
+            <text x={DEC_X + DEC_W / 2} y={188} textAnchor="middle" fontSize="12" fontWeight="800" fill={partCol("dec", C.muted)}>3→8</text>
+            <text x={DEC_X + DEC_W / 2} y={204} textAnchor="middle" fontSize="9" fill={partCol("dec", C.muted)}>DECODER</text>
+          </g>
+
+          {/* ── The 4 data (bit) lines run vertically THROUGH the columns.
+                 Drawn before the cells so the cells sit on top of them. ── */}
+          {[0, 1, 2, 3].map((j) => (
+            <line key={"bl" + j} x1={colC(j)} y1={rowY(0) - 10} x2={colC(j)} y2={DATA_Y - 4}
+              stroke={isOn("data") ? C.green : C.border} strokeWidth={isOn("data") ? 2.5 : 1.2}
+              className={isPulse("data") ? "ca-flow" : ""} />
+          ))}
+
+          {/* ── Word-lines: one per row, from the decoder's right edge to
+                 the left of each row. Only the addressed line lights up. ── */}
+          {mem.map((_, i) => (
+            <line key={"wl" + i} x1={DEC_X + DEC_W} y1={rowC(i)} x2={CELLS_X} y2={rowC(i)}
+              stroke={wlOn(i) ? C.purple : C.border} strokeWidth={wlOn(i) ? 2.5 : 1.2}
+              className={wlPulse(i) ? "ca-flow" : ""} />
+          ))}
+
+          {/* ── The 8 × 4 cell array. Each row is a group; clicking any
+                 cell selects the "cell array" glossary entry in Explore. ── */}
+          {mem.map((row, i) => (
+            <g key={"row" + i} onClick={() => mode === "explore" && setSel("cell")} style={{ cursor: mode === "explore" ? "pointer" : "default" }}>
+              {rowActive(i) && (
+                <rect x={CELLS_X - 4} y={rowY(i) - 3} width={COL_W * 3 + CELL_W + 8} height={CELL_H + 6} rx="6"
+                  fill={C.accent + "18"} stroke={C.accent + "88"} strokeWidth="1" />
+              )}
+              {row.map((_, j) => (
+                <g key={j}>
+                  <rect x={colX(j)} y={rowY(i)} width={CELL_W} height={CELL_H} rx="4"
+                    fill={rowActive(i) ? C.accent + "26" : C.card}
+                    stroke={rowActive(i) ? C.accent : C.border} strokeWidth="1" />
+                  <text x={colC(j)} y={rowC(i) + 4} textAnchor="middle" fontSize="13" fontWeight="700"
+                    fill={rowActive(i) ? C.text : C.muted}>{cellVal(i, j)}</text>
+                </g>
+              ))}
+              {/* Row index on the far right, brightened for the active row. */}
+              <text x={colX(3) + CELL_W + 12} y={rowC(i) + 4} fontSize="10" fontWeight="700"
+                fill={mode === "run" && i === addr ? C.accent : C.muted}>{i}</text>
+            </g>
+          ))}
+
+          {/* ── Direction chevrons on each data line (only once data moves).
+                 READ points DOWN toward the CPU pins; WRITE points UP into
+                 the cells. ── */}
+          {mode === "run" && stage >= 4 && [0, 1, 2, 3].map((j) => {
+            const x = colC(j), y = 336;
+            const pts = op === "read"
+              ? `${x - 5},${y} ${x + 5},${y} ${x},${y + 7}`    // ▼ out to pins
+              : `${x - 5},${y + 7} ${x + 5},${y + 7} ${x},${y}`; // ▲ into cells
+            return <polygon key={"ch" + j} points={pts} fill={C.green} />;
+          })}
+
+          {/* ── Data pins D3..D0 at the bottom (the wires to the CPU). ── */}
+          <g onClick={() => mode === "explore" && setSel("data")} style={{ cursor: mode === "explore" ? "pointer" : "default" }}>
+            {[0, 1, 2, 3].map((j) => {
+              const live = op === "write" || (mode === "run" && stage >= 4);
+              return (
+                <g key={"pin" + j}>
+                  <rect x={colC(j) - 22} y={DATA_Y} width={44} height={26} rx="5"
+                    fill={live ? C.green + "18" : C.card} stroke={live ? C.green : C.border} strokeWidth="1" />
+                  <text x={colC(j)} y={DATA_Y + 10} textAnchor="middle" fontSize="8" fill={C.muted}>D{3 - j}</text>
+                  <text x={colC(j)} y={DATA_Y + 22} textAnchor="middle" fontSize="13" fontWeight="700" fill={C.text}>{pinVal(j)}</text>
+                </g>
+              );
+            })}
+          </g>
+
+          {/* ── R/W̄ control pill (top-right). Reflects the current op and
+                 glows when it takes effect at the data step. ── */}
+          <g onClick={() => mode === "explore" && setSel("rw")} style={{ cursor: mode === "explore" ? "pointer" : "default" }}>
+            <rect x={368} y={8} width={196} height={22} rx="11"
+              fill={isOn("rw") ? C.orange + "22" : C.card} stroke={partCol("rw")} strokeWidth={isOn("rw") ? 2 : 1.5}
+              className={isPulse("rw") ? "ca-pulse" : ""} />
+            <text x={466} y={23} textAnchor="middle" fontSize="10" fontWeight="700" fill={partCol("rw", C.muted)}>
+              R/W̄ = {op === "read" ? "1 (READ)" : "0 (WRITE)"}
+            </text>
+          </g>
         </svg>
       </div>
 
-      <div style={{ background: C.surface, border: `1px solid ${p.col}55`, borderRadius: 10, padding: "12px 16px" }}>
-        <div style={{ color: p.col, fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{p.name}</div>
-        <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>{p.text}</div>
-      </div>
+      {/* ── Run-mode controls: address, operation, write bits, transport ── */}
+      {mode === "run" && (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+          {/* Address 0–7 */}
+          <div style={{ marginBottom: 10 }}>
+            <span style={{ color: C.muted, fontSize: 12, marginRight: 8 }}>Address:</span>
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((a) => (
+              <button key={a} onClick={() => pickAddr(a)} style={{
+                width: 30, height: 28, marginRight: 4, borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                border: `1.5px solid ${a === addr ? C.teal : C.border}`,
+                background: a === addr ? C.teal + "22" : "transparent", color: a === addr ? C.teal : C.muted,
+              }}>{a}</button>
+            ))}
+            <span style={{ color: C.teal, fontFamily: "monospace", fontSize: 12, marginLeft: 6 }}>= {bin}b</span>
+          </div>
+
+          {/* Operation Read / Write */}
+          <div style={{ display: "flex", gap: 8, marginBottom: op === "write" ? 10 : 4 }}>
+            <button onClick={() => pickOp("read")} style={{ ...ctrlBtn(op === "read", C.accent), flex: 1 }}>R/W̄ = 1 · READ</button>
+            <button onClick={() => pickOp("write")} style={{ ...ctrlBtn(op === "write", C.orange), flex: 1 }}>R/W̄ = 0 · WRITE</button>
+          </div>
+
+          {/* Write payload: 4 toggleable bits (only when writing) */}
+          {op === "write" && (
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: C.muted, fontSize: 12, marginRight: 8 }}>Data to write:</span>
+              {[0, 1, 2, 3].map((j) => (
+                <button key={j} onClick={() => flipBit(j)} style={{
+                  width: 40, marginRight: 4, padding: "5px 0", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                  border: `1.5px solid ${C.green}`, background: wbits[j] ? C.green + "22" : "transparent", color: wbits[j] ? C.green : C.muted,
+                }}>
+                  <span style={{ fontSize: 8, display: "block", color: C.muted }}>D{3 - j}</span>{wbits[j]}
+                </button>
+              ))}
+              <span style={{ color: C.green, fontFamily: "monospace", fontSize: 12, marginLeft: 6 }}>= {writeVal}</span>
+            </div>
+          )}
+
+          {/* Transport: Step / Play / Reset */}
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button onClick={step} disabled={stage >= 5} style={{
+              ...ctrlBtn(false, C.accent), flex: 1, opacity: stage >= 5 ? 0.4 : 1, color: C.accent, borderColor: C.accent,
+            }}>⏭ Step ({stage}/5)</button>
+            <button onClick={play} disabled={playing} style={{
+              ...ctrlBtn(playing, C.green), flex: 1, background: C.accentGlow, color: "#fff", borderColor: C.accentGlow, opacity: playing ? 0.6 : 1,
+            }}>{playing ? "▶ Playing…" : "▶ Play"}</button>
+            <button onClick={resetAnim} style={{ ...ctrlBtn(false, C.muted), color: C.muted }}>↺ Reset</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Info box: glossary text (Explore) or live narration (Run) ── */}
+      {mode === "explore" ? (
+        <div style={{ background: C.surface, border: `1px solid ${PARTS[sel].col}55`, borderRadius: 10, padding: "12px 16px" }}>
+          <div style={{ color: PARTS[sel].col, fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{PARTS[sel].name}</div>
+          <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.6 }}>{PARTS[sel].text}</div>
+        </div>
+      ) : (
+        <div style={{ background: C.surface, border: `1px solid ${(stage >= 5 ? C.green : C.accent)}55`, borderRadius: 10, padding: "12px 16px" }}>
+          <div style={{ display: "flex", gap: 5, marginBottom: 8 }}>
+            {[0, 1, 2, 3, 4, 5].map((s) => (
+              <span key={s} style={{
+                width: 20, height: 5, borderRadius: 3,
+                background: s <= stage ? (stage >= 5 ? C.green : C.accent) : C.border,
+              }} />
+            ))}
+          </div>
+          <div style={{ color: C.text, fontSize: 13, lineHeight: 1.65 }}>{narration()}</div>
+        </div>
+      )}
 
       <Key color={C.teal}>
-        The pattern generalizes: n address lines always select exactly one of 2ⁿ locations. Add
-        more DATA lines (not address lines) side by side to widen each location beyond 1 bit.
+        The pattern generalises: n address lines always select exactly one of 2ⁿ locations, and the
+        R/W̄ line alone decides whether that location's bits flow OUT (read) or IN (write). Add more
+        DATA lines — not address lines — to make each location wider than 4 bits.
       </Key>
     </div>
   );
