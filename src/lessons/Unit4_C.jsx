@@ -42,7 +42,8 @@ function Mission() {
     { unit: "4.3", tool: "Mapping & replacement (LRU)", role: "The TLB is itself a tiny associative cache with its own replacement policy." },
     { unit: "4.4", tool: "Associative memory (A, K, M)", role: "The TLB IS an associative memory — search by (segment,page) content, not address." },
     { unit: "4.5", tool: "Auxiliary memory", role: "A true page-table miss (presence bit 0) means fetching from disk." },
-    { unit: "4.6", tool: "Pages, page table, MMU", role: "The two-level segment-table → page-table walk is exactly this unit's mechanism." },
+    { unit: "4.6", tool: "Pages, page table, MMU", role: "Page → frame translation, the presence bit, and the TLB-hit / miss / page-fault paths." },
+    { unit: "4.7", tool: "Segments & the library walk", role: "The two-level segment-table → page-table walk (room → shelf → book) is exactly this unit's mechanism." },
   ];
   return (
     <div>

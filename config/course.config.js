@@ -107,6 +107,8 @@ const COURSE_CONFIG = {
         { unitId: "Unit4_4", title: "Associative Memory" },
         { unitId: "Unit4_5", title: "Auxiliary Memory" },
         { unitId: "Unit4_6", title: "Virtual Memory & the MMU" },
+        { unitId: "Unit4_7", title: "Segmentation: The Library of Memory",
+          blurb: "Room, shelf, book. Find any word in memory the way a librarian finds any book — and see how a logical address becomes a physical one." },
         { unitId: "Unit4_C", title: "Capstone: Trace an Address" },
       ],
     },

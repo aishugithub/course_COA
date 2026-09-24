@@ -336,8 +336,8 @@ function Quiz({ onComplete }) {
           <div style={{ color: C.muted, fontSize: 13, lineHeight: 1.7 }}>
             Pages, frames, the page table, and the TLB/page-fault paths are all in place.
             <br /><br />
-            <strong style={{ color: C.accent }}>Next up: the Module 4 Capstone — Trace an Address.</strong>{" "}
-            Put every piece from this whole module together: translate one real logical address all the way to a physical one, using the TLB shortcut you just learned.
+            <strong style={{ color: C.accent }}>Next up: Unit 4.7 — Segmentation: The Library of Memory.</strong>{" "}
+            Pages alone treat a program as one long blur. Split it into named rooms (segments), each with its own shelves (pages), and learn how a logical address is walked to a physical one.
           </div>
         </div>
       </div>
