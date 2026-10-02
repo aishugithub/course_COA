@@ -33,7 +33,7 @@ function FourAnswers() {
     { key: "imm", quote: "“Here — take it”", name: "Immediate", asm: "Move #5, R2", rtn: "R2 ← 5",
       body: "The value sits inside the instruction (marked with #). Perfect for loading a constant.", acc: 0, color: C.green },
     { key: "reg", quote: "“It’s in your pocket”", name: "Register", asm: "Add R4, R2, R3", rtn: "R4 ← [R2] + [R3]",
-      body: "The operand is in a register — the effective address IS the register. The everyday RISC mode.", acc: 0, color: C.teal },
+      body: "The operand is in a register — the effective address (EA: the place where the operand actually is) IS the register. The everyday RISC mode.", acc: 0, color: C.teal },
     { key: "abs", quote: "“In locker 1000”", name: "Absolute / Direct", asm: "Load R2, A", rtn: "R2 ← [A]",
       body: "The instruction gives the memory address outright. Exactly how C = A + B reached A, B and C.", acc: 1, color: C.accent },
     { key: "ind", quote: "“Read the note in locker 1000”", name: "Indirect", asm: "Load R2, (R5)", rtn: "R2 ← [[R5]]",
@@ -541,6 +541,37 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["RISC", "Reduced Instruction Set Computer", "A design with few, simple, same-length instructions (e.g. ARM in phones).", "from Unit 1.5"],
+  ["RTL", "Register Transfer Language", "The same arrow shorthand as RTN (Unit 1.2), used to describe each hardware step.", "new here"],
+  ["CISC", "Complex Instruction Set Computer", "A design with many, more powerful, variable-length instructions (e.g. x86 in PCs).", "from Unit 1.5"],
+  ["EA", "Effective Address", "The final memory address of the operand, after the addressing mode is applied.", "new here"],
+  ["PC", "Program Counter", "Register holding the address of the NEXT instruction to fetch.", "from Unit 1.2"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit1_6({ student, onUnitComplete }) {
   const sections = [
     { id: "four", label: "Four Answers" },
@@ -619,6 +650,7 @@ export default function Unit1_6({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

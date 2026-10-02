@@ -357,15 +357,18 @@ function Classify() {
             { n: "Memory-reference", color: C.green, where: "operand is at a MEMORY ADDRESS",
               fields: ["opcode", "memory address"],
               generic: ["Load R2, A", "Store R4, C", "Add R1, LOC"],
-              mano: ["LDA 200", "STA 200", "ADD 200", "BUN 200"] },
+              mano: ["LDA 200", "STA 200", "ADD 200", "BUN 200"],
+              manoMean: "LDA = load the memory word into AC (the accumulator, Mano's main register) · STA = store AC · ADD = add to AC · BUN = branch unconditionally" },
             { n: "Register-reference", color: C.teal, where: "operand is INSIDE the CPU — no memory address",
               fields: ["opcode", "register(s)"],
               generic: ["Add R4, R2, R3", "Increment R1", "Clear R2", "Halt"],
-              mano: ["CLA", "CMA", "INC", "CIR", "HLT"] },
+              mano: ["CLA", "CMA", "INC", "CIR", "HLT"],
+              manoMean: "CLA = clear AC · CMA = complement AC · INC = increment AC · CIR = circulate (rotate) AC right · HLT = halt" },
             { n: "Input–Output", color: C.yellow, where: "operand is an I/O DEVICE — no memory address",
               fields: ["opcode", "device"],
               generic: ["In R1, KBD", "Out R1, DISP"],
-              mano: ["INP", "OUT", "SKI", "SKO", "ION"] },
+              mano: ["INP", "OUT", "SKI", "SKO", "ION"],
+              manoMean: "INP = input a character into AC · OUT = output the character in AC · SKI / SKO = skip the next instruction if the input / output flag is set · ION = interrupts on" },
           ].map((f) => (
             <div key={f.n} style={{ marginBottom: 10, padding: "10px 12px", borderRadius: 9, background: f.color + "10", border: `1px solid ${f.color}44` }}>
               <div style={{ color: f.color, fontWeight: 700, fontSize: 13 }}>{f.n}</div>
@@ -387,6 +390,7 @@ function Classify() {
                   <code key={ex} style={{ fontSize: 10.5, color: f.color, background: C.card, borderRadius: 4, padding: "2px 6px", fontFamily: "monospace" }}>{ex}</code>
                 ))}
               </div>
+              <div style={{ color: C.muted, fontSize: 10.5, marginTop: 5, lineHeight: 1.5 }}>{f.manoMean}</div>
             </div>
           ))}
           <div style={{ color: C.muted, fontSize: 11.5, lineHeight: 1.6, marginTop: 2 }}>
@@ -645,6 +649,39 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["MAR", "Memory Address Register", "Register holding the address the processor wants to read or write.", "from Unit 1.2"],
+  ["MDR", "Memory Data Register", "Register holding the data going to, or just arrived from, memory.", "from Unit 1.2"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["RTN", "Register Transfer Notation", "Arrow shorthand such as R1 ← [R2] + [R3]: what moves where.", "from Unit 1.2"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["INC", "Increment", "Add 1.", "new here"],
+  ["RISC", "Reduced Instruction Set Computer", "A design with few, simple, same-length instructions (e.g. ARM in phones).", "new here"],
+  ["CISC", "Complex Instruction Set Computer", "A design with many, more powerful, variable-length instructions (e.g. x86 in PCs).", "new here"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit1_5({ student, onUnitComplete }) {
   const sections = [
     { id: "rw", label: "Read & Write" },
@@ -723,6 +760,7 @@ export default function Unit1_5({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

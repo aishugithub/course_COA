@@ -406,15 +406,15 @@ function MemoryFloors() {
       detail: "A few tiny cells INSIDE the processor. The ALU reads and writes them directly, in about one clock tick — which is exactly why operands are loaded into registers before any calculation.",
     },
     {
-      id: 1, label: "CACHE", color: C.purple, tag: "on the CPU · SRAM · tiny",
+      id: 1, label: "CACHE", color: C.purple, tag: "on the CPU · SRAM (static RAM) · tiny",
       detail: "Small, costly SRAM hugging the CPU. Keeps the data used most right now. A cache HIT feeds the processor almost as fast as a register, sparing a slow trip out to main memory.",
     },
     {
-      id: 2, label: "MAIN MEMORY (RAM)", color: C.accent, tag: "on the board · DRAM · volatile",
+      id: 2, label: "MAIN MEMORY (RAM: Random-Access Memory)", color: C.accent, tag: "on the board · DRAM (dynamic RAM) · volatile",
       detail: "DRAM on the motherboard, reached over the bus. Holds the ENTIRE running program and its data. Random-access: any address takes the same time. Volatile: empties when power is cut.",
     },
     {
-      id: 3, label: "SECONDARY (SSD · HDD)", color: C.orange, tag: "big · cheap · non-volatile",
+      id: 3, label: "SECONDARY (SSD solid-state drive · HDD hard disk drive)", color: C.orange, tag: "big · cheap · non-volatile",
       detail: "SSD, hard disk, flash. Non-volatile — keeps your files with the power off. But not truly random-access (disks seek, SSDs work in blocks), so data must first be copied into RAM before the CPU can touch it.",
     },
   ];
@@ -514,7 +514,7 @@ function MemoryFloors() {
       {/* quick cards for the remaining units */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <FlipCard front="🧮 ALU" frontColor={C.accent}
-          back={<span>Performs all <strong style={{ color: C.accent }}>arithmetic & logic</strong>: add, subtract, compare, AND, OR. Your Unit-0 full-adder lives inside it!</span>} />
+          back={<span>The <b>ALU (Arithmetic Logic Unit)</b> performs all <strong style={{ color: C.accent }}>arithmetic & logic</strong>: add, subtract, compare, AND, OR. Your Unit-0 full-adder lives inside it!</span>} />
         <FlipCard front="⌨️ Input" frontColor={C.green}
           back={<span>Accepts <strong style={{ color: C.green }}>coded information</strong> from outside — keyboard, mouse, mic, camera, network — and turns it into binary.</span>} />
         <FlipCard front="🖥️ Output" frontColor={C.orange}
@@ -799,6 +799,38 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["SRAM", "Static RAM", "Fast memory that keeps each bit in a small transistor circuit. Used for caches.", "from Unit 0.3"],
+  ["RAM", "Random-Access Memory", "Memory you can read and write; any address takes the same time to reach.", "new here"],
+  ["DRAM", "Dynamic RAM", "Dense, cheaper memory that stores each bit as charge on a tiny capacitor and must be refreshed. Used for main memory.", "from Unit 0.3"],
+  ["SSD", "Solid-State Drive", "Storage made of flash memory chips, with no moving parts.", "new here"],
+  ["HDD", "Hard Disk Drive", "Storage on spinning magnetic disks.", "new here"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit1_1({ student, onUnitComplete }) {
   const sections = [
     { id: "chaos", label: "The Chaos Machine" },
@@ -877,6 +909,7 @@ export default function Unit1_1({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

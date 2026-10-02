@@ -310,7 +310,7 @@ function CommonBus() {
         <strong style={{ color: C.text }}> hardware</strong>? We want <strong style={{ color: C.text }}>one shared path</strong>
         any register can drive — not a private wire between every pair. That's a <strong style={{ color: C.accent }}>common
         bus</strong>. On a single bus there are two ways to build it — a <strong style={{ color: C.accent }}>multiplexer</strong>
-        (works, but costlier) and a <strong style={{ color: C.orange }}>tri-state buffer</strong> (cheaper). Switch between them:
+        (MUX: a selector switch where a select code picks which input passes; works, but costlier) and a <strong style={{ color: C.orange }}>tri-state buffer</strong> (cheaper: when switched off it goes "Hi-Z", high impedance, as if unplugged). Switch between them:
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
@@ -634,6 +634,41 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["MAR", "Memory Address Register", "Register holding the address the processor wants to read or write.", "from Unit 1.2"],
+  ["PC", "Program Counter", "Register holding the address of the NEXT instruction to fetch.", "from Unit 1.2"],
+  ["MDR", "Memory Data Register", "Register holding the data going to, or just arrived from, memory.", "from Unit 1.2"],
+  ["IR", "Instruction Register", "Register holding the instruction being carried out right now.", "from Unit 1.2"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["ISA", "Instruction Set Architecture", "The list of instructions a processor understands, as the programmer sees it.", "from Unit 0.1"],
+  ["Hi-Z", "High impedance", "The ‘disconnected’ state of a tri-state buffer: it neither drives 0 nor 1.", "new here"],
+  ["MUX", "Multiplexer", "A selector switch: several inputs go in, a select code picks which one comes out.", "new here"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["RTL", "Register Transfer Language", "The same arrow shorthand as RTN (Unit 1.2), used to describe each hardware step.", "from Unit 1.6"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit2_1({ student, onUnitComplete }) {
   const sections = [
     { id: "micro", label: "Instruction → Micro-op" },
@@ -712,6 +747,7 @@ export default function Unit2_1({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

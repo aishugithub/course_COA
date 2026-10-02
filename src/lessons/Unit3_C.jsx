@@ -402,6 +402,39 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["WB", "Write Back", "Pipeline stage 5: the result is written into the destination register.", "from Unit 3.1"],
+  ["IF", "Instruction Fetch", "Pipeline stage 1: read the next instruction from memory.", "from Unit 3.1"],
+  ["ID", "Instruction Decode", "Pipeline stage 2: work out the instruction and read its registers.", "from Unit 3.1"],
+  ["EX", "Execute", "Pipeline stage 3: the ALU does the work.", "from Unit 3.1"],
+  ["MEM", "Memory access", "Pipeline stage 4: Loads and Stores use memory here.", "from Unit 3.1"],
+  ["RAW", "Read After Write", "A later instruction reads a register that an earlier one writes.", "from Unit 3.3"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit3_C({ student, onUnitComplete }) {
   const sections = [
     { id: "mission", label: "The Mission" },
@@ -459,6 +492,7 @@ export default function Unit3_C({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

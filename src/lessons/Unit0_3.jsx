@@ -173,7 +173,7 @@ function EraTimelineWidget() {
     { year: "1945", name: "Vacuum tube", switch: "Heated cathode + grid", speed: 3, size: 1, note: "No moving parts, ~1 MHz — but hot and burns out." },
     { year: "1947", name: "Transistor", switch: "Semiconductor junction", speed: 6, size: 4, note: "Solid-state. Small, cool, reliable. The turning point." },
     { year: "1958", name: "Integrated circuit", switch: "Many transistors on one chip", speed: 8, size: 7, note: "No wiring by hand — grow them together on silicon." },
-    { year: "2024", name: "VLSI / MOSFET", switch: "Billions of field-effect switches", speed: 10, size: 10, note: "~2 nm gates. 100+ billion switches on a fingernail." },
+    { year: "2024", name: "VLSI / MOSFET", switch: "Billions of MOSFETs (metal-oxide-semiconductor field-effect transistors) on one VLSI (Very Large Scale Integration) chip", speed: 10, size: 10, note: "~2 nm gates. 100+ billion switches on a fingernail." },
   ];
   const [n, setN] = useState(0);
   const e = eras[n];
@@ -226,7 +226,7 @@ function EraTimelineWidget() {
       </div>
 
       <Key color={C.accent}>
-        Relay → tube → transistor → IC → VLSI. Each step kept the exact same logic and just made the switch
+        Relay → tube → transistor → IC (Integrated Circuit: many transistors on one chip) → VLSI (billions of them). Each step kept the exact same logic and just made the switch
         faster, smaller and cooler. Progress in computing is largely the story of a better switch.
       </Key>
     </div>
@@ -309,7 +309,7 @@ function MemoryEvolutionWidget() {
 
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         <button onClick={() => setTech("core")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid ${tech === "core" ? C.orange : C.border}`, background: tech === "core" ? C.orange + "18" : C.card, color: tech === "core" ? C.orange : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🧲 Magnetic core (1950s)</button>
-        <button onClick={() => setTech("dram")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid ${tech === "dram" ? C.green : C.border}`, background: tech === "dram" ? C.green + "18" : C.card, color: tech === "dram" ? C.green : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🔬 Transistor cell (DRAM)</button>
+        <button onClick={() => setTech("dram")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1px solid ${tech === "dram" ? C.green : C.border}`, background: tech === "dram" ? C.green + "18" : C.card, color: tech === "dram" ? C.green : C.muted, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>🔬 Transistor cell (DRAM: Dynamic RAM)</button>
       </div>
 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 6px" }}>
@@ -357,7 +357,7 @@ function MemoryEvolutionWidget() {
 
       <Key color={C.green}>
         The same transistor that computes can also store. Memory went from hand-threaded magnetic rings — a
-        few KB filling a cabinet — to billions of cells on a fingernail. That's what makes von Neumann's
+        few KB (kilobytes; 1 KB = 1024 bytes) filling a cabinet — to billions of cells on a fingernail. That's what makes von Neumann's
         stored-program idea practical at real scale.
       </Key>
     </div>
@@ -403,7 +403,7 @@ function TransistorGatesWidget() {
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 12, lineHeight: 1.7 }}>
         A transistor is a silent, solid-state switch: a voltage on its gate opens or closes the channel —
-        no moving metal. Tie a pull-up resistor to <strong style={{ color: C.text }}>VCC</strong> and wire
+        no moving metal. Tie a pull-up resistor to <strong style={{ color: C.text }}>VCC</strong> (the positive supply voltage, logic 1) and wire
         one or two transistors down to ground, and you get real logic gates. Pick a gate and drive the inputs.
       </p>
 
@@ -739,7 +739,7 @@ function Quiz({ onComplete }) {
         "As the position of a mechanical gear",
       ],
       answer: 0,
-      explain: "Magnetic-core memory stored each bit as the magnetic direction of a hand-threaded ferrite ring. Transistor DRAM/SRAM later shrank this to billions of cells on a chip.",
+      explain: "Magnetic-core memory stored each bit as the magnetic direction of a hand-threaded ferrite ring. Transistor DRAM (dynamic RAM) and SRAM (static RAM) later shrank this to billions of cells on a chip.",
     },
     {
       q: "What was von Neumann's stored-program idea, and why did it matter?",
@@ -836,6 +836,39 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["VLSI", "Very Large Scale Integration", "Making chips that hold millions to billions of transistors.", "from Unit 0.1"],
+  ["MOSFET", "Metal-Oxide-Semiconductor Field-Effect Transistor", "The kind of transistor used in almost every modern chip.", "new here"],
+  ["IC", "Integrated Circuit", "Many transistors made together on one small silicon chip.", "new here"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["DRAM", "Dynamic RAM", "Dense, cheaper memory that stores each bit as charge on a tiny capacitor and must be refreshed. Used for main memory.", "new here"],
+  ["KB", "Kilobyte", "1024 bytes.", "new here"],
+  ["VCC", "Supply voltage", "The positive power wire of a circuit (logic 1).", "new here"],
+  ["SRAM", "Static RAM", "Fast memory that keeps each bit in a small transistor circuit. Used for caches.", "new here"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit0_3({ student, onUnitComplete }) {
   const sections = [
     { id: "relay", label: "Gates from Relays" },
@@ -901,6 +934,7 @@ export default function Unit0_3({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

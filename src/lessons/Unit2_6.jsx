@@ -142,7 +142,7 @@ function ControlSignals() {
     { key: "in", label: "MARin / IRin / R1in", color: C.orange, title: "Xin — latch the bus INTO a register",
       body: "Xin opens register X's load line so it captures the bus at the clock edge. MARin loads MAR; IRin loads IR; R1in loads R1. This is the control function P : X ← bus from Unit 2.1." },
     { key: "rarb", label: "RAin / RBin", color: C.purple, title: "RAin / RBin — latch the operand registers",
-      body: "On the multi-bus datapath (Unit 2.5), the two source operands read from the register file are latched into RA and RB so the ALU sees stable inputs." },
+      body: "On the multi-bus datapath (Unit 2.5), the two source operands read from the register file (RF: the block of registers R0, R1, …) are latched into RA and RB so the ALU sees stable inputs." },
     { key: "rw", label: "Read / Write", color: C.green, title: "Read / Write — memory direction",
       body: "Read tells memory to fetch M[MAR] into MDR; Write stores MDR into M[MAR]. Raised in the same beat the address is in MAR." },
     { key: "wmfc", label: "WMFC / MFC", color: C.red, title: "WMFC — Wait for Memory-Function-Completed",
@@ -640,6 +640,46 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["IR", "Instruction Register", "Register holding the instruction being carried out right now.", "from Unit 1.2"],
+  ["MAR", "Memory Address Register", "Register holding the address the processor wants to read or write.", "from Unit 1.2"],
+  ["MDR", "Memory Data Register", "Register holding the data going to, or just arrived from, memory.", "from Unit 1.2"],
+  ["PC", "Program Counter", "Register holding the address of the NEXT instruction to fetch.", "from Unit 1.2"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["RA", "Register A (datapath)", "Holds the first operand read from the register file, ready for the ALU.", "from Unit 2.4"],
+  ["RB", "Register B (datapath)", "Holds the second operand read from the register file.", "from Unit 2.4"],
+  ["WMFC", "Wait for MFC", "A control step that pauses until memory raises MFC.", "new here"],
+  ["MFC", "Memory-Function-Completed", "Memory's ‘I'm done’ signal after a read or write.", "from Unit 2.3"],
+  ["RZ", "Register Z (datapath)", "Holds the ALU's result.", "from Unit 2.4"],
+  ["RY", "Register Y (datapath)", "Holds the value about to be written back into a register.", "from Unit 2.4"],
+  ["MEM", "Main memory", "The computer's main memory (RAM).", "new here"],
+  ["RF", "Register File", "The block of general-purpose registers R0, R1, …", "new here"],
+  ["RM", "Register M (datapath)", "Holds the data on its way out to memory in a Store.", "from Unit 2.4"],
+  ["RTL", "Register Transfer Language", "The same arrow shorthand as RTN (Unit 1.2), used to describe each hardware step.", "from Unit 1.6"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit2_6({ student, onUnitComplete }) {
   const sections = [
     { id: "beats", label: "The Five Beats" },
@@ -708,6 +748,7 @@ export default function Unit2_6({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

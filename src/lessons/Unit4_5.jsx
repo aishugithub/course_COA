@@ -89,7 +89,7 @@ function DiskAccess() {
         <input type="range" min={1} max={20} value={seek} onChange={(e) => setSeek(Number(e.target.value))} style={{ width: "100%", accentColor: C.accent }} />
       </div>
       <div style={{ marginBottom: 16 }}>
-        <label style={{ color: C.muted, fontSize: 12 }}>Rotation speed = <strong style={{ color: C.orange }}>{rpm} RPM</strong></label>
+        <label style={{ color: C.muted, fontSize: 12 }}>Rotation speed = <strong style={{ color: C.orange }}>{rpm} RPM</strong> (revolutions per minute)</label>
         <input type="range" min={3600} max={15000} step={600} value={rpm} onChange={(e) => setRpm(Number(e.target.value))} style={{ width: "100%", accentColor: C.orange }} />
       </div>
 
@@ -181,7 +181,7 @@ function TraceRead() {
 //  Section 4 — Compare the Storage Types
 // ══════════════════════════════════════════════════════════════════
 const MEDIA = [
-  { id: "hard", name: "Hard Disk", icon: "💽", access: "Random — any track in a few ms", capacity: "GB–TB", use: "Primary secondary storage — the OS, programs, and files.", col: C.accent },
+  { id: "hard", name: "Hard Disk", icon: "💽", access: "Random — any track in a few ms", capacity: "GB–TB (gigabytes to terabytes)", use: "Primary secondary storage — the OS (Operating System), programs, and files.", col: C.accent },
   { id: "floppy", name: "Floppy Disk", icon: "💾", access: "Random, but slower & lower density than hard disks", capacity: "~1.4 MB", use: "Historic removable storage for distributing small programs.", col: C.muted },
   { id: "tape", name: "Magnetic Tape", icon: "📼", access: "SEQUENTIAL only — must wind past everything in between", capacity: "Very high, at very low cost per byte", use: "Backup / archival — slowest access, but cheapest storage by far.", col: C.orange },
   { id: "optical", name: "Optical Disk", icon: "💿", access: "A laser follows one long spiral track of pits & lands", capacity: "Hundreds of MB – tens of GB", use: "CDs/DVDs/Blu-ray — cheap distribution and archival media.", col: C.purple },
@@ -305,7 +305,7 @@ function Quiz({ onComplete }) {
             You now know why auxiliary storage exists, how disk access time is built from three
             stages, and how tape/optical media trade off differently.
             <br /><br />
-            <strong style={{ color: C.accent }}>Next up: Unit 4.6 — Virtual Memory &amp; the MMU.</strong>{" "}
+            <strong style={{ color: C.accent }}>Next up: Unit 4.6 — Virtual Memory &amp; the MMU (Memory Management Unit).</strong>{" "}
             Now see how the OS makes a program feel like it has more memory than physically exists — using disk as the overflow.
           </div>
         </div>
@@ -355,6 +355,39 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["RAM", "Random-Access Memory", "Memory you can read and write; any address takes the same time to reach.", "from Unit 1.1"],
+  ["RPM", "Revolutions Per Minute", "How many full turns a disk makes in one minute.", "new here"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["GB", "Gigabyte", "1024 MB, about a billion bytes.", "from Unit 1.3"],
+  ["TB", "Terabyte", "1024 GB, about a million million bytes.", "new here"],
+  ["OS", "Operating System", "The manager program (Windows, Linux, Android) that runs other programs and controls the hardware.", "from Unit 4.1"],
+  ["MB", "Megabyte", "1024 KB, about a million bytes.", "from Unit 4.1"],
+  ["MMU", "Memory Management Unit", "Hardware that translates the program's virtual addresses into real (physical) memory addresses.", "new here"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit4_5({ student, onUnitComplete }) {
   const sections = [
     { id: "need", label: "Why Non-Volatile?" },
@@ -428,6 +461,7 @@ export default function Unit4_5({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

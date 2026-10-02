@@ -250,7 +250,7 @@ function DelaySlot() {
       why: "The branch compares R6 — if you move this BELOW the branch, the branch would test a stale R6. It's a dependency, not independent." },
     { id: 1, code: "add  R1, R2, R3", note: "unrelated bookkeeping, always needed", correct: true,
       why: "This touches R1/R2/R3 — nothing the branch or the target depends on. It runs no matter which way the branch goes, so it safely fills the slot." },
-    { id: 2, code: "NOP", note: "do nothing", correct: false,
+    { id: 2, code: "NOP", note: "No-OPeration: do nothing", correct: false,
       why: "A NOP is the fallback when NO independent instruction exists — but here one does, so a NOP would waste a perfectly good slot." },
   ];
 
@@ -420,7 +420,7 @@ function BranchPredictor() {
         <div style={{ background: C.card, border: `1px solid ${C.teal}44`, borderRadius: 10, padding: "12px 14px", fontSize: 12, color: C.muted, lineHeight: 1.55 }}>
           <div style={{ color: C.teal, fontWeight: 700, fontSize: 12, marginBottom: 4 }}>Branch Target Buffer</div>
           A prediction is only useful if it's ready in <strong style={{ color: C.text }}>cycle 1</strong>. The
-          <strong style={{ color: C.text }}> BTB</strong> is a small fast table keyed by the branch's own address — a hit hands back the
+          <strong style={{ color: C.text }}> BTB</strong> (Branch Target Buffer) is a small fast table keyed by the branch's own address — a hit hands back the
           counter bits <em>and</em> the target, so the very next fetch goes to the predicted-correct instruction.
         </div>
       </div>
@@ -571,6 +571,43 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["IF", "Instruction Fetch", "Pipeline stage 1: read the next instruction from memory.", "from Unit 3.1"],
+  ["ID", "Instruction Decode", "Pipeline stage 2: work out the instruction and read its registers.", "from Unit 3.1"],
+  ["EX", "Execute", "Pipeline stage 3: the ALU does the work.", "from Unit 3.1"],
+  ["MEM", "Memory access", "Pipeline stage 4: Loads and Stores use memory here.", "from Unit 3.1"],
+  ["WB", "Write Back", "Pipeline stage 5: the result is written into the destination register.", "from Unit 3.1"],
+  ["NOP", "No OPeration", "An instruction that does nothing; used to fill an empty slot.", "from Unit 3.3"],
+  ["SNT", "Strongly Not Taken", "Predictor state: very sure the branch will NOT jump.", "new here"],
+  ["WNT", "Weakly Not Taken", "Predictor state: leaning towards ‘will not jump’.", "new here"],
+  ["WT", "Weakly Taken", "Predictor state: leaning towards ‘will jump’.", "new here"],
+  ["ST", "Strongly Taken", "Predictor state: very sure the branch WILL jump.", "new here"],
+  ["BTB", "Branch Target Buffer", "A small table that remembers where recent branches jumped to.", "new here"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit3_4({ student, onUnitComplete }) {
   const sections = [
     { id: "problem", label: "The Branch Problem" },
@@ -631,6 +668,7 @@ export default function Unit3_4({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

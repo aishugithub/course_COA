@@ -544,6 +544,39 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["IF", "Instruction Fetch", "Pipeline stage 1: read the next instruction from memory.", "from Unit 3.1"],
+  ["ID", "Instruction Decode", "Pipeline stage 2: work out the instruction and read its registers.", "from Unit 3.1"],
+  ["EX", "Execute", "Pipeline stage 3: the ALU does the work.", "from Unit 3.1"],
+  ["MEM", "Memory access", "Pipeline stage 4: Loads and Stores use memory here.", "from Unit 3.1"],
+  ["WB", "Write Back", "Pipeline stage 5: the result is written into the destination register.", "from Unit 3.1"],
+  ["ISA", "Instruction Set Architecture", "The list of instructions a processor understands, as the programmer sees it.", "from Unit 0.1"],
+  ["RISC", "Reduced Instruction Set Computer", "A design with few, simple, same-length instructions (e.g. ARM in phones).", "from Unit 1.5"],
+  ["CISC", "Complex Instruction Set Computer", "A design with many, more powerful, variable-length instructions (e.g. x86 in PCs).", "from Unit 1.5"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit3_5({ student, onUnitComplete }) {
   const sections = [
     { id: "why", label: "ISA Talks Back" },
@@ -604,6 +637,7 @@ export default function Unit3_5({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

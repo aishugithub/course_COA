@@ -31,7 +31,7 @@ function Key({ color = C.purple, children }) {
 function WhyThisCourseWidget() {
   // (a) why it matters — one concrete stake per field the learner might be in
   const fields = [
-    { k: "ai", icon: "🤖", label: "AI / ML", color: C.accent, line: "Training a model is really feeding a GPU. Batch size, memory bandwidth and cache misses decide whether it takes 3 hours or 3 days. The best ML engineers think in hardware." },
+    { k: "ai", icon: "🤖", label: "AI / ML", color: C.accent, line: "AI (Artificial Intelligence) and ML (Machine Learning): training a model is really feeding a GPU (Graphics Processing Unit, a chip with thousands of small cores). Batch size, memory bandwidth and cache misses decide whether it takes 3 hours or 3 days. The best ML engineers think in hardware." },
     { k: "cyber", icon: "🔐", label: "Security", color: C.red, line: "Attacks live in architecture: buffer overflows abuse how memory is laid out; Spectre & Meltdown broke the world's CPUs through cache tricks. You can't defend what you don't understand." },
     { k: "iot", icon: "📡", label: "IoT / ECE", color: C.orange, line: "On a microcontroller every byte and every milliwatt counts. Registers, memory maps and interrupts are your daily tools — all of it starts here." },
     { k: "all", icon: "🎓", label: "Everyone", color: C.green, line: "Every slow program and every performance bug you'll ever chase. Engineers who understand the machine beneath their code are rare — and valued like it." },
@@ -43,7 +43,7 @@ function WhyThisCourseWidget() {
   //     programmer sees); organization is how the bottom becomes voltages.
   const levels = [
     { k: "c",   tag: "C — a language you write",     code: "total = a + b;",           col: C.green,  note: "High-level. Comfortable for humans, but the CPU has never heard of it — a compiler must translate it down." },
-    { k: "asm", tag: "Assembly — the machine's ISA",  code: "Add  R4, R2, R3",          col: C.accent, note: "One line = one machine instruction, nothing hidden. This is the ARCHITECTURE: the computer as the programmer sees it." },
+    { k: "asm", tag: "Assembly — the machine's ISA (Instruction Set Architecture)",  code: "Add  R4, R2, R3",          col: C.accent, note: "One line = one machine instruction, nothing hidden. This is the ARCHITECTURE: the computer as the programmer sees it." },
     { k: "mc",  tag: "Machine code — bits",           code: "0011 0100 0010 0011",      col: C.orange, note: "The same instruction as raw bits the hardware decodes. Below this there are only voltages — that's ORGANIZATION." },
   ];
   const [lvl, setLvl] = useState(1);
@@ -114,7 +114,7 @@ function WhyThisCourseWidget() {
         </div>
         {guess && (
           <div style={{ marginTop: 10, color: C.muted, fontSize: 12.5, lineHeight: 1.6 }}>
-            The <strong style={{ color: C.orange }}>organization</strong> changed — billions of transistors, caches, pipelines (VLSI).
+            The <strong style={{ color: C.orange }}>organization</strong> changed — billions of transistors, caches, pipelines (VLSI: Very Large Scale Integration, billions of transistors on one chip).
             The <strong style={{ color: C.accent }}>architecture</strong> — the instruction set, the blueprint — survived untouched.
             Same <em>what</em>, radically better <em>how</em>.
           </div>
@@ -485,7 +485,7 @@ function Quiz({ onComplete }) {
       explain: "Architecture = the blueprint the programmer sees (ISA, data formats). Organization = how the hardware implements it. That's why a 1970s program runs unchanged on a modern chip: same architecture, new organization.",
     },
     {
-      q: "Why were WWI artillery firing tables dangerous to rely on?",
+      q: "Why were World War I (WWI) artillery firing tables dangerous to rely on?",
       options: [
         "The cannons were poorly built",
         "Human computers made arithmetic errors, especially when tired",
@@ -612,6 +612,38 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["AI", "Artificial Intelligence", "Software that learns or reasons, like a chatbot.", "new here"],
+  ["ML", "Machine Learning", "The part of AI where a program learns patterns from lots of data.", "new here"],
+  ["GPU", "Graphics Processing Unit", "A chip with thousands of small cores, built for graphics and now used to train AI.", "new here"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "new here"],
+  ["ISA", "Instruction Set Architecture", "The list of instructions a processor understands, as the programmer sees it.", "new here"],
+  ["VLSI", "Very Large Scale Integration", "Making chips that hold millions to billions of transistors.", "new here"],
+  ["WWI", "World War I", "The First World War, 1914–1918.", "new here"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit0_1({ student, onUnitComplete }) {
   const sections = [
     { id: "why", label: "Why This Course?" },
@@ -675,6 +707,7 @@ export default function Unit0_1({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

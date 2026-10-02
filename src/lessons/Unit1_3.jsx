@@ -347,7 +347,7 @@ function ThreeBuses() {
   const info = {
     addr: {
       name: "Address bus", color: C.accent, dir: "One-way  (CPU → memory)",
-      body: "Carries WHICH location the CPU wants. Its width sets how many locations you can name: a 32-bit address bus can point at 2³² bytes = 4 GB. The CPU always drives it; memory only listens.",
+      body: "Carries WHICH location the CPU wants. Its width sets how many locations you can name: a 32-bit address bus can point at 2³² bytes = 4 GB (gigabytes; 1 GB = 2³⁰ bytes). The CPU always drives it; memory only listens.",
     },
     data: {
       name: "Data bus", color: C.teal, dir: "Two-way  (CPU ↔ memory)",
@@ -551,6 +551,34 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["USB", "Universal Serial Bus", "The standard plug for keyboards, pen drives, phones and more.", "new here"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["GB", "Gigabyte", "1024 MB, about a billion bytes.", "new here"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit1_3({ student, onUnitComplete }) {
   const sections = [
     { id: "wires", label: "Wire Explosion" },
@@ -624,6 +652,7 @@ export default function Unit1_3({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

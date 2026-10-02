@@ -147,7 +147,7 @@ function SingleBusDatapath() {
     "Zoom IN. This bus lives INSIDE the processor — it wires the CPU's own components (PC, IR, registers, ALU) to one another. It is NOT the Unit-1 system bus, which connected whole units: CPU, memory and I/O.",
     "PC, IR, the general registers and the ALU all hang off this one shared internal bus. One bus means one transfer per clock.",
     "MAR and MDR sit at the processor's edge. They are on the internal bus too — but they also face OUTWARD, toward main memory.",
-    "The link from MAR / MDR out to main memory is the EXTERNAL memory bus: address bus (driven by MAR), data bus (through MDR), and a control bus (Read/Write, MFC). The internal bus never touches memory directly.",
+    "The link from MAR / MDR out to main memory is the EXTERNAL memory bus: address bus (driven by MAR), data bus (through MDR), and a control bus (Read/Write, and MFC: Memory-Function-Completed, memory's \"I'm done\" signal). The internal bus never touches memory directly.",
   ];
 
   return (
@@ -629,6 +629,39 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["IR", "Instruction Register", "Register holding the instruction being carried out right now.", "from Unit 1.2"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["PC", "Program Counter", "Register holding the address of the NEXT instruction to fetch.", "from Unit 1.2"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["MAR", "Memory Address Register", "Register holding the address the processor wants to read or write.", "from Unit 1.2"],
+  ["MDR", "Memory Data Register", "Register holding the data going to, or just arrived from, memory.", "from Unit 1.2"],
+  ["MFC", "Memory-Function-Completed", "Memory's ‘I'm done’ signal after a read or write.", "new here"],
+  ["RTL", "Register Transfer Language", "The same arrow shorthand as RTN (Unit 1.2), used to describe each hardware step.", "from Unit 1.6"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit2_3({ student, onUnitComplete }) {
   const sections = [
     { id: "need", label: "Why Fetch?" },
@@ -702,6 +735,7 @@ export default function Unit2_3({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

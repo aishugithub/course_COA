@@ -67,7 +67,7 @@ function OpenTheBox() {
             <span style={{ color: C.muted }}>→</span>
             <span style={{ padding: "8px 10px", borderRadius: 6, background: C.green + "22", border: `1px solid ${C.green}`, color: C.green }}>data lines</span>
           </div>
-          <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: C.muted }}>+ control lines (CS, OE, WE) telling the chip whether to even respond, and whether to read or write</div>
+          <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: C.muted }}>+ control lines (CS Chip Select, OE Output Enable, WE Write Enable) telling the chip whether to even respond, and whether to read or write</div>
         </div>
       )}
 
@@ -565,10 +565,10 @@ function SramDram() {
 // ══════════════════════════════════════════════════════════════════
 const ROMS = [
   { id: "mask", name: "Mask ROM", write: "Programmed at the factory using a photographic mask", erase: "Never — fixed forever", use: "Ultra-high-volume fixed programs (old game cartridges, simple embedded logic)", col: C.muted },
-  { id: "prom", name: "PROM", write: "Burned ONCE by the user with a special programmer (fuses blown)", erase: "Never — one-time programmable", use: "Small-batch custom firmware where mask ROM's setup cost isn't worth it", col: C.teal },
-  { id: "eprom", name: "EPROM", write: "Electrically programmed by the user", erase: "Erased by shining UV light through a quartz window for several minutes", use: "Development/prototyping before locking in a final mask ROM", col: C.purple },
-  { id: "eeprom", name: "EEPROM", write: "Electrically programmed, byte by byte", erase: "Erased electrically, byte by byte — no UV light, no removal from the circuit", use: "Small configuration/calibration data that occasionally needs updating", col: C.accent },
-  { id: "flash", name: "Flash Memory", write: "Electrically programmed, block at a time", erase: "Erased electrically, in large blocks — much faster than byte-at-a-time EEPROM", use: "BIOS/firmware, SSDs, USB drives, phone/camera storage", col: C.green },
+  { id: "prom", name: "PROM (Programmable ROM)", write: "Burned ONCE by the user with a special programmer (fuses blown)", erase: "Never — one-time programmable", use: "Small-batch custom firmware where mask ROM's setup cost isn't worth it", col: C.teal },
+  { id: "eprom", name: "EPROM (Erasable PROM)", write: "Electrically programmed by the user", erase: "Erased by shining UV (ultraviolet) light through a quartz window for several minutes", use: "Development/prototyping before locking in a final mask ROM", col: C.purple },
+  { id: "eeprom", name: "EEPROM (Electrically Erasable PROM)", write: "Electrically programmed, byte by byte", erase: "Erased electrically, byte by byte — no UV light, no removal from the circuit", use: "Small configuration/calibration data that occasionally needs updating", col: C.accent },
+  { id: "flash", name: "Flash Memory", write: "Electrically programmed, block at a time", erase: "Erased electrically, in large blocks — much faster than byte-at-a-time EEPROM", use: "BIOS (the PC's start-up firmware), SSDs (solid-state drives), USB drives, phone/camera storage", col: C.green },
 ];
 
 function RomFamily() {
@@ -807,6 +807,46 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["CS", "Chip Select", "Pin that switches a memory chip on, so it responds.", "new here"],
+  ["OE", "Output Enable", "Pin that lets the chip drive its data pins (for a read).", "new here"],
+  ["WE", "Write Enable", "Pin that tells the chip to store the data on its pins (a write).", "new here"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["RAM", "Random-Access Memory", "Memory you can read and write; any address takes the same time to reach.", "from Unit 1.1"],
+  ["DRAM", "Dynamic RAM", "Dense, cheaper memory that stores each bit as charge on a tiny capacitor and must be refreshed. Used for main memory.", "from Unit 0.3"],
+  ["SRAM", "Static RAM", "Fast memory that keeps each bit in a small transistor circuit. Used for caches.", "from Unit 0.3"],
+  ["ROM", "Read-Only Memory", "Memory whose contents are fixed (or rarely changed) and survive power-off.", "from Unit 4.1"],
+  ["PROM", "Programmable ROM", "A ROM the user can write once.", "new here"],
+  ["EPROM", "Erasable Programmable ROM", "A ROM that can be erased with UV light and written again.", "new here"],
+  ["UV", "Ultraviolet", "Invisible high-energy light, used to erase EPROM chips.", "new here"],
+  ["EEPROM", "Electrically Erasable Programmable ROM", "A ROM that can be erased and rewritten electrically, byte by byte.", "new here"],
+  ["BIOS", "Basic Input/Output System", "The start-up firmware stored on the motherboard.", "new here"],
+  ["USB", "Universal Serial Bus", "The standard plug for keyboards, pen drives, phones and more.", "from Unit 1.3"],
+  ["SSD", "Solid-State Drive", "Storage made of flash memory chips, with no moving parts.", "from Unit 1.1"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit4_2({ student, onUnitComplete }) {
   const sections = [
     { id: "open", label: "Open the Box" },
@@ -885,6 +925,7 @@ export default function Unit4_2({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

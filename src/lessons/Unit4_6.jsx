@@ -149,7 +149,10 @@ function TraceLookup() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Every memory reference takes one of three paths. Pick a scenario, then step through it.
+        The translation is done by a hardware block called the <strong style={{ color: C.text }}>MMU (Memory Management Unit)</strong>, sitting between the CPU and memory.
+        Inside it is a <strong style={{ color: C.text }}>TLB (Translation Lookaside Buffer)</strong>: a small, fast cache of recent page → frame
+        translations, built from the associative memory of Unit 4.4. Every memory reference takes one of three paths.
+        Pick a scenario, then step through it.
       </p>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
@@ -386,6 +389,38 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["RAM", "Random-Access Memory", "Memory you can read and write; any address takes the same time to reach.", "from Unit 1.1"],
+  ["TLB", "Translation Lookaside Buffer", "A small, fast cache inside the MMU holding recent page → frame translations.", "new here"],
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["OS", "Operating System", "The manager program (Windows, Linux, Android) that runs other programs and controls the hardware.", "from Unit 4.1"],
+  ["LRU", "Least Recently Used", "Replacement rule: throw out the item that has not been used for the longest time.", "from Unit 4.3"],
+  ["FIFO", "First In, First Out", "Replacement rule: throw out the item that came in earliest.", "from Unit 4.3"],
+  ["MMU", "Memory Management Unit", "Hardware that translates the program's virtual addresses into real (physical) memory addresses.", "from Unit 4.5"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit4_6({ student, onUnitComplete }) {
   const sections = [
     { id: "need", label: "Bigger Than RAM" },
@@ -459,6 +494,7 @@ export default function Unit4_6({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

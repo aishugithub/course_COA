@@ -105,7 +105,7 @@ function NeedWidget() {
 // ══════════════════════════════════════════════════════════════════
 const LEVELS = [
   { name: "CPU Registers", icon: "⚡", access: "< 1 ns", capacity: "a few hundred bytes", cost: "highest", role: "Values the ALU is working on RIGHT NOW — literally wires inside the CPU.", width: 30, col: C.purple },
-  { name: "Cache Memory", icon: "🏎️", access: "≈ 2–10 ns", capacity: "KB – a few MB", cost: "very high", role: "A small, fast copy of the main memory locations the CPU has used recently (you'll meet this properly as its own unit).", width: 48, col: C.accent },
+  { name: "Cache Memory", icon: "🏎️", access: "≈ 2–10 ns", capacity: "KB – a few MB (kilobytes to megabytes)", cost: "very high", role: "A small, fast copy of the main memory locations the CPU has used recently (you'll meet this properly as its own unit).", width: 48, col: C.accent },
   { name: "Main Memory (RAM)", icon: "🗄️", access: "≈ 50–100 ns", capacity: "GBs", cost: "moderate", role: "Where your running programs and their data actually live while the machine is on.", width: 68, col: C.teal },
   { name: "Auxiliary / Secondary Storage", icon: "💽", access: "≈ 5–10 ms (10,000×+ slower)", capacity: "TBs", cost: "lowest", role: "Disks/SSDs — everything survives here even when the power is off.", width: 92, col: C.orange },
 ];
@@ -262,7 +262,7 @@ function DataExplorer() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        The hierarchy isn't something you control directly — the hardware and OS decide, based
+        The hierarchy isn't something you control directly — the hardware and the OS (Operating System) decide, based
         on how "hot" (frequently used) a piece of data is. Pick a piece of data and see roughly
         where it naturally ends up.
       </p>
@@ -422,6 +422,38 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["KB", "Kilobyte", "1024 bytes.", "from Unit 0.3"],
+  ["MB", "Megabyte", "1024 KB, about a million bytes.", "new here"],
+  ["RAM", "Random-Access Memory", "Memory you can read and write; any address takes the same time to reach.", "from Unit 1.1"],
+  ["OS", "Operating System", "The manager program (Windows, Linux, Android) that runs other programs and controls the hardware.", "new here"],
+  ["ROM", "Read-Only Memory", "Memory whose contents are fixed (or rarely changed) and survive power-off.", "new here"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit4_1({ student, onUnitComplete }) {
   const sections = [
     { id: "need", label: "Why Not One?" },
@@ -495,6 +527,7 @@ export default function Unit4_1({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

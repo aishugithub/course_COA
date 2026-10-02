@@ -224,7 +224,7 @@ function ArithmeticUnit() {
   return (
     <div>
       <p style={{ color: C.muted, fontSize: 13, marginBottom: 14, lineHeight: 1.7 }}>
-        Now the circuit. Put a <strong style={{ color: C.accent }}>4-input MUX</strong> on the adder's second input:
+        Now the circuit. Put a <strong style={{ color: C.accent }}>4-input MUX</strong> (multiplexer from Unit 2.1: a 2-bit select code picks which of 4 inputs passes) on the adder's second input:
         it can feed <strong style={{ color: C.text }}>B</strong>, <strong style={{ color: C.text }}>B̄</strong>,
         <strong style={{ color: C.text }}> 0000</strong> or <strong style={{ color: C.text }}>1111</strong>. Pair that with the
         carry-in and the same adder does four operations. Press one — the whole active path lights up. (A = 5, B = 3.)
@@ -708,6 +708,36 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["INC", "Increment", "Add 1.", "from Unit 1.5"],
+  ["MUX", "Multiplexer", "A selector switch: several inputs go in, a select code picks which one comes out.", "from Unit 2.1"],
+  ["MSB", "Most Significant Bit", "The leftmost bit: it has the biggest weight.", "from Unit 1.4"],
+  ["LSB", "Least Significant Bit", "The rightmost bit: weight 1.", "from Unit 1.4"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit2_2({ student, onUnitComplete }) {
   const sections = [
     { id: "adder", label: "One Adder" },
@@ -786,6 +816,7 @@ export default function Unit2_2({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

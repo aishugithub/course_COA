@@ -467,7 +467,7 @@ function Quiz({ onComplete }) {
             <br /><br />
             <strong style={{ color: C.accent }}>Next up: Unit 2.5 — Bus Organization &amp; the Datapath.</strong>{" "}
             You can move words to and from memory. Now build the road they travel on — one bus vs three, and the interstage
-            registers RA/RB/RZ/RY/RM — before we drive a whole instruction across it.
+            registers RA/RB (the two operands), RZ (the ALU result), RY (the value to write back) and RM (data going out to memory) — before we drive a whole instruction across it.
           </div>
         </div>
       </div>
@@ -516,6 +516,42 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main — header, progress bar, tab strip, content card, continue btn
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["MDR", "Memory Data Register", "Register holding the data going to, or just arrived from, memory.", "from Unit 1.2"],
+  ["MAR", "Memory Address Register", "Register holding the address the processor wants to read or write.", "from Unit 1.2"],
+  ["MFC", "Memory-Function-Completed", "Memory's ‘I'm done’ signal after a read or write.", "from Unit 2.3"],
+  ["RTL", "Register Transfer Language", "The same arrow shorthand as RTN (Unit 1.2), used to describe each hardware step.", "from Unit 1.6"],
+  ["ALU", "Arithmetic Logic Unit", "The part of the processor that adds, subtracts, compares and does AND / OR / NOT.", "from Unit 0.2"],
+  ["RA", "Register A (datapath)", "Holds the first operand read from the register file, ready for the ALU.", "new here"],
+  ["RB", "Register B (datapath)", "Holds the second operand read from the register file.", "new here"],
+  ["RZ", "Register Z (datapath)", "Holds the ALU's result.", "new here"],
+  ["RY", "Register Y (datapath)", "Holds the value about to be written back into a register.", "new here"],
+  ["RM", "Register M (datapath)", "Holds the data on its way out to memory in a Store.", "new here"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit2_4({ student, onUnitComplete }) {
   const sections = [
     { id: "need", label: "Why Store?" },
@@ -584,6 +620,7 @@ export default function Unit2_4({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 

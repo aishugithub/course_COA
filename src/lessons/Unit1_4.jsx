@@ -272,7 +272,7 @@ function Endianness() {
 
       <Key color={C.orange}>
         Same 32-bit value, same bytes — only the <strong style={{ color: C.text }}>address order</strong> differs.
-        Big-endian: MSB at the lowest address. Little-endian: LSB at the lowest address. Both are correct; machines
+        Big-endian: MSB (Most Significant Byte, the "big end") at the lowest address. Little-endian: LSB (Least Significant Byte) at the lowest address. Both are correct; machines
         just have to agree.
       </Key>
     </div>
@@ -409,6 +409,35 @@ function Quiz({ onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 //  Main
 // ══════════════════════════════════════════════════════════════════
+// ── Word bank: every short name used in this unit, spelled out ──
+const UNIT_WORDS = [
+  ["CPU", "Central Processing Unit", "The processor: the chip that runs instructions.", "from Unit 0.1"],
+  ["MSB", "Most Significant Bit", "The leftmost bit: it has the biggest weight.", "new here"],
+  ["LSB", "Least Significant Bit", "The rightmost bit: weight 1.", "new here"],
+  ["RTN", "Register Transfer Notation", "Arrow shorthand such as R1 ← [R2] + [R3]: what moves where.", "from Unit 1.2"],
+];
+function UnitWordBank() {
+  const [open, setOpen] = useState(false);
+  if (!UNIT_WORDS.length) return null;
+  return (
+    <div style={{ marginBottom: 18, borderRadius: 8, border: `1px solid ${C.teal}44`, background: C.teal + "0D", padding: "8px 12px" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.teal, fontSize: 12, fontWeight: 700, textAlign: "left", lineHeight: 1.5 }}>
+        📖 Short names in this unit: <span style={{ fontFamily: "monospace", fontWeight: 400 }}>{UNIT_WORDS.map((w) => w[0]).join(" · ")}</span> {open ? "▲" : "▼ tap to see what they mean"}
+      </button>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          {UNIT_WORDS.map(([w, full, plain, from]) => (
+            <div key={w} style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 3 }}>
+              <span style={{ fontFamily: "monospace", color: C.teal, fontWeight: 700 }}>{w}</span> = <b style={{ color: C.text }}>{full}</b>. {plain}{" "}
+              <span style={{ fontSize: 11, color: from === "new here" ? C.yellow : C.muted }}>({from})</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Unit1_4({ student, onUnitComplete }) {
   const sections = [
     { id: "bbw", label: "Bit·Byte·Word" },
@@ -482,6 +511,7 @@ export default function Unit1_4({ student, onUnitComplete }) {
         </div>
 
         <div style={{ background: C.surface, borderRadius: 12, padding: "24px 20px", border: `1px solid ${C.border}`, minHeight: 300 }}>
+          <UnitWordBank />
           {content[activeSection]}
         </div>
 
